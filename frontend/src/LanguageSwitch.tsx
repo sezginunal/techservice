@@ -8,12 +8,13 @@ type LanguageSwitchProps = {
 
 export function LanguageSwitch({ copy, lang, onLang }: LanguageSwitchProps) {
   return (
-    <label className="field language">
-      {copy.language}
-      <select value={lang} onChange={(event) => onLang(event.target.value as Lang)}>
-        <option value="en">{copy.english}</option>
-        <option value="tr">{copy.turkish}</option>
-      </select>
-    </label>
+    <div className="segment" role="group" aria-label={copy.language}>
+      <button type="button" aria-pressed={lang === "en"} onClick={() => onLang("en")}>
+        EN
+      </button>
+      <button type="button" aria-pressed={lang === "tr"} onClick={() => onLang("tr")}>
+        TR
+      </button>
+    </div>
   );
 }

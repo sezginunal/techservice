@@ -2,6 +2,13 @@ export type Lang = "en" | "tr";
 
 const en = {
   appName: "Techservice",
+  tagline: "Staff workspace",
+  signInLead: "Enter your username and password.",
+  general: "General",
+  menu: "Menu",
+  closeMenu: "Close menu",
+  usersLead: "Create a user, change a role, or set a password.",
+  inactive: "Inactive",
   username: "Username",
   password: "Password",
   signIn: "Sign in",
@@ -34,6 +41,13 @@ const en = {
 
 const tr: typeof en = {
   appName: "Teknik servis",
+  tagline: "Personel alanı",
+  signInLead: "Kullanıcı adı ve şifreni gir.",
+  general: "Genel",
+  menu: "Menü",
+  closeMenu: "Menüyü kapat",
+  usersLead: "Kullanıcı oluştur, rolünü değiştir veya şifre belirle.",
+  inactive: "Pasif",
   username: "Kullanıcı adı",
   password: "Şifre",
   signIn: "Giriş yap",
