@@ -1,0 +1,57 @@
+---
+description: Commit messages follow Conventional Commits 1.0.0
+alwaysApply: true
+---
+
+# Commit messages
+
+Spec: https://www.conventionalcommits.org/en/v1.0.0/
+
+Every commit message uses this structure:
+
+```
+<type>[optional scope][optional !]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+## Types
+
+Lowercase. Only these:
+
+- `feat` — a new feature (SemVer MINOR)
+- `fix` — a bug fix (SemVer PATCH)
+- `docs` — documentation only
+- `style` — formatting; behavior stays the same
+- `refactor` — structural change that preserves behavior
+- `perf` — performance
+- `test` — tests only
+- `build` — build system or dependencies
+- `ci` — continuous integration
+- `chore` — other work that does not change product behavior
+- `revert` — reverts an earlier commit; a `Refs:` footer lists the reverted SHAs
+
+`feat` is a new feature. `fix` is a bug fix. Work that fits more than one type is split into separate commits.
+
+## Subject, body, footer
+
+- A scope, when present, is a lowercase noun in parentheses: `feat(work-order):`
+- `!` immediately before `:` marks a breaking change
+- The description is English, imperative, has no trailing period, and stays near 72 characters
+- The body starts one blank line after the description and explains why
+- A breaking change uses `!` and/or a `BREAKING CHANGE:` footer (uppercase token)
+- Other footers use `Token: value` or `Token #value`; spaces in the token become `-`
+
+## Examples
+
+```
+feat(work-order): assign a work order to a field technician
+
+fix(inventory): reject a second record with the same serial number
+
+feat(auth)!: bind session lifetime to the server clock
+
+BREAKING CHANGE: the client-side session lifetime is now ignored
+```
