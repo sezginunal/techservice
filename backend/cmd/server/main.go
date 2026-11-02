@@ -13,6 +13,7 @@ import (
 
 	"techservice/internal/api"
 	"techservice/internal/db"
+	"techservice/internal/store"
 )
 
 func main() {
@@ -37,6 +38,13 @@ func main() {
 
 	if err := os.MkdirAll(uploadPath, 0o755); err != nil {
 		log.Fatalf("create upload directory: %v", err)
+	}
+
+	if err := store.Migrate(ctx, database); err != nil {
+		log.Fatalf("migrate database: %v", err)
+	}
+	if err := store.EnsureAdmin(ctx, database, os.Getenv("ADMIN_USERNAME"), os.Getenv("ADMIN_PASSWORD")); err != nil {
+		log.Fatalf("initial admin: %v", err)
 	}
 
 	log.Printf("database %s", databasePath)

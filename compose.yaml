@@ -6,6 +6,8 @@ services:
       ADDR: "${ADDR}"
       DATABASE_PATH: "${DATABASE_PATH}"
       UPLOAD_PATH: "${UPLOAD_PATH}"
+      ADMIN_USERNAME: "${ADMIN_USERNAME}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
     volumes:
       - sqlite-data:/data
       - uploads:/uploads
