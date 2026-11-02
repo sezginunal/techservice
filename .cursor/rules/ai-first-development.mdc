@@ -1,0 +1,20 @@
+---
+description: Vibe-coded, AI-first implementation with senior-architect decisions
+alwaysApply: true
+---
+
+# AI-first implementation
+
+This project is vibe-coded. Write the form an AI agent can change correctly with the least ambiguity.
+
+- Put each behavior in one obvious module, with stable names and direct control flow.
+- Keep a change local to the module that already owns that behavior.
+- Add a comment only for a constraint the code cannot show.
+- Skip prose, wrappers, and layers that exist to onboard a human reader.
+- Act as the senior software architect. Decide boundaries, data flow, failure behavior, and resource use before writing the code that depends on them.
+- Leave a pattern the next agent can extend by copying the existing shape.
+
+```text
+Strong: the handler validates input, calls the owning module, and returns the result.
+Weak: a second module whose only job is to rename that call.
+```

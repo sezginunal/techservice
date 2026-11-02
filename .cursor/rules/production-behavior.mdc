@@ -1,0 +1,14 @@
+---
+description: Production behavior for a long-running local deployment
+alwaysApply: true
+---
+
+# Production behavior
+
+The deployment is a real production environment.
+
+- A failed request, bad input, or a dependency timeout stays inside that operation. The process keeps serving.
+- Validate input at the boundary of each component.
+- Release timers, connections, and file handles on every exit path, including shutdown.
+- Record the failed operation and its cause in the process log, then return a controlled error.
+- Startup and shutdown finish cleanly when a container stops.
