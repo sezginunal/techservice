@@ -1,0 +1,10 @@
+---
+description: Code, logs, and developer-facing text stay in English
+alwaysApply: true
+---
+
+# Language
+
+- Write code, identifiers, comments, logs, API error text, and commit messages in English.
+- User-visible interface copy is the exception: each string exists in English and Turkish.
+- Do not log secrets, passwords, or session tokens.

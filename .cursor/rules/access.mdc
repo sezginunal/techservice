@@ -1,0 +1,16 @@
+---
+description: Authentication invariants for passwords, admin credentials, and access
+alwaysApply: true
+---
+
+# Access
+
+- The backend decides authentication and authorization on every request. A hidden control in the frontend is not the security check.
+- A response contains only data the caller is allowed to see. Changing the request, the role in the browser, or the page address does not grant access.
+- Every screen and API except login and the health check requires an authenticated user.
+- Store passwords only as hashes. A password is at least 8 characters. The database never holds the plain password.
+- Only an admin creates or changes users, roles, and passwords. The roles are technician, owner, and admin.
+- Read `ADMIN_USERNAME` and `ADMIN_PASSWORD` from the environment. Create that admin only when no admin exists. A later start does not overwrite the stored password.
+- A session expires 7 days after login. Activity does not extend it.
+- Do not commit the admin password, hardcode it, or log it.
+- Follow `docs/features/access.md` for the login and user-management behavior after the user approves that document.

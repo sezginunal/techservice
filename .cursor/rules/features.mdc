@@ -1,0 +1,10 @@
+---
+description: Approved product behavior lives in docs/features, not in always-on rules
+alwaysApply: true
+---
+
+# Features
+
+- An invariant belongs in `.cursor/rules`. A feature belongs in `docs/features/<name>.md`.
+- Write a feature document only after the user agrees to the behavior.
+- Implement a feature only after the user approves that document.
