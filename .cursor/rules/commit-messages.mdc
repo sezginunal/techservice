@@ -1,6 +1,6 @@
 ---
-description: Commit messages follow Conventional Commits 1.0.0
-alwaysApply: true
+description: Use when writing a git commit message. Messages follow Conventional Commits 1.0.0
+alwaysApply: false
 ---
 
 # Commit messages
@@ -37,7 +37,7 @@ Lowercase. Only these:
 
 ## Subject, body, footer
 
-- A scope, when present, is a lowercase noun in parentheses: `feat(work-order):`
+- A scope, when present, is a lowercase noun in parentheses: `feat(user):`
 - `!` immediately before `:` marks a breaking change
 - The description is English, imperative, has no trailing period, and stays near 72 characters
 - The body starts one blank line after the description and explains why
@@ -47,9 +47,9 @@ Lowercase. Only these:
 ## Examples
 
 ```
-feat(work-order): assign a work order to a field technician
+feat(user): deactivate a user and delete that user's sessions
 
-fix(inventory): reject a second record with the same serial number
+fix(session): reject a session after its seven-day expiry
 
 feat(auth)!: bind session lifetime to the server clock
 

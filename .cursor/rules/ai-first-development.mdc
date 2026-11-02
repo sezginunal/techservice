@@ -1,5 +1,5 @@
 ---
-description: Vibe-coded, AI-first implementation with senior-architect decisions
+description: AI-first code shape. Ask only for workflow and large architecture
 alwaysApply: true
 ---
 
@@ -11,7 +11,8 @@ This project is vibe-coded. Write the form an AI agent can change correctly with
 - Keep a change local to the module that already owns that behavior.
 - Add a comment only for a constraint the code cannot show.
 - Skip prose, wrappers, and layers that exist to onboard a human reader.
-- Act as the senior software architect. Decide boundaries, data flow, failure behavior, and resource use before writing the code that depends on them.
+- Workflow and large architecture follow the clarify rule. Every other choice is an implementation choice: decide it, then write it.
+- Decide module boundaries, data flow, failure behavior, and resource use before writing the code that depends on them, inside the rules that already exist.
 - Leave a pattern the next agent can extend by copying the existing shape.
 
 ```text

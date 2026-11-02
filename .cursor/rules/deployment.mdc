@@ -1,14 +1,14 @@
 ---
-description: Single-host Docker deployment of backend, frontend, and database on a local network
-alwaysApply: true
+description: Containers, ports, and runtime settings for one machine on the local network
+globs: **/compose.yaml,**/.env.example,**/*Dockerfile*,**/nginx.conf
+alwaysApply: false
 ---
 
 # Deployment
 
 - Run the backend and the frontend as Docker containers on one machine.
-- The database is the SQLite file described in the database rule. It has no container and no published port.
-- That machine may be a Raspberry Pi or a much stronger server. Write for the small machine: little CPU, little memory, little disk, and no idle work.
+- Do not add a database container or publish a database port. The backend uses the SQLite file and the upload directory on named volumes.
 - Serve the application on the local network.
 - Add a process or a container only when the backend or the frontend needs it.
 - Read runtime settings from `.env`. `.env.example` lists them. Do not commit `.env`.
-- Publish the frontend on `FRONTEND_PORT` from `.env`. The browser calls `/api` on that origin, and the frontend proxies `/api` to the backend.
+- Publish the frontend on `FRONTEND_PORT` from `.env`. Do not publish the backend port. The browser calls `/api` on that origin, and the frontend proxies `/api` to the backend.

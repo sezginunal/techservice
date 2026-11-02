@@ -1,13 +1,12 @@
 ---
-description: Go backend with parallel HTTP requests and low CPU and memory use
-alwaysApply: true
+description: Go backend using the standard library HTTP server and modernc.org/sqlite
+globs: backend/**/*.go
+alwaysApply: false
 ---
 
 # Backend
 
-- The backend is Go. The frontend stays TypeScript and React.
+- The backend is Go.
 - Serve HTTP with the Go standard library. Add a web framework only after a later rule chooses one.
-- Handle requests in parallel. Keep CPU and memory use low.
-- SQLite accepts one write at a time. Reads and requests that are not writing continue in parallel.
-- A failure inside one request stays inside that request. The process keeps serving.
-- Open SQLite with modernc.org/sqlite. Listen on port 8080 inside the Docker network. Do not publish that port on the host.
+- Handle requests in parallel.
+- Open SQLite with modernc.org/sqlite. Listen on port 8080 inside the Docker network.

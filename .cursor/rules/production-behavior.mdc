@@ -1,11 +1,11 @@
 ---
-description: Production behavior for a long-running local deployment
+description: Production behavior for a long-running local deployment on a small machine
 alwaysApply: true
 ---
 
 # Production behavior
 
-The deployment is a real production environment.
+The deployment is a real production environment. The machine may be a Raspberry Pi. Use little CPU, little memory, little disk, and no idle work.
 
 - A failed request, bad input, or a dependency timeout stays inside that operation. The process keeps serving.
 - Validate input at the boundary of each component.

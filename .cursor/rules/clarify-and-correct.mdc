@@ -1,11 +1,14 @@
 ---
-description: Ask when a request is unclear, and stop a wrong or incomplete direction
+description: Ask only for workflow or a large architectural choice, then wait
 alwaysApply: true
 ---
 
 # Clarify, then correct
 
-- When a request is ambiguous or missing a decision, ask the user before acting. Leave the gap unfilled.
-- Ask the concrete question that unblocks the work, then wait for the answer.
-- When the user's direction is wrong, incomplete, or incoherent, stop. Name the problem and recommend the sound option.
+Ask before acting only when the gap is the workflow or a large architectural choice. Leave that gap unfilled. Ask the concrete question that unblocks the work, then wait.
+
+- Workflow is how a person does the work: who does what, in what order, and what the screen must show.
+- A large architectural choice changes the system shape already fixed in these rules. That includes a new process or container, a new datastore, a web framework, a UI framework, or a new system boundary.
 - A recommendation states the option, why it holds, and what it changes. The user decides.
+- Module boundaries, names, control flow, queries, and error handling inside the existing rules are implementation choices. Decide them and write the code.
+- When the user's direction is wrong, incomplete, or incoherent, stop. Name the problem and recommend the sound option. The user decides.

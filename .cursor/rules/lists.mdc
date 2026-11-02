@@ -1,6 +1,6 @@
 ---
-description: A list query filters, sorts, and pages in SQLite and returns one window of rows
-alwaysApply: true
+description: Use when adding or changing a list, search, filter, sort, or paged query
+alwaysApply: false
 ---
 
 # Lists

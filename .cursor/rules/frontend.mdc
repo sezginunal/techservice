@@ -1,6 +1,7 @@
 ---
-description: Frontend is one TypeScript and React web app for phone, tablet, PC, and TV
-alwaysApply: true
+description: One TypeScript and React app. History API navigation and index.css tokens
+globs: frontend/**/*.ts,frontend/**/*.tsx,frontend/**/*.css
+alwaysApply: false
 ---
 
 # Frontend
@@ -9,9 +10,9 @@ alwaysApply: true
 - Write it in TypeScript. The browser receives the JavaScript produced from that TypeScript.
 - Build the screens with React. TypeScript is the language. React is the UI library.
 - Use one responsive layout that stays readable and operable from a phone screen to a TV.
-- Every user-visible string exists in English and Turkish. The person using the app can switch language.
+- User-visible strings live in `frontend/src/i18n.ts`.
 - Follow the design template in `frontend/src/index.css`. Color, type, spacing, radius, and control styles are tokens in that file.
 - Reuse the template classes for buttons, fields, panels, and alerts. A widget does not invent its own colors, spacing, or radius.
 - Add a color to the template first, then use it. A screen does not introduce a one-off color.
 - UI dependencies stay free and open source.
-- Routing, styling, and other frontend libraries are not decided yet. Wait for a later rule before choosing them.
+- Navigation uses the History API in `App`. Do not add a routing library, a CSS framework, or another UI library.

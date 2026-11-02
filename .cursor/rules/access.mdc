@@ -12,5 +12,5 @@ alwaysApply: true
 - Only an admin creates or changes users, roles, and passwords. The roles are technician, owner, and admin.
 - Read `ADMIN_USERNAME` and `ADMIN_PASSWORD` from the environment. Create that admin only when no admin exists. A later start does not overwrite the stored password.
 - A session expires 7 days after login. Activity does not extend it.
-- Do not commit the admin password, hardcode it, or log it.
-- Follow `docs/features/access.md` for the login and user-management behavior after the user approves that document.
+- Do not commit the admin password or hardcode it.
+- Follow `docs/features/access.md` for login and user management.
