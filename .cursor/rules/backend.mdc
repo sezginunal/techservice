@@ -10,4 +10,4 @@ alwaysApply: true
 - Handle requests in parallel. Keep CPU and memory use low.
 - SQLite accepts one write at a time. Reads and requests that are not writing continue in parallel.
 - A failure inside one request stays inside that request. The process keeps serving.
-- The SQLite driver, ports, and resource numbers are not decided yet. Wait for a later rule before choosing them.
+- Open SQLite with modernc.org/sqlite. Listen on port 8080 inside the Docker network. Do not publish that port on the host.

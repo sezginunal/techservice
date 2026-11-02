@@ -7,7 +7,7 @@ alwaysApply: true
 
 - Store records in SQLite. Records include devices, statuses, notes, users, and file metadata.
 - Store uploaded files, including photos, on a disk volume. The database stores the path, size, type, and the record the file belongs to.
-- Keep the SQLite file and the upload directory on Docker volumes used by the backend. SQLite has no container and no published port.
+- Keep the SQLite file and the upload directory on named Docker volumes used by the backend. Recreating the container keeps both. SQLite has no container and no published port.
 - Only the backend opens the database.
 - Use WAL mode. Reads proceed during a write. One write runs at a time. Do not replace SQLite with another engine for request parallelism.
 - A backup covers the SQLite file and the upload directory together. The backup feature itself is not decided yet.
