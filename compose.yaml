@@ -1,0 +1,32 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      ADDR: "${ADDR}"
+      DATABASE_PATH: "${DATABASE_PATH}"
+      UPLOAD_PATH: "${UPLOAD_PATH}"
+    volumes:
+      - sqlite-data:/data
+      - uploads:/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/server", "-healthcheck"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "${FRONTEND_PORT}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  sqlite-data:
+  uploads:
