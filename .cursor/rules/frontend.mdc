@@ -1,0 +1,13 @@
+---
+description: Frontend is one TypeScript and React web app for phone, tablet, PC, and TV
+alwaysApply: true
+---
+
+# Frontend
+
+- The frontend is one web application. Staff open it in a browser on a phone, tablet, PC, or TV.
+- Write it in TypeScript. The browser receives the JavaScript produced from that TypeScript.
+- Build the screens with React. TypeScript is the language. React is the UI library.
+- Use one responsive layout that stays readable and operable from a phone screen to a TV.
+- UI dependencies stay free and open source.
+- Routing, styling, and other frontend libraries are not decided yet. Wait for a later rule before choosing them.

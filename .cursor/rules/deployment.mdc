@@ -5,8 +5,9 @@ alwaysApply: true
 
 # Deployment
 
-- Run the backend, the frontend, and the database as Docker containers on one machine.
+- Run the backend and the frontend as Docker containers on one machine.
+- The database is the SQLite file described in the database rule. It has no container and no published port.
 - That machine may be a Raspberry Pi or a much stronger server. Write for the small machine: little CPU, little memory, little disk, and no idle work.
 - Serve the application on the local network.
-- Add a process or a container only when the backend, the frontend, or the database needs it.
-- Language, framework, ports, and resource numbers are not decided yet. Wait for a later rule before choosing them.
+- Add a process or a container only when the backend or the frontend needs it.
+- The frontend, backend, and database are decided in their own rules. Ports and resource numbers are not decided yet. Wait for a later rule before choosing them.
