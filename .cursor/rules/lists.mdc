@@ -1,0 +1,22 @@
+---
+description: A list query filters, sorts, and pages in SQLite and returns one window of rows
+alwaysApply: true
+---
+
+# Lists
+
+A list is a window of rows. The browser does not hold a copy of the table.
+
+- The backend applies the filter, the sort, and the columns in one SQL query. The frontend does not download rows and then filter, sort, or drop fields.
+- A list response has the fields that list shows. Opening one record is a separate request for that record. A list does not include file bytes.
+- The caller may sort only by a column that list allows. The backend orders the rows and ends that order with the row id, so the next page cannot skip or repeat a row.
+- A page is addressed by a keyset: the last row's sort value and id, plus a limit. The first page has no keyset. Do not skip rows with a large offset. SQLite would still read them.
+- One request returns at most 100 rows. The backend rejects a larger page.
+- The client requests the next page when the person nears the end of the rows it already holds. That page is the buffer. The client does not request the rest of the list.
+- Changing the filter or the sort starts a new window.
+- A search waits until the person pauses or submits. Each keystroke does not send its own query.
+- The response says whether another page exists. It does not count every matching row unless that screen is built to show a total.
+- The query includes the caller's access rule. A forbidden row is not selected and then removed.
+- The screen mounts the rows in view and a small overscan once the loaded window is longer than the screen. A library for that mounting is not chosen yet.
+- A fixed set of choices, such as the three roles, is not a list window.
+- The keyset columns, and any equality or range filter that list uses, are indexed.
