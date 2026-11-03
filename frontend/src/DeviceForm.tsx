@@ -151,8 +151,8 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
     return () => controller.abort();
   }, [customerQuery, editing, onUnauthorized, selected]);
 
-  function takeFiles(list: FileList | null) {
-    return Array.from(list ?? []).map((file) => {
+  function takeFiles(files: File[]) {
+    return files.map((file) => {
       const url = URL.createObjectURL(file);
       urls.current.add(url);
       return { key: crypto.randomUUID(), file, url };
@@ -595,7 +595,7 @@ function PhotoFields({
   existing: ExistingPhoto[];
   files: LocalFile[];
   deviceId?: string;
-  onAdd: (list: FileList | null) => void;
+  onAdd: (files: File[]) => void;
   onDropExisting: (id: string) => void;
   onDropFile: (file: LocalFile) => void;
   onUnauthorized: () => void;
@@ -609,7 +609,8 @@ function PhotoFields({
           accept="image/jpeg,image/png,image/webp"
           multiple
           onChange={(event) => {
-            onAdd(event.target.files);
+            const chosen = Array.from(event.target.files ?? []);
+            onAdd(chosen);
             event.target.value = "";
           }}
         />
