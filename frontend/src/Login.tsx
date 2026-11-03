@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { ApiError, request, type Brand, type User } from "./api";
 import type { Copy, Lang } from "./i18n";
 import { LanguageSwitch } from "./LanguageSwitch";
-import { BrandMark } from "./Shell";
+import { AppVersion, BrandMark } from "./Shell";
 
 type LoginProps = {
   copy: Copy;
@@ -63,6 +63,7 @@ export function Login({ copy, lang, brand, onLang, onSuccess }: LoginProps) {
             {copy.signIn}
           </button>
         </form>
+        <AppVersion copy={copy} />
       </div>
     </main>
   );

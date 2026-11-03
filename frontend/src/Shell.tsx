@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { logoSrc, type Brand, type User } from "./api";
 import { shopName, type Copy, type Lang } from "./i18n";
 import { LanguageSwitch } from "./LanguageSwitch";
+import { appVersion } from "./version";
 
 export type NavIcon = "home" | "users" | "devices" | "customers" | "audit";
 
@@ -95,6 +96,7 @@ export function Shell({ copy, lang, user, brand, path, items, onLang, onNavigate
             <Icon name="menu" />
           </button>
           <div className="topbar-end">
+            <AppVersion copy={copy} />
             <LanguageSwitch copy={copy} lang={lang} onLang={onLang} />
           </div>
         </header>
@@ -114,6 +116,14 @@ function current(path: string, itemPath: string) {
 export function initials(username: string) {
   const trimmed = username.trim();
   return trimmed.slice(0, 2).toLocaleUpperCase();
+}
+
+export function AppVersion({ copy }: { copy: Copy }) {
+  return (
+    <p className="app-version">
+      {copy.version} {appVersion}
+    </p>
+  );
 }
 
 export function BrandMark({ copy, brand }: { copy: Copy; brand: Brand }) {

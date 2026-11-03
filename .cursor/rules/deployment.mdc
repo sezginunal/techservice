@@ -12,3 +12,4 @@ alwaysApply: false
 - Add a process or a container only when the backend or the frontend needs it.
 - Read runtime settings from `.env`. `.env.example` lists them. Do not commit `.env`.
 - Publish the frontend on `FRONTEND_PORT` from `.env`. Do not publish the backend port. The browser calls `/api` on that origin, and the frontend proxies `/api` to the backend.
+- The frontend image build context is the repository root, and its Dockerfile is `frontend/Dockerfile`, so the image can read `VERSION`.

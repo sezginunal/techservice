@@ -1,0 +1,25 @@
+---
+description: Use when creating a git commit. Bump the semantic version in VERSION.
+alwaysApply: false
+---
+
+# Version
+
+`VERSION` at the repository root is the app version. It is one line, `MAJOR.MINOR.PATCH`, with a trailing newline. The frontend reads that file when it builds. The sign-in screen and the top bar show it.
+
+Every commit bumps `VERSION` once, then stages that file with the rest of the commit. Run `scripts/bump-version` with the commit message, once. The script reads the current file (`0.0.0` when the file is missing) and writes the next version. The version only moves forward.
+
+The bump follows the commit type in the commit-messages rule:
+
+- `!` before `:` or a `BREAKING CHANGE:` / `BREAKING-CHANGE:` footer increments MAJOR and sets MINOR and PATCH to 0
+- `feat` increments MINOR and sets PATCH to 0
+- every other type increments PATCH
+
+A breaking `feat` increments MAJOR, not MINOR.
+
+```
+0.1.0 + feat: add intake                 → 0.2.0
+0.2.0 + fix: reject expired sessions     → 0.2.1
+0.2.1 + chore: record the version        → 0.2.2
+0.2.2 + feat!: drop client expiry        → 1.0.0
+```

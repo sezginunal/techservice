@@ -55,3 +55,5 @@ feat(auth)!: bind session lifetime to the server clock
 
 BREAKING CHANGE: the client-side session lifetime is now ignored
 ```
+
+Bump `VERSION` in the same commit. Follow the version rule.
