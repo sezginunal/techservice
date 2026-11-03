@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, request, type AuditItem, type Page, type Role } from "./api";
+import { DateField } from "./DateField";
 import { dayStart, formatWhen, nextDay, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
 import { End, usePaused, useWindow } from "./list";
@@ -85,14 +86,8 @@ export function Audit({ copy, lang, onUnauthorized }: Props) {
         <p className="muted">{copy.auditLead}</p>
       </header>
       <form className="filters" onSubmit={submit}>
-        <label className="field">
-          {copy.fromDate}
-          <input type="date" value={from} onChange={(input) => setFrom(input.target.value)} />
-        </label>
-        <label className="field">
-          {copy.toDate}
-          <input type="date" value={to} onChange={(input) => setTo(input.target.value)} />
-        </label>
+        <DateField copy={copy} lang={lang} label={copy.fromDate} value={from} onChange={setFrom} />
+        <DateField copy={copy} lang={lang} label={copy.toDate} value={to} onChange={setTo} />
         <label className="field">
           {copy.person}
           <input value={person} onChange={(input) => setPerson(input.target.value)} />

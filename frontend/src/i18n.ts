@@ -144,6 +144,11 @@ const en = {
   eventUserPasswordChanged: "Password changed",
   eventUserActivated: "User activated",
   eventUserDeactivated: "User deactivated",
+  datePlaceholder: "DD/MM/YYYY",
+  previousMonth: "Previous month",
+  nextMonth: "Next month",
+  clearDate: "Clear date",
+  chooseDate: "Choose a date",
 };
 
 const tr: typeof en = {
@@ -290,6 +295,11 @@ const tr: typeof en = {
   eventUserPasswordChanged: "Şifre değiştirildi",
   eventUserActivated: "Kullanıcı aktife alındı",
   eventUserDeactivated: "Kullanıcı pasife alındı",
+  datePlaceholder: "GG.AA.YYYY",
+  previousMonth: "Önceki ay",
+  nextMonth: "Sonraki ay",
+  clearDate: "Tarihi temizle",
+  chooseDate: "Tarih seç",
 };
 
 const dictionaries = { en, tr };
