@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
 import { request, type User } from "./api";
+import { Audit } from "./Audit";
+import { CustomerDetail } from "./CustomerDetail";
+import { Customers } from "./Customers";
+import { DeviceDetail } from "./DeviceDetail";
+import { DeviceForm } from "./DeviceForm";
+import { Devices } from "./Devices";
 import { Home } from "./Home";
 import { text, writeLang, type Lang } from "./i18n";
 import { Login } from "./Login";
@@ -13,9 +19,11 @@ export function App() {
   });
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
-  const [path, setPath] = useState(window.location.pathname);
+  const [location, setLocation] = useState(() => window.location.pathname + window.location.search);
 
   const copy = text(lang);
+  const url = new URL(location, window.location.origin);
+  const path = url.pathname;
 
   function changeLang(next: Lang) {
     writeLang(next);
@@ -27,7 +35,7 @@ export function App() {
   }, [lang]);
 
   useEffect(() => {
-    const onPop = () => setPath(window.location.pathname);
+    const onPop = () => setLocation(window.location.pathname + window.location.search);
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
@@ -48,7 +56,7 @@ export function App() {
 
   function go(next: string) {
     window.history.pushState({}, "", next);
-    setPath(next);
+    setLocation(window.location.pathname + window.location.search);
   }
 
   async function signOut() {
@@ -72,25 +80,74 @@ export function App() {
     return <Login copy={copy} lang={lang} onLang={changeLang} onSuccess={setUser} />;
   }
 
-  const items: NavItem[] = [{ path: "/", label: copy.home, icon: "home" }];
+  const items: NavItem[] = [
+    { path: "/", label: copy.home, icon: "home" },
+    { path: "/devices", label: copy.devices, icon: "devices" },
+    { path: "/customers", label: copy.customers, icon: "customers" },
+  ];
+  if (user.role === "admin" || user.role === "owner") {
+    items.push({ path: "/audit", label: copy.audit, icon: "audit" });
+  }
   if (user.role === "admin") {
     items.push({ path: "/users", label: copy.users, icon: "users" });
   }
 
+  const unauthorized = () => setUser(null);
+  const deviceEdit = path.match(/^\/devices\/([0-9a-f-]{36})\/edit$/);
+  const device = path.match(/^\/devices\/([0-9a-f-]{36})$/);
+  const customer = path.match(/^\/customers\/(\d+)$/);
+  const audit = path === "/audit" && user.role !== "technician";
   const usersPage = path === "/users" && user.role === "admin";
+
+  let screen = <Home copy={copy} user={user} />;
+  if (usersPage) {
+    screen = <Users copy={copy} onUnauthorized={unauthorized} />;
+  } else if (path === "/devices") {
+    screen = <Devices copy={copy} lang={lang} onNavigate={go} onUnauthorized={unauthorized} />;
+  } else if (path === "/devices/new") {
+    screen = (
+      <DeviceForm
+        copy={copy}
+        mode="create"
+        customerId={url.searchParams.get("customer")}
+        onNavigate={go}
+        onUnauthorized={unauthorized}
+      />
+    );
+  } else if (deviceEdit) {
+    screen = (
+      <DeviceForm
+        copy={copy}
+        mode="edit"
+        deviceId={deviceEdit[1]}
+        onNavigate={go}
+        onUnauthorized={unauthorized}
+      />
+    );
+  } else if (device) {
+    screen = <DeviceDetail copy={copy} lang={lang} id={device[1]} onNavigate={go} onUnauthorized={unauthorized} />;
+  } else if (path === "/customers") {
+    screen = <Customers copy={copy} onNavigate={go} onUnauthorized={unauthorized} />;
+  } else if (customer) {
+    screen = (
+      <CustomerDetail copy={copy} lang={lang} id={customer[1]} onNavigate={go} onUnauthorized={unauthorized} />
+    );
+  } else if (audit) {
+    screen = <Audit copy={copy} lang={lang} onUnauthorized={unauthorized} />;
+  }
 
   return (
     <Shell
       copy={copy}
       lang={lang}
       user={user}
-      path={usersPage ? "/users" : "/"}
+      path={audit || usersPage || path === "/" || path.startsWith("/devices") || path.startsWith("/customers") ? path : "/"}
       items={items}
       onLang={changeLang}
       onNavigate={go}
       onSignOut={() => void signOut()}
     >
-      {usersPage ? <Users copy={copy} onUnauthorized={() => setUser(null)} /> : <Home copy={copy} user={user} />}
+      {screen}
     </Shell>
   );
 }

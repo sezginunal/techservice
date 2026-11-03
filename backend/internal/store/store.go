@@ -14,12 +14,24 @@ import (
 )
 
 const (
-	RoleTechnician = "technician"
-	RoleOwner      = "owner"
-	RoleAdmin      = "admin"
-	sessionLength  = 7 * 24 * time.Hour
-	minPassword    = 8
-	maxPassword    = 72
+	RoleTechnician   = "technician"
+	RoleOwner        = "owner"
+	RoleAdmin        = "admin"
+	sessionLength    = 7 * 24 * time.Hour
+	minPassword      = 8
+	maxPassword      = 72
+	maxNameLen       = 200
+	maxNoteLen       = 4000
+	maxEmailLen      = 254
+	maxPhoneLen      = 40
+	maxSerialLen     = 100
+	maxPhotoBytes    = 8 << 20
+	maxPhotos        = 30
+	maxPage          = 100
+	defaultPage      = 50
+	timestampLayout  = "2006-01-02T15:04:05.000Z"
+	StatusRegistered = "registered"
+	MaxUploadBody    = int64(maxPhotos)*int64(maxPhotoBytes) + (1 << 20)
 )
 
 var (
@@ -31,7 +43,12 @@ var (
 	ErrLastAdmin          = errors.New("last_admin")
 	ErrNotFound           = errors.New("not_found")
 	ErrUnauthorized       = errors.New("unauthorized")
+	ErrForbidden          = errors.New("forbidden")
 	ErrAdminConfig        = errors.New("admin_config")
+	ErrInvalidLimit       = errors.New("invalid_limit")
+	ErrInvalidSort        = errors.New("invalid_sort")
+	ErrInvalidTime        = errors.New("invalid_time")
+	ErrInvalidEvent       = errors.New("invalid_event")
 
 	dummyHash = mustHash("dummy-password")
 )
@@ -65,6 +82,65 @@ func Migrate(ctx context.Context, database *sql.DB) error {
 			expires_at TEXT NOT NULL,
 			created_at TEXT NOT NULL
 		);
+		CREATE TABLE IF NOT EXISTS customers (
+			id INTEGER PRIMARY KEY,
+			name TEXT NOT NULL,
+			phone TEXT NOT NULL DEFAULT '',
+			email TEXT NOT NULL DEFAULT '',
+			name_fold TEXT NOT NULL,
+			phone_fold TEXT NOT NULL,
+			email_fold TEXT NOT NULL,
+			created_at TEXT NOT NULL
+		);
+		CREATE INDEX IF NOT EXISTS customers_name ON customers (name COLLATE NOCASE, id);
+		CREATE TABLE IF NOT EXISTS devices (
+			id TEXT PRIMARY KEY,
+			customer_id INTEGER NOT NULL REFERENCES customers(id),
+			name TEXT NOT NULL,
+			brand TEXT NOT NULL,
+			model TEXT NOT NULL,
+			serial TEXT NOT NULL DEFAULT '',
+			note TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'registered' CHECK (status = 'registered'),
+			name_fold TEXT NOT NULL,
+			brand_fold TEXT NOT NULL,
+			model_fold TEXT NOT NULL,
+			serial_fold TEXT NOT NULL,
+			created_at TEXT NOT NULL
+		);
+		CREATE INDEX IF NOT EXISTS devices_created ON devices (created_at, id);
+		CREATE INDEX IF NOT EXISTS devices_customer ON devices (customer_id, created_at, id);
+		CREATE TABLE IF NOT EXISTS parts (
+			id TEXT PRIMARY KEY,
+			device_id TEXT NOT NULL REFERENCES devices(id),
+			name TEXT NOT NULL,
+			note TEXT NOT NULL,
+			position INTEGER NOT NULL
+		);
+		CREATE INDEX IF NOT EXISTS parts_device ON parts (device_id, position);
+		CREATE TABLE IF NOT EXISTS photos (
+			id TEXT PRIMARY KEY,
+			device_id TEXT NOT NULL REFERENCES devices(id),
+			part_id TEXT REFERENCES parts(id),
+			path TEXT NOT NULL,
+			size INTEGER NOT NULL,
+			media_type TEXT NOT NULL,
+			created_at TEXT NOT NULL
+		);
+		CREATE INDEX IF NOT EXISTS photos_device ON photos (device_id, created_at, id);
+		CREATE TABLE IF NOT EXISTS audit_events (
+			id INTEGER PRIMARY KEY,
+			created_at TEXT NOT NULL,
+			actor_id INTEGER NOT NULL REFERENCES users(id),
+			actor_username TEXT NOT NULL,
+			actor_username_fold TEXT NOT NULL,
+			actor_role TEXT NOT NULL,
+			event TEXT NOT NULL,
+			subject_fold TEXT NOT NULL,
+			detail TEXT NOT NULL
+		);
+		CREATE INDEX IF NOT EXISTS audit_time ON audit_events (created_at, id);
+		CREATE INDEX IF NOT EXISTS audit_role_time ON audit_events (actor_role, created_at, id);
 	`)
 	if err != nil {
 		return fmt.Errorf("migrate: %w", err)
@@ -186,7 +262,7 @@ func ListUsers(ctx context.Context, database *sql.DB) ([]User, error) {
 	return users, nil
 }
 
-func CreateUser(ctx context.Context, database *sql.DB, username string, password string, role string) (User, error) {
+func CreateUser(ctx context.Context, database *sql.DB, actor User, username string, password string, role string) (User, error) {
 	username = strings.TrimSpace(username)
 	if username == "" || len(username) > 64 {
 		return User{}, ErrInvalidCredentials
@@ -198,9 +274,24 @@ func CreateUser(ctx context.Context, database *sql.DB, username string, password
 		return User{}, err
 	}
 
-	id, err := insertUser(ctx, database, username, password, role)
+	tx, err := database.BeginTx(ctx, nil)
+	if err != nil {
+		return User{}, fmt.Errorf("begin create user: %w", err)
+	}
+	defer tx.Rollback()
+
+	id, err := insertUser(ctx, tx, username, password, role)
 	if err != nil {
 		return User{}, err
+	}
+	if err := insertAudit(ctx, tx, actor, EventUserCreated, username+" "+role, map[string]string{
+		"username": username,
+		"role":     role,
+	}); err != nil {
+		return User{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return User{}, fmt.Errorf("commit create user: %w", err)
 	}
 	return User{ID: id, Username: username, Role: role, Active: true}, nil
 }
@@ -211,7 +302,7 @@ type UserPatch struct {
 	Active   *bool
 }
 
-func UpdateUser(ctx context.Context, database *sql.DB, id int64, patch UserPatch) (User, error) {
+func UpdateUser(ctx context.Context, database *sql.DB, actor User, id int64, patch UserPatch) (User, error) {
 	tx, err := database.BeginTx(ctx, nil)
 	if err != nil {
 		return User{}, fmt.Errorf("begin update: %w", err)
@@ -288,6 +379,33 @@ func UpdateUser(ctx context.Context, database *sql.DB, id int64, patch UserPatch
 			return User{}, fmt.Errorf("delete user sessions: %w", err)
 		}
 	}
+	if nextRole != user.Role {
+		if err := insertAudit(ctx, tx, actor, EventUserRoleChanged, user.Username+" "+user.Role+" "+nextRole, map[string]string{
+			"username": user.Username,
+			"from":     user.Role,
+			"to":       nextRole,
+		}); err != nil {
+			return User{}, err
+		}
+	}
+	if passwordChanged {
+		if err := insertAudit(ctx, tx, actor, EventUserPasswordChanged, user.Username, map[string]string{
+			"username": user.Username,
+		}); err != nil {
+			return User{}, err
+		}
+	}
+	if nextActive != user.Active {
+		event := EventUserDeactivated
+		if nextActive {
+			event = EventUserActivated
+		}
+		if err := insertAudit(ctx, tx, actor, event, user.Username, map[string]string{
+			"username": user.Username,
+		}); err != nil {
+			return User{}, err
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return User{}, fmt.Errorf("commit update: %w", err)
 	}
@@ -297,7 +415,13 @@ func UpdateUser(ctx context.Context, database *sql.DB, id int64, patch UserPatch
 	return user, nil
 }
 
-func insertUser(ctx context.Context, database *sql.DB, username string, password string, role string) (int64, error) {
+type queryer interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}
+
+func insertUser(ctx context.Context, database queryer, username string, password string, role string) (int64, error) {
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return 0, fmt.Errorf("hash password: %w", err)

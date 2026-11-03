@@ -52,10 +52,10 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           api.New(database),
+		Handler:           api.New(database, uploadPath),
 		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      30 * time.Second,
+		ReadTimeout:       120 * time.Second,
+		WriteTimeout:      120 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
 

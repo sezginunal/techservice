@@ -3,7 +3,7 @@ import type { User } from "./api";
 import type { Copy, Lang } from "./i18n";
 import { LanguageSwitch } from "./LanguageSwitch";
 
-export type NavIcon = "home" | "users";
+export type NavIcon = "home" | "users" | "devices" | "customers" | "audit";
 
 export type NavItem = {
   path: string;
@@ -157,6 +157,35 @@ function Icon({ name }: { name: NavIcon | "menu" }) {
         <circle cx="9" cy="7" r="3" />
         <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
         <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    );
+  }
+  if (name === "devices") {
+    return (
+      <svg {...props}>
+        <rect x="4" y="4" width="16" height="12" rx="2" />
+        <path d="M8 20h8" />
+        <path d="M12 16v4" />
+      </svg>
+    );
+  }
+  if (name === "customers") {
+    return (
+      <svg {...props}>
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="3" />
+      </svg>
+    );
+  }
+  if (name === "audit") {
+    return (
+      <svg {...props}>
+        <path d="M8 6h13" />
+        <path d="M8 12h13" />
+        <path d="M8 18h13" />
+        <path d="M3 6h.01" />
+        <path d="M3 12h.01" />
+        <path d="M3 18h.01" />
       </svg>
     );
   }

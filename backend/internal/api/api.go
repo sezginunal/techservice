@@ -22,7 +22,7 @@ type userResponse struct {
 	Active   bool   `json:"active"`
 }
 
-func New(database *sql.DB) http.Handler {
+func New(database *sql.DB, uploadPath string) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", health(database))
 	mux.HandleFunc("POST /api/login", login(database))
@@ -31,6 +31,15 @@ func New(database *sql.DB) http.Handler {
 	mux.HandleFunc("GET /api/users", admin(database, listUsers(database)))
 	mux.HandleFunc("POST /api/users", admin(database, createUser(database)))
 	mux.HandleFunc("PATCH /api/users/{id}", admin(database, updateUser(database)))
+	mux.HandleFunc("GET /api/customers", authenticated(database, listCustomers(database)))
+	mux.HandleFunc("GET /api/customers/{id}", authenticated(database, getCustomer(database)))
+	mux.HandleFunc("PATCH /api/customers/{id}", authenticated(database, updateCustomer(database)))
+	mux.HandleFunc("GET /api/devices", authenticated(database, listDevices(database)))
+	mux.HandleFunc("POST /api/devices", authenticated(database, registerDevice(database, uploadPath)))
+	mux.HandleFunc("GET /api/devices/{id}/photos/{photoId}", authenticated(database, getPhoto(database, uploadPath)))
+	mux.HandleFunc("GET /api/devices/{id}", authenticated(database, getDevice(database)))
+	mux.HandleFunc("PUT /api/devices/{id}", authenticated(database, updateDevice(database, uploadPath)))
+	mux.HandleFunc("GET /api/audit", authenticated(database, listAudit(database)))
 	return mux
 }
 
@@ -123,7 +132,7 @@ func createUser(database *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		user, err := store.CreateUser(r.Context(), database, body.Username, body.Password, body.Role)
+		user, err := store.CreateUser(r.Context(), database, userFrom(r.Context()), body.Username, body.Password, body.Role)
 		if err != nil {
 			writeStoreError(w, err)
 			return
@@ -150,7 +159,7 @@ func updateUser(database *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		user, err := store.UpdateUser(r.Context(), database, id, store.UserPatch{
+		user, err := store.UpdateUser(r.Context(), database, userFrom(r.Context()), id, store.UserPatch{
 			Role:     body.Role,
 			Password: body.Password,
 			Active:   body.Active,
@@ -238,6 +247,12 @@ func readJSON(w http.ResponseWriter, r *http.Request, dest any) error {
 }
 
 func writeStoreError(w http.ResponseWriter, err error) {
+	var fields *store.FieldError
+	if errors.As(err, &fields) {
+		log.Printf("validation: %v", err)
+		writeValidation(w, fields)
+		return
+	}
 	switch {
 	case errors.Is(err, store.ErrPasswordTooShort):
 		writeError(w, http.StatusBadRequest, "password_too_short")
@@ -253,10 +268,42 @@ func writeStoreError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "not_found")
 	case errors.Is(err, store.ErrInvalidCredentials):
 		writeError(w, http.StatusBadRequest, "invalid_username")
+	case errors.Is(err, store.ErrForbidden):
+		writeError(w, http.StatusForbidden, "forbidden")
+	case errors.Is(err, store.ErrInvalidLimit):
+		writeError(w, http.StatusBadRequest, "invalid_limit")
+	case errors.Is(err, store.ErrInvalidSort):
+		writeError(w, http.StatusBadRequest, "invalid_sort")
+	case errors.Is(err, store.ErrInvalidTime):
+		writeError(w, http.StatusBadRequest, "invalid_time")
+	case errors.Is(err, store.ErrInvalidEvent):
+		writeError(w, http.StatusBadRequest, "invalid_event")
 	default:
 		log.Printf("store: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal")
 	}
+}
+
+func writeValidation(w http.ResponseWriter, fields *store.FieldError) {
+	missing := fields.Missing
+	invalid := fields.Invalid
+	tooLong := fields.TooLong
+	if missing == nil {
+		missing = []string{}
+	}
+	if invalid == nil {
+		invalid = []string{}
+	}
+	if tooLong == nil {
+		tooLong = []string{}
+	}
+	writeJSON(w, http.StatusBadRequest, map[string]any{
+		"error":   "validation",
+		"missing": missing,
+		"invalid": invalid,
+		"tooLong": tooLong,
+		"photo":   fields.Photo,
+	})
 }
 
 func writeError(w http.ResponseWriter, code int, message string) {

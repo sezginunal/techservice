@@ -57,15 +57,15 @@ func TestPasswordAndLastAdmin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := CreateUser(ctx, database, "tech", "short", RoleTechnician); !errors.Is(err, ErrPasswordTooShort) {
+	if _, err := CreateUser(ctx, database, admin.User, "tech", "short", RoleTechnician); !errors.Is(err, ErrPasswordTooShort) {
 		t.Fatalf("short password: %v", err)
 	}
-	if _, err := CreateUser(ctx, database, "tech", "technician1", RoleTechnician); err != nil {
+	if _, err := CreateUser(ctx, database, admin.User, "tech", "technician1", RoleTechnician); err != nil {
 		t.Fatal(err)
 	}
 
 	role := RoleTechnician
-	if _, err := UpdateUser(ctx, database, admin.User.ID, UserPatch{Role: &role}); !errors.Is(err, ErrLastAdmin) {
+	if _, err := UpdateUser(ctx, database, admin.User, admin.User.ID, UserPatch{Role: &role}); !errors.Is(err, ErrLastAdmin) {
 		t.Fatalf("last admin: %v", err)
 	}
 }
