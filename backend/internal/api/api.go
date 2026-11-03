@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"techservice/internal/brand"
+	"techservice/internal/catalog"
 	"techservice/internal/store"
 )
 
@@ -24,11 +25,12 @@ type userResponse struct {
 	Active   bool   `json:"active"`
 }
 
-func New(database *sql.DB, uploadPath string, shop brand.Brand) http.Handler {
+func New(database *sql.DB, uploadPath string, shop brand.Brand, devices []catalog.Brand) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", health(database))
 	mux.HandleFunc("GET /api/brand", showBrand(shop))
 	mux.HandleFunc("GET /api/brand/logo", showLogo(shop))
+	mux.HandleFunc("GET /api/catalog", authenticated(database, showCatalog(devices)))
 	mux.HandleFunc("POST /api/login", login(database))
 	mux.HandleFunc("POST /api/logout", authenticated(database, logout(database)))
 	mux.HandleFunc("GET /api/session", authenticated(database, currentSession()))
@@ -54,6 +56,15 @@ func showBrand(shop brand.Brand) http.HandlerFunc {
 	body := map[string]any{"name": shop.Name, "logo": logo}
 	return func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, body)
+	}
+}
+
+func showCatalog(devices []catalog.Brand) http.HandlerFunc {
+	if devices == nil {
+		devices = []catalog.Brand{}
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, devices)
 	}
 }
 

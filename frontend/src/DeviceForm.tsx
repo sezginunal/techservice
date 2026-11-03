@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ApiError, photoSrc, request, type Customer, type Device, type Page } from "./api";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { ApiError, photoSrc, request, type CatalogBrand, type Customer, type Device, type Page } from "./api";
 import type { Copy } from "./i18n";
 import { usePaused } from "./list";
 import { PhotoButton } from "./PhotoView";
@@ -42,6 +42,7 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
+  const [catalog, setCatalog] = useState<CatalogBrand[]>([]);
   const [serial, setSerial] = useState("");
   const [note, setNote] = useState("");
   const [deviceExisting, setDeviceExisting] = useState<ExistingPhoto[]>([]);
@@ -52,6 +53,21 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
     const owned = urls.current;
     return () => owned.forEach((url) => URL.revokeObjectURL(url));
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    request<CatalogBrand[]>("/api/catalog", { signal: controller.signal })
+      .then(setCatalog)
+      .catch((err: unknown) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        if (err instanceof ApiError && err.code === "unauthorized") {
+          onUnauthorized();
+        }
+      });
+    return () => controller.abort();
+  }, [onUnauthorized]);
 
   useEffect(() => {
     if (!editing || !deviceId) {
@@ -377,14 +393,18 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
           <input value={name} onChange={(event) => setName(event.target.value)} />
         </label>
         <div className="split">
-          <label className="field">
-            {copy.brand}
-            <input value={brand} onChange={(event) => setBrand(event.target.value)} />
-          </label>
-          <label className="field">
-            {copy.model}
-            <input value={model} onChange={(event) => setModel(event.target.value)} />
-          </label>
+          <Suggest
+            label={copy.brand}
+            value={brand}
+            options={catalog.map((item) => item.brand)}
+            onChange={setBrand}
+          />
+          <Suggest
+            label={copy.model}
+            value={model}
+            options={modelsFor(catalog, brand)}
+            onChange={setModel}
+          />
         </div>
         <label className="field">
           {copy.serial}
@@ -508,6 +528,58 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
       </button>
     </form>
   );
+}
+
+function Suggest({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  const id = useId();
+  const [open, setOpen] = useState(false);
+  const query = value.trim().toLowerCase();
+  const shown = options.filter((option) => option.toLowerCase().includes(query));
+  return (
+    <div className="field">
+      <label htmlFor={id}>{label}</label>
+      <input
+        id={id}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+      />
+      {open && shown.length > 0 ? (
+        <div className="choices suggest">
+          {shown.map((option) => (
+            <button
+              className="button secondary"
+              type="button"
+              key={option}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                onChange(option);
+                setOpen(false);
+              }}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function modelsFor(catalog: CatalogBrand[], brand: string) {
+  const key = brand.trim().toLowerCase();
+  return catalog.find((item) => item.brand.toLowerCase() === key)?.models ?? [];
 }
 
 function PhotoFields({

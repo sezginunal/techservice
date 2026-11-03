@@ -10,6 +10,7 @@ services:
       ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
       COMPANY_NAME: "${COMPANY_NAME:-}"
       LOGO_PATH: "${LOGO_PATH:-}"
+      DEVICE_CATALOG_PATH: "${DEVICE_CATALOG_PATH:-}"
     volumes:
       - sqlite-data:/data
       - uploads:/uploads

@@ -5,6 +5,11 @@ export type Brand = {
   logo: boolean;
 };
 
+export type CatalogBrand = {
+  brand: string;
+  models: string[];
+};
+
 export const logoSrc = "/api/brand/logo";
 
 export type User = {
