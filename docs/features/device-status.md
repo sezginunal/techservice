@@ -42,7 +42,7 @@ A row shows the UUID, brand, model, customer name, state, and registration date.
 
 The search box stays. It matches the brand, model, serial number, customer name, phone, or UUID.
 
-A state filter offers every state, or all states. An empty choice means all states. The search and the state filter apply together.
+A state filter offers every state, or all states. An empty choice means all states. The device list address keeps the chosen state. The search and the state filter apply together.
 
 The newest registration is first.
 

@@ -1,6 +1,6 @@
 # Home
 
-Status: proposed.
+Status: approved.
 
 A signed-in technician, owner, or admin opens Home and sees the shop summary. The three roles see the same summary. A signed-out request is unauthorized.
 
@@ -55,7 +55,7 @@ Delivered devices are absent.
 
 The list shows at most 12 devices, the longest wait first. When more than 12 qualify, the screen says "Showing the longest waits." in English and "En uzun bekleyenler gösteriliyor." in Turkish.
 
-A row shows the device name, brand, model, customer name, state, the number of full days, and the time that wait started. The day count is "1 day" / "1 gün", or "{n} days" / "{n} gün". The time is labeled "Same status since" in English and "Bu durumda" in Turkish. Opening the row opens the device.
+A row shows the brand, the model, the customer name, the state, the number of full days, and the time that wait started. The day count is "1 day" / "1 gün", or "{n} days" / "{n} gün". The time is labeled "Same status since" in English and "Bu durumda" in Turkish. Opening the row opens the device.
 
 The row color deepens as the day count grows:
 
@@ -73,7 +73,7 @@ The figure "Idle 7 days or more" counts every non-delivered device that has wait
 
 ## Latest registrations
 
-The 5 newest registrations. A row shows the device name, brand, model, state, and registration time. The catalog image shows when the catalog has one. Opening the row opens the device.
+The 5 newest registrations. A row shows the brand, the model, the state, and the registration time. The catalog image shows when the catalog has one. Opening the row opens the device.
 
 The title is "Latest registrations" in English and "Son kayıtlar" in Turkish.
 

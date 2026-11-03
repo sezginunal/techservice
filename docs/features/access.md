@@ -8,7 +8,7 @@ Status: approved.
 - The screen collects a username and a password and can switch the interface between English and Turkish.
 - The language choice is stored in the browser and applies before login.
 - A failed login says that the username or password is wrong. It does not reveal which one.
-- A successful login opens a home screen that shows the signed-in name and role.
+- A successful login opens Home. The signed-in name and role stay in the sidebar.
 - An admin also gets a way to open user management. A technician or an owner does not.
 
 ## Session

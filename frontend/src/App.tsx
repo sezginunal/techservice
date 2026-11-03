@@ -131,11 +131,19 @@ export function App() {
   const audit = path === "/audit" && user.role !== "technician";
   const usersPage = path === "/users" && user.role === "admin";
 
-  let screen = <Home copy={copy} user={user} />;
+  let screen = <Home copy={copy} lang={lang} onNavigate={go} onUnauthorized={unauthorized} />;
   if (usersPage) {
     screen = <Users copy={copy} onUnauthorized={unauthorized} />;
   } else if (path === "/devices") {
-    screen = <Devices copy={copy} lang={lang} onNavigate={go} onUnauthorized={unauthorized} />;
+    screen = (
+      <Devices
+        copy={copy}
+        lang={lang}
+        status={url.searchParams.get("status") ?? ""}
+        onNavigate={go}
+        onUnauthorized={unauthorized}
+      />
+    );
   } else if (path === "/devices/new") {
     screen = (
       <DeviceForm

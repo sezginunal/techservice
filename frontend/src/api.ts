@@ -74,6 +74,59 @@ export type Device = {
   history: StatusChange[];
 };
 
+export type HomeDay = {
+  date: string;
+  count: number;
+};
+
+export type HomeStatus = {
+  status: string;
+  count: number;
+};
+
+export type HomeModel = {
+  brand: string;
+  model: string;
+  count: number;
+  image: boolean;
+};
+
+export type HomeIdle = {
+  id: string;
+  brand: string;
+  model: string;
+  customerName: string;
+  status: string;
+  days: number;
+  since: string;
+};
+
+export type HomeRecent = {
+  id: string;
+  brand: string;
+  model: string;
+  image: boolean;
+  status: string;
+  createdAt: string;
+};
+
+export type HomeSummary = {
+  registered7: number;
+  registered30: number;
+  days: HomeDay[];
+  inShop: number;
+  delivered: number;
+  idle7: number;
+  waitingPart: number;
+  ready: number;
+  byStatus: HomeStatus[];
+  models: HomeModel[];
+  other: number;
+  unchanged: HomeIdle[];
+  unchangedMore: boolean;
+  latest: HomeRecent[];
+};
+
 export type DeviceItem = {
   id: string;
   brand: string;

@@ -35,6 +35,7 @@ func New(database *sql.DB, uploadPath string, shop brand.Brand, devices catalog.
 	mux.HandleFunc("POST /api/login", login(database))
 	mux.HandleFunc("POST /api/logout", authenticated(database, logout(database)))
 	mux.HandleFunc("GET /api/session", authenticated(database, currentSession()))
+	mux.HandleFunc("GET /api/home", authenticated(database, homeSummary(database, devices)))
 	mux.HandleFunc("GET /api/users", admin(database, listUsers(database)))
 	mux.HandleFunc("POST /api/users", admin(database, createUser(database)))
 	mux.HandleFunc("PATCH /api/users/{id}", admin(database, updateUser(database)))

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { ApiError, request, type DeviceItem, type Page } from "./api";
 import { ModelIcon } from "./ModelIcon";
 import { deviceStatuses, formatWhen, statusLabel } from "./format";
@@ -9,20 +9,21 @@ import { problemText } from "./problems";
 type Props = {
   copy: Copy;
   lang: Lang;
+  status: string;
   onNavigate: (path: string) => void;
   onUnauthorized: () => void;
 };
 
-export function Devices({ copy, lang, onNavigate, onUnauthorized }: Props) {
+export function Devices({ copy, lang, status, onNavigate, onUnauthorized }: Props) {
   const search = useQuery();
-  const [status, setStatus] = useState("");
-  const list = useWindow(`${search.query}|${status}`, (after: DeviceItem | null, signal) => {
+  const selected = (deviceStatuses as readonly string[]).includes(status) ? status : "";
+  const list = useWindow(`${search.query}|${selected}`, (after: DeviceItem | null, signal) => {
     const params = new URLSearchParams();
     if (search.query) {
       params.set("q", search.query);
     }
-    if (status) {
-      params.set("status", status);
+    if (selected) {
+      params.set("status", selected);
     }
     if (after) {
       params.set("after", after.createdAt);
@@ -61,7 +62,13 @@ export function Devices({ copy, lang, onNavigate, onUnauthorized }: Props) {
         </label>
         <label className="field">
           {copy.status}
-          <select value={status} onChange={(event) => setStatus(event.target.value)}>
+          <select
+            value={selected}
+            onChange={(event) => {
+              const next = event.target.value;
+              onNavigate(next ? `/devices?status=${encodeURIComponent(next)}` : "/devices");
+            }}
+          >
             <option value="">{copy.allStatuses}</option>
             {deviceStatuses.map((id) => (
               <option key={id} value={id}>
@@ -116,7 +123,7 @@ export function Devices({ copy, lang, onNavigate, onUnauthorized }: Props) {
           </tbody>
         </table>
         {empty ? (
-          <p className="muted empty">{search.query || status ? copy.noDeviceMatches : copy.noDevices}</p>
+          <p className="muted empty">{search.query || selected ? copy.noDeviceMatches : copy.noDevices}</p>
         ) : null}
         {list.loading ? <p className="muted empty">{copy.loading}</p> : null}
         <End enabled={list.hasMore && !list.loading} onEnd={list.more} />
