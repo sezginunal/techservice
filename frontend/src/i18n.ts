@@ -2,6 +2,7 @@ export type Lang = "en" | "tr";
 
 const en = {
   appName: "Techservice",
+  service: "Teknik Servis",
   tagline: "Staff workspace",
   signInLead: "Enter your username and password.",
   general: "General",
@@ -146,6 +147,7 @@ const en = {
 
 const tr: typeof en = {
   appName: "Teknik servis",
+  service: "Teknik Servis",
   tagline: "Personel alanı",
   signInLead: "Kullanıcı adı ve şifreni gir.",
   general: "Genel",
@@ -299,6 +301,14 @@ export function readLang(): Lang {
 
 export function writeLang(lang: Lang) {
   localStorage.setItem(storageKey, lang);
+}
+
+export function shopName(copy: Copy, company: string) {
+  const name = company.trim();
+  if (!name) {
+    return copy.appName;
+  }
+  return `${name} ${copy.service}`;
 }
 
 export function text(lang: Lang) {

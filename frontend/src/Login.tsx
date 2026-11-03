@@ -1,16 +1,18 @@
 import { useState, type FormEvent } from "react";
-import { ApiError, request, type User } from "./api";
+import { ApiError, request, type Brand, type User } from "./api";
 import type { Copy, Lang } from "./i18n";
 import { LanguageSwitch } from "./LanguageSwitch";
+import { BrandMark } from "./Shell";
 
 type LoginProps = {
   copy: Copy;
   lang: Lang;
+  brand: Brand;
   onLang: (lang: Lang) => void;
   onSuccess: (user: User) => void;
 };
 
-export function Login({ copy, lang, onLang, onSuccess }: LoginProps) {
+export function Login({ copy, lang, brand, onLang, onSuccess }: LoginProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -36,15 +38,7 @@ export function Login({ copy, lang, onLang, onSuccess }: LoginProps) {
           <LanguageSwitch copy={copy} lang={lang} onLang={onLang} />
         </div>
         <div className="auth-brand">
-          <span className="mark" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4L15 12l-3-3 2.7-2.7z" />
-            </svg>
-          </span>
-          <span className="brand-name">
-            <strong>{copy.appName}</strong>
-            <span>{copy.tagline}</span>
-          </span>
+          <BrandMark copy={copy} brand={brand} />
         </div>
         <form className="panel stack" onSubmit={submit}>
           <div className="page-head">

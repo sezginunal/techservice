@@ -8,9 +8,12 @@ services:
       UPLOAD_PATH: "${UPLOAD_PATH}"
       ADMIN_USERNAME: "${ADMIN_USERNAME}"
       ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
+      COMPANY_NAME: "${COMPANY_NAME:-}"
+      LOGO_PATH: "${LOGO_PATH:-}"
     volumes:
       - sqlite-data:/data
       - uploads:/uploads
+      - ./brand:/brand:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "/server", "-healthcheck"]

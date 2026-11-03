@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
-import type { User } from "./api";
-import type { Copy, Lang } from "./i18n";
+import { logoSrc, type Brand, type User } from "./api";
+import { shopName, type Copy, type Lang } from "./i18n";
 import { LanguageSwitch } from "./LanguageSwitch";
 
 export type NavIcon = "home" | "users" | "devices" | "customers" | "audit";
@@ -15,6 +15,7 @@ type ShellProps = {
   copy: Copy;
   lang: Lang;
   user: User;
+  brand: Brand;
   path: string;
   items: NavItem[];
   onLang: (lang: Lang) => void;
@@ -23,7 +24,7 @@ type ShellProps = {
   children: ReactNode;
 };
 
-export function Shell({ copy, lang, user, path, items, onLang, onNavigate, onSignOut, children }: ShellProps) {
+export function Shell({ copy, lang, user, brand, path, items, onLang, onNavigate, onSignOut, children }: ShellProps) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -47,11 +48,7 @@ export function Shell({ copy, lang, user, path, items, onLang, onNavigate, onSig
     <div className="app">
       <aside className="sidebar" data-open={open ? "true" : "false"}>
         <button className="brand" type="button" onClick={() => onNavigate("/")}>
-          <Mark />
-          <span className="brand-name">
-            <strong>{copy.appName}</strong>
-            <span>{copy.tagline}</span>
-          </span>
+          <BrandMark copy={copy} brand={brand} />
         </button>
         <nav className="nav" aria-label={copy.general}>
           <p className="nav-label">{copy.general}</p>
@@ -117,6 +114,18 @@ function current(path: string, itemPath: string) {
 export function initials(username: string) {
   const trimmed = username.trim();
   return trimmed.slice(0, 2).toLocaleUpperCase();
+}
+
+export function BrandMark({ copy, brand }: { copy: Copy; brand: Brand }) {
+  return (
+    <>
+      {brand.logo ? <img className="mark" src={logoSrc} alt="" /> : <Mark />}
+      <span className="brand-name">
+        <strong>{shopName(copy, brand.name)}</strong>
+        <span>{copy.tagline}</span>
+      </span>
+    </>
+  );
 }
 
 function Mark() {

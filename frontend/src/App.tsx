@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { request, type User } from "./api";
+import { logoSrc, request, type Brand, type User } from "./api";
 import { Audit } from "./Audit";
 import { CustomerDetail } from "./CustomerDetail";
 import { Customers } from "./Customers";
@@ -7,7 +7,7 @@ import { DeviceDetail } from "./DeviceDetail";
 import { DeviceForm } from "./DeviceForm";
 import { Devices } from "./Devices";
 import { Home } from "./Home";
-import { text, writeLang, type Lang } from "./i18n";
+import { shopName, text, writeLang, type Lang } from "./i18n";
 import { Login } from "./Login";
 import { Shell, type NavItem } from "./Shell";
 import { Users } from "./Users";
@@ -18,6 +18,7 @@ export function App() {
     return value === "tr" ? "tr" : "en";
   });
   const [user, setUser] = useState<User | null>(null);
+  const [brand, setBrand] = useState<Brand>({ name: "", logo: false });
   const [ready, setReady] = useState(false);
   const [location, setLocation] = useState(() => window.location.pathname + window.location.search);
 
@@ -33,6 +34,24 @@ export function App() {
   useEffect(() => {
     document.documentElement.lang = lang;
   }, [lang]);
+
+  useEffect(() => {
+    document.title = shopName(copy, brand.name);
+  }, [brand.name, copy.appName]);
+
+  useEffect(() => {
+    const current = document.querySelector<HTMLLinkElement>("link[rel='icon']");
+    if (!brand.logo) {
+      current?.remove();
+      return;
+    }
+    const link = current ?? document.createElement("link");
+    link.rel = "icon";
+    link.href = logoSrc;
+    if (!current) {
+      document.head.appendChild(link);
+    }
+  }, [brand.logo]);
 
   useEffect(() => {
     const onPop = () => setLocation(window.location.pathname + window.location.search);
@@ -51,6 +70,19 @@ export function App() {
         setUser(null);
       })
       .finally(() => setReady(true));
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    request<Brand>("/api/brand", { signal: controller.signal })
+      .then((loaded) => setBrand(loaded))
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return;
+        }
+        setBrand({ name: "", logo: false });
+      });
     return () => controller.abort();
   }, []);
 
@@ -77,7 +109,7 @@ export function App() {
   }
 
   if (!user) {
-    return <Login copy={copy} lang={lang} onLang={changeLang} onSuccess={setUser} />;
+    return <Login copy={copy} lang={lang} brand={brand} onLang={changeLang} onSuccess={setUser} />;
   }
 
   const items: NavItem[] = [
@@ -143,6 +175,7 @@ export function App() {
       user={user}
       path={audit || usersPage || path === "/" || path.startsWith("/devices") || path.startsWith("/customers") ? path : "/"}
       items={items}
+      brand={brand}
       onLang={changeLang}
       onNavigate={go}
       onSignOut={() => void signOut()}

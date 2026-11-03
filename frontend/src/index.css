@@ -341,6 +341,11 @@ input[type="checkbox"] {
   color: var(--color-accent-text);
 }
 
+img.mark {
+  object-fit: contain;
+  background: transparent;
+}
+
 .brand-name {
   display: grid;
   min-width: 0;

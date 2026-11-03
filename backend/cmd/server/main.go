@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"techservice/internal/api"
+	"techservice/internal/brand"
 	"techservice/internal/db"
 	"techservice/internal/store"
 )
@@ -50,9 +51,11 @@ func main() {
 	log.Printf("database %s", databasePath)
 	log.Printf("uploads %s", uploadPath)
 
+	shop := brand.Load(brand.Dir, os.Getenv("COMPANY_NAME"), os.Getenv("LOGO_PATH"))
+
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           api.New(database, uploadPath),
+		Handler:           api.New(database, uploadPath, shop),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       120 * time.Second,
 		WriteTimeout:      120 * time.Second,

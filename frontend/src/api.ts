@@ -1,5 +1,12 @@
 export type Role = "technician" | "owner" | "admin";
 
+export type Brand = {
+  name: string;
+  logo: boolean;
+};
+
+export const logoSrc = "/api/brand/logo";
+
 export type User = {
   id: number;
   username: string;

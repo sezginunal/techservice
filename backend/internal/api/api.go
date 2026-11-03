@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -10,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"techservice/internal/brand"
 	"techservice/internal/store"
 )
 
@@ -22,9 +24,11 @@ type userResponse struct {
 	Active   bool   `json:"active"`
 }
 
-func New(database *sql.DB, uploadPath string) http.Handler {
+func New(database *sql.DB, uploadPath string, shop brand.Brand) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", health(database))
+	mux.HandleFunc("GET /api/brand", showBrand(shop))
+	mux.HandleFunc("GET /api/brand/logo", showLogo(shop))
 	mux.HandleFunc("POST /api/login", login(database))
 	mux.HandleFunc("POST /api/logout", authenticated(database, logout(database)))
 	mux.HandleFunc("GET /api/session", authenticated(database, currentSession()))
@@ -43,6 +47,29 @@ func New(database *sql.DB, uploadPath string) http.Handler {
 	mux.HandleFunc("PUT /api/devices/{id}", authenticated(database, updateDevice(database, uploadPath)))
 	mux.HandleFunc("GET /api/audit", authenticated(database, listAudit(database)))
 	return mux
+}
+
+func showBrand(shop brand.Brand) http.HandlerFunc {
+	_, _, logo := shop.Logo()
+	body := map[string]any{"name": shop.Name, "logo": logo}
+	return func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, body)
+	}
+}
+
+func showLogo(shop brand.Brand) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body, media, ok := shop.Logo()
+		if !ok {
+			writeError(w, http.StatusNotFound, "not_found")
+			return
+		}
+		w.Header().Set("Content-Type", media)
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
+		w.Header().Set("Cache-Control", "no-cache")
+		http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(body))
+	}
 }
 
 func health(database *sql.DB) http.HandlerFunc {
