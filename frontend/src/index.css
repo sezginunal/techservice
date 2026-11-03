@@ -19,6 +19,7 @@
   --color-danger-soft: #fef2f2;
   --color-success: #166534;
   --color-success-soft: #dcfce7;
+  --color-scrim: rgba(24, 24, 27, 0.84);
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -635,6 +636,63 @@ input[type="checkbox"] {
   object-fit: cover;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+}
+
+.photo-open {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.photo-open img {
+  display: block;
+}
+
+.photo-open:hover img,
+.photo-open:focus-visible img {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+.photo-view {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: var(--color-scrim);
+}
+
+.photo-view-frame {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  max-width: 100%;
+}
+
+.photo-view img {
+  max-width: min(100%, 72rem);
+  max-height: calc(100vh - 8rem);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border: 0;
+  border-radius: var(--radius-sm);
+}
+
+.photo-view-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.photo-view .button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .uuid {

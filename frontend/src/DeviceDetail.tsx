@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, photoSrc, request, statusPhotoSrc, type Device } from "./api";
 import { deviceStatuses, formatWhen, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
+import { PhotoButton } from "./PhotoView";
 import { fileProblem, problemText } from "./problems";
 
 type Props = {
@@ -111,7 +112,7 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
           </p>
         ) : null}
         <p>{device.note}</p>
-        <PhotoRow deviceId={device.id} photos={device.photos} />
+        <PhotoRow copy={copy} deviceId={device.id} photos={device.photos} onUnauthorized={onUnauthorized} />
       </section>
       <section className="panel stack">
         <h2>{copy.parts}</h2>
@@ -120,7 +121,7 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
           <div className="stack part" key={part.id}>
             <h2>{part.name}</h2>
             <p>{part.note}</p>
-            <PhotoRow deviceId={device.id} photos={part.photos} />
+            <PhotoRow copy={copy} deviceId={device.id} photos={part.photos} onUnauthorized={onUnauthorized} />
           </div>
         ))}
       </section>
@@ -167,7 +168,15 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
               {statusLabel(change.from, copy)} → {statusLabel(change.to, copy)}
             </p>
             {change.note ? <p>{change.note}</p> : null}
-            {change.hasPhoto ? <img className="thumb" src={statusPhotoSrc(device.id, change.id)} alt="" /> : null}
+            {change.hasPhoto ? (
+              <PhotoButton
+                copy={copy}
+                className="thumb"
+                src={statusPhotoSrc(device.id, change.id)}
+                name={String(change.id)}
+                onUnauthorized={onUnauthorized}
+              />
+            ) : null}
           </div>
         ))}
       </section>
@@ -175,14 +184,31 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
   );
 }
 
-function PhotoRow({ deviceId, photos }: { deviceId: string; photos: { id: string }[] }) {
+function PhotoRow({
+  copy,
+  deviceId,
+  photos,
+  onUnauthorized,
+}: {
+  copy: Copy;
+  deviceId: string;
+  photos: { id: string }[];
+  onUnauthorized: () => void;
+}) {
   if (photos.length === 0) {
     return null;
   }
   return (
     <div className="photos">
       {photos.map((photo) => (
-        <img key={photo.id} className="thumb" src={photoSrc(deviceId, photo.id)} alt="" />
+        <PhotoButton
+          key={photo.id}
+          copy={copy}
+          className="thumb"
+          src={photoSrc(deviceId, photo.id)}
+          name={photo.id}
+          onUnauthorized={onUnauthorized}
+        />
       ))}
     </div>
   );

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError, photoSrc, request, type Customer, type Device, type Page } from "./api";
 import type { Copy } from "./i18n";
 import { usePaused } from "./list";
+import { PhotoButton } from "./PhotoView";
 import { fileProblem, maxPhotos, problemText } from "./problems";
 
 type LocalFile = { key: string; file: File; url: string };
@@ -399,6 +400,7 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
           existing={deviceExisting}
           files={deviceFiles}
           deviceId={deviceId}
+          onUnauthorized={onUnauthorized}
           onAdd={(list) => setDeviceFiles((current) => [...current, ...takeFiles(list)])}
           onDropExisting={(id) => setDeviceExisting((current) => current.filter((photo) => photo.id !== id))}
           onDropFile={(file) => {
@@ -470,6 +472,7 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
               existing={part.existing}
               files={part.files}
               deviceId={deviceId}
+              onUnauthorized={onUnauthorized}
               onAdd={(list) =>
                 setParts((current) =>
                   current.map((item) =>
@@ -516,6 +519,7 @@ function PhotoFields({
   onAdd,
   onDropExisting,
   onDropFile,
+  onUnauthorized,
 }: {
   copy: Copy;
   label: string;
@@ -525,6 +529,7 @@ function PhotoFields({
   onAdd: (list: FileList | null) => void;
   onDropExisting: (id: string) => void;
   onDropFile: (file: LocalFile) => void;
+  onUnauthorized: () => void;
 }) {
   return (
     <div className="stack">
@@ -543,7 +548,14 @@ function PhotoFields({
       <div className="photos">
         {existing.map((photo) => (
           <figure className="photo" key={photo.id}>
-            {deviceId ? <img src={photoSrc(deviceId, photo.id)} alt="" /> : null}
+            {deviceId ? (
+              <PhotoButton
+                copy={copy}
+                src={photoSrc(deviceId, photo.id)}
+                name={photo.id}
+                onUnauthorized={onUnauthorized}
+              />
+            ) : null}
             <button className="button secondary" type="button" onClick={() => onDropExisting(photo.id)}>
               {copy.removePhoto}
             </button>
@@ -551,7 +563,7 @@ function PhotoFields({
         ))}
         {files.map((file) => (
           <figure className="photo" key={file.key}>
-            <img src={file.url} alt="" />
+            <PhotoButton copy={copy} src={file.url} name={file.file.name} onUnauthorized={onUnauthorized} />
             <button className="button secondary" type="button" onClick={() => onDropFile(file)}>
               {copy.removePhoto}
             </button>
