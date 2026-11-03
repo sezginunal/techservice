@@ -5,12 +5,22 @@ export type Brand = {
   logo: boolean;
 };
 
+export type CatalogModel = {
+  name: string;
+  image: boolean;
+};
+
 export type CatalogBrand = {
   brand: string;
-  models: string[];
+  models: CatalogModel[];
 };
 
 export const logoSrc = "/api/brand/logo";
+
+export function catalogImageSrc(brand: string, model: string) {
+  const params = new URLSearchParams({ brand, model });
+  return `/api/catalog/image?${params}`;
+}
 
 export type User = {
   id: number;
@@ -54,6 +64,7 @@ export type Device = {
   name: string;
   brand: string;
   model: string;
+  image: boolean;
   serial: string;
   note: string;
   status: string;
@@ -69,6 +80,7 @@ export type DeviceItem = {
   name: string;
   brand: string;
   model: string;
+  image: boolean;
   customerName: string;
   status: string;
   createdAt: string;

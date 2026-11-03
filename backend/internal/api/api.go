@@ -25,12 +25,13 @@ type userResponse struct {
 	Active   bool   `json:"active"`
 }
 
-func New(database *sql.DB, uploadPath string, shop brand.Brand, devices []catalog.Brand) http.Handler {
+func New(database *sql.DB, uploadPath string, shop brand.Brand, devices catalog.Index) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", health(database))
 	mux.HandleFunc("GET /api/brand", showBrand(shop))
 	mux.HandleFunc("GET /api/brand/logo", showLogo(shop))
 	mux.HandleFunc("GET /api/catalog", authenticated(database, showCatalog(devices)))
+	mux.HandleFunc("GET /api/catalog/image", authenticated(database, showModelImage(devices)))
 	mux.HandleFunc("POST /api/login", login(database))
 	mux.HandleFunc("POST /api/logout", authenticated(database, logout(database)))
 	mux.HandleFunc("GET /api/session", authenticated(database, currentSession()))
@@ -40,13 +41,13 @@ func New(database *sql.DB, uploadPath string, shop brand.Brand, devices []catalo
 	mux.HandleFunc("GET /api/customers", authenticated(database, listCustomers(database)))
 	mux.HandleFunc("GET /api/customers/{id}", authenticated(database, getCustomer(database)))
 	mux.HandleFunc("PATCH /api/customers/{id}", authenticated(database, updateCustomer(database)))
-	mux.HandleFunc("GET /api/devices", authenticated(database, listDevices(database)))
-	mux.HandleFunc("POST /api/devices", authenticated(database, registerDevice(database, uploadPath)))
+	mux.HandleFunc("GET /api/devices", authenticated(database, listDevices(database, devices)))
+	mux.HandleFunc("POST /api/devices", authenticated(database, registerDevice(database, uploadPath, devices)))
 	mux.HandleFunc("GET /api/devices/{id}/photos/{photoId}", authenticated(database, getPhoto(database, uploadPath)))
 	mux.HandleFunc("GET /api/devices/{id}/status/{changeId}/photo", authenticated(database, getStatusPhoto(database, uploadPath)))
-	mux.HandleFunc("POST /api/devices/{id}/status", authenticated(database, changeDeviceStatus(database, uploadPath)))
-	mux.HandleFunc("GET /api/devices/{id}", authenticated(database, getDevice(database)))
-	mux.HandleFunc("PUT /api/devices/{id}", authenticated(database, updateDevice(database, uploadPath)))
+	mux.HandleFunc("POST /api/devices/{id}/status", authenticated(database, changeDeviceStatus(database, uploadPath, devices)))
+	mux.HandleFunc("GET /api/devices/{id}", authenticated(database, getDevice(database, devices)))
+	mux.HandleFunc("PUT /api/devices/{id}", authenticated(database, updateDevice(database, uploadPath, devices)))
 	mux.HandleFunc("GET /api/audit", authenticated(database, listAudit(database)))
 	return mux
 }
@@ -59,12 +60,35 @@ func showBrand(shop brand.Brand) http.HandlerFunc {
 	}
 }
 
-func showCatalog(devices []catalog.Brand) http.HandlerFunc {
-	if devices == nil {
-		devices = []catalog.Brand{}
-	}
+func showCatalog(devices catalog.Index) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, devices)
+		body := make([]map[string]any, 0, len(devices.Brands))
+		for _, item := range devices.Brands {
+			models := make([]map[string]any, 0, len(item.Models))
+			for _, model := range item.Models {
+				models = append(models, map[string]any{
+					"name":  model,
+					"image": devices.Has(item.Brand, model),
+				})
+			}
+			body = append(body, map[string]any{"brand": item.Brand, "models": models})
+		}
+		writeJSON(w, http.StatusOK, body)
+	}
+}
+
+func showModelImage(devices catalog.Index) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body, media, ok := devices.Open(r.URL.Query().Get("brand"), r.URL.Query().Get("model"))
+		if !ok {
+			writeError(w, http.StatusNotFound, "not_found")
+			return
+		}
+		w.Header().Set("Content-Type", media)
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
+		w.Header().Set("Cache-Control", "no-cache")
+		http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(body))
 	}
 }
 

@@ -29,6 +29,14 @@ The file is an array. Each element is one brand.
 
 Changing `.env` and starting the app again applies the new file. This feature has no screen that edits the catalog.
 
+## Model image
+
+A model image is a file under `brand/devices/`. The JSON does not name it. The directory is the brand and the file is the model. `Acme` / `S1` is `/brand/devices/acme/s1.webp`. `North Wind` / `Mini 2` is `/brand/devices/north-wind/mini-2.webp`. `Helios` / `XL+` is `/brand/devices/helios/xl-plus.webp`.
+
+The name is lowercase. A `+` becomes `plus`. Any other run of characters that are not letters or digits becomes one hyphen. A hyphen at either end is removed. The file is WebP, PNG, or JPEG, in that order when more than one is present. A file larger than 2 MB, a file of another type, or a path outside `brand/devices/` is ignored. The process log records that cause. The screen shows no icon for that model, and the app still starts.
+
+The image is not copied onto the device. Adding or removing the file changes what the screen shows the next time it loads. A brand and model that do not match a catalog model have no icon. The match ignores surrounding space and letter case.
+
 ## The screen
 
 The registration screen and the correction screen use the same brand and model fields.
@@ -38,6 +46,8 @@ The brand field suggests the catalog brands as the operator types. The operator 
 When the brand matches a catalog brand, the model field suggests that brand's models. The match ignores surrounding space and letter case. When the brand matches none, the model field has no suggestions. The operator selects a model or leaves a model the catalog does not list.
 
 Selecting a suggestion fills that field with the catalog text. The required-field checks stay as they are in intake.
+
+A suggestion row shows the model image at icon size when that model has one. The device list and the device detail show the same icon when the stored brand and model match that catalog model. A model with no image shows the text alone.
 
 ## Not in this feature
 

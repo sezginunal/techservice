@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, photoSrc, request, statusPhotoSrc, type Device } from "./api";
+import { ModelIcon } from "./ModelIcon";
 import { deviceStatuses, formatWhen, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
 import { PhotoButton } from "./PhotoView";
@@ -103,7 +104,8 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
       </section>
       <section className="panel stack">
         <h2>{copy.devices}</h2>
-        <p>
+        <p className="with-icon">
+          {device.image ? <ModelIcon brand={device.brand} model={device.model} /> : null}
           {device.brand} {device.model}
         </p>
         {device.serial ? (

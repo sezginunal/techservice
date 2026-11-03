@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ApiError, request, type DeviceItem, type Page } from "./api";
+import { ModelIcon } from "./ModelIcon";
 import { deviceStatuses, formatWhen, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
 import { End, useQuery, useWindow } from "./list";
@@ -96,7 +97,12 @@ export function Devices({ copy, lang, onNavigate, onUnauthorized }: Props) {
                 </td>
                 <td data-label={copy.deviceName}>{item.name}</td>
                 <td data-label={copy.brand}>{item.brand}</td>
-                <td data-label={copy.model}>{item.model}</td>
+                <td data-label={copy.model}>
+                  <span className="with-icon">
+                    {item.image ? <ModelIcon brand={item.brand} model={item.model} /> : null}
+                    {item.model}
+                  </span>
+                </td>
                 <td data-label={copy.customer}>{item.customerName}</td>
                 <td data-label={copy.status}>
                   <span className="badge">{statusLabel(item.status, copy)}</span>

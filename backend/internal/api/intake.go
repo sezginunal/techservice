@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"techservice/internal/catalog"
 	"techservice/internal/store"
 )
 
@@ -93,7 +94,7 @@ func updateCustomer(database *sql.DB) http.HandlerFunc {
 	}
 }
 
-func listDevices(database *sql.DB) http.HandlerFunc {
+func listDevices(database *sql.DB, images catalog.Index) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limit, err := queryLimit(r)
 		if err != nil {
@@ -136,24 +137,25 @@ func listDevices(database *sql.DB) http.HandlerFunc {
 				"customerName": item.CustomerName,
 				"status":       item.Status,
 				"createdAt":    store.FormatTime(item.CreatedAt),
+				"image":        images.Has(item.Brand, item.Model),
 			})
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"items": items, "hasMore": page.HasMore})
 	}
 }
 
-func getDevice(database *sql.DB) http.HandlerFunc {
+func getDevice(database *sql.DB, images catalog.Index) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		device, err := store.GetDevice(r.Context(), database, r.PathValue("id"))
 		if err != nil {
 			writeStoreError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, deviceJSON(device))
+		writeJSON(w, http.StatusOK, deviceJSON(device, images))
 	}
 }
 
-func registerDevice(database *sql.DB, root string) http.HandlerFunc {
+func registerDevice(database *sql.DB, root string, images catalog.Index) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			CustomerID    *int64 `json:"customerId"`
@@ -200,11 +202,11 @@ func registerDevice(database *sql.DB, root string) http.HandlerFunc {
 			writeStoreError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusCreated, deviceJSON(device))
+		writeJSON(w, http.StatusCreated, deviceJSON(device, images))
 	}
 }
 
-func updateDevice(database *sql.DB, root string) http.HandlerFunc {
+func updateDevice(database *sql.DB, root string, images catalog.Index) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			Name          string `json:"name"`
@@ -253,11 +255,11 @@ func updateDevice(database *sql.DB, root string) http.HandlerFunc {
 			writeStoreError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, deviceJSON(device))
+		writeJSON(w, http.StatusOK, deviceJSON(device, images))
 	}
 }
 
-func changeDeviceStatus(database *sql.DB, root string) http.HandlerFunc {
+func changeDeviceStatus(database *sql.DB, root string, images catalog.Index) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			Status string `json:"status"`
@@ -274,7 +276,7 @@ func changeDeviceStatus(database *sql.DB, root string) http.HandlerFunc {
 			writeStoreError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, deviceJSON(device))
+		writeJSON(w, http.StatusOK, deviceJSON(device, images))
 	}
 }
 
@@ -332,7 +334,7 @@ func customerJSON(customer store.Customer) map[string]any {
 	}
 }
 
-func deviceJSON(device store.Device) map[string]any {
+func deviceJSON(device store.Device, images catalog.Index) map[string]any {
 	parts := make([]map[string]any, 0, len(device.Parts))
 	for _, part := range device.Parts {
 		parts = append(parts, map[string]any{
@@ -347,6 +349,7 @@ func deviceJSON(device store.Device) map[string]any {
 		"name":      device.Name,
 		"brand":     device.Brand,
 		"model":     device.Model,
+		"image":     images.Has(device.Brand, device.Model),
 		"serial":    device.Serial,
 		"note":      device.Note,
 		"status":    device.Status,

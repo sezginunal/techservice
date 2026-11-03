@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
-import { ApiError, photoSrc, request, type CatalogBrand, type Customer, type Device, type Page } from "./api";
+import { ApiError, photoSrc, request, type CatalogBrand, type CatalogModel, type Customer, type Device, type Page } from "./api";
+import { ModelIcon } from "./ModelIcon";
 import type { Copy } from "./i18n";
 import { usePaused } from "./list";
 import { PhotoButton } from "./PhotoView";
@@ -396,13 +397,15 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
           <Suggest
             label={copy.brand}
             value={brand}
-            options={catalog.map((item) => item.brand)}
+            options={catalog.map((item) => ({ name: item.brand, image: false }))}
+            brand=""
             onChange={setBrand}
           />
           <Suggest
             label={copy.model}
             value={model}
             options={modelsFor(catalog, brand)}
+            brand={brand}
             onChange={setModel}
           />
         </div>
@@ -534,17 +537,19 @@ function Suggest({
   label,
   value,
   options,
+  brand,
   onChange,
 }: {
   label: string;
   value: string;
-  options: string[];
+  options: CatalogModel[];
+  brand: string;
   onChange: (value: string) => void;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const query = value.trim().toLowerCase();
-  const shown = options.filter((option) => option.toLowerCase().includes(query));
+  const shown = options.filter((option) => option.name.toLowerCase().includes(query));
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
@@ -561,14 +566,17 @@ function Suggest({
             <button
               className="button secondary"
               type="button"
-              key={option}
+              key={option.name}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => {
-                onChange(option);
+                onChange(option.name);
                 setOpen(false);
               }}
             >
-              {option}
+              <span className="with-icon">
+                {option.image ? <ModelIcon brand={brand} model={option.name} /> : null}
+                {option.name}
+              </span>
             </button>
           ))}
         </div>

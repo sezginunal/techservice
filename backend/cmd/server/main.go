@@ -53,7 +53,7 @@ func main() {
 	log.Printf("uploads %s", uploadPath)
 
 	shop := brand.Load(brand.Dir, os.Getenv("COMPANY_NAME"), os.Getenv("LOGO_PATH"))
-	devices := catalog.Load(brand.Dir, os.Getenv("DEVICE_CATALOG_PATH"))
+	devices := catalog.Index{Dir: brand.Dir, Brands: catalog.Load(brand.Dir, os.Getenv("DEVICE_CATALOG_PATH"))}
 
 	srv := &http.Server{
 		Addr:              addr,
