@@ -85,7 +85,10 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
     <>
       <header className="page-head row">
         <div className="stack">
-          <h1>{device.name}</h1>
+          <h1 className="with-icon">
+            {device.image ? <ModelIcon brand={device.brand} model={device.model} /> : null}
+            {device.brand} {device.model}
+          </h1>
           <p className="uuid">{device.id}</p>
           <p className="muted">
             {copy.registeredOn}: {formatWhen(device.createdAt, lang)}
@@ -104,10 +107,6 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
       </section>
       <section className="panel stack">
         <h2>{copy.devices}</h2>
-        <p className="with-icon">
-          {device.image ? <ModelIcon brand={device.brand} model={device.model} /> : null}
-          {device.brand} {device.model}
-        </p>
         {device.serial ? (
           <p>
             {copy.serial}: {device.serial}

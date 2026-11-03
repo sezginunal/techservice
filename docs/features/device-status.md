@@ -38,9 +38,9 @@ Warranty lives only in `repair_warranty` and `repair_out_of_warranty`. A device 
 
 The device list follows the lists rule.
 
-A row shows the UUID, device name, brand, model, customer name, state, and registration date. It does not show photos, parts, or notes.
+A row shows the UUID, brand, model, customer name, state, and registration date. It does not show photos, parts, or notes.
 
-The search box stays. It matches the device name, brand, model, serial number, customer name, phone, or UUID.
+The search box stays. It matches the brand, model, serial number, customer name, phone, or UUID.
 
 A state filter offers every state, or all states. An empty choice means all states. The search and the state filter apply together.
 

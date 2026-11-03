@@ -131,7 +131,6 @@ func listDevices(database *sql.DB, images catalog.Index) http.HandlerFunc {
 		for _, item := range page.Items {
 			items = append(items, map[string]any{
 				"id":           item.ID,
-				"name":         item.Name,
 				"brand":        item.Brand,
 				"model":        item.Model,
 				"customerName": item.CustomerName,
@@ -162,7 +161,6 @@ func registerDevice(database *sql.DB, root string, images catalog.Index) http.Ha
 			CustomerName  string `json:"customerName"`
 			CustomerPhone string `json:"customerPhone"`
 			CustomerEmail string `json:"customerEmail"`
-			Name          string `json:"name"`
 			Brand         string `json:"brand"`
 			Model         string `json:"model"`
 			Serial        string `json:"serial"`
@@ -189,7 +187,6 @@ func registerDevice(database *sql.DB, root string, images catalog.Index) http.Ha
 			CustomerName:  body.CustomerName,
 			CustomerPhone: body.CustomerPhone,
 			CustomerEmail: body.CustomerEmail,
-			Name:          body.Name,
 			Brand:         body.Brand,
 			Model:         body.Model,
 			Serial:        body.Serial,
@@ -209,7 +206,6 @@ func registerDevice(database *sql.DB, root string, images catalog.Index) http.Ha
 func updateDevice(database *sql.DB, root string, images catalog.Index) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			Name          string `json:"name"`
 			Brand         string `json:"brand"`
 			Model         string `json:"model"`
 			Serial        string `json:"serial"`
@@ -238,7 +234,6 @@ func updateDevice(database *sql.DB, root string, images catalog.Index) http.Hand
 			parts[i] = store.PartChange{ID: part.ID, Name: part.Name, Note: part.Note, Keep: part.Keep, Photos: part.Photos}
 		}
 		device, err := store.UpdateDevice(r.Context(), database, root, userFrom(r.Context()), r.PathValue("id"), store.DeviceChange{
-			Name:          body.Name,
 			Brand:         body.Brand,
 			Model:         body.Model,
 			Serial:        body.Serial,
@@ -346,7 +341,6 @@ func deviceJSON(device store.Device, images catalog.Index) map[string]any {
 	}
 	return map[string]any{
 		"id":        device.ID,
-		"name":      device.Name,
 		"brand":     device.Brand,
 		"model":     device.Model,
 		"image":     images.Has(device.Brand, device.Model),

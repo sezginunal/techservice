@@ -175,12 +175,12 @@ function subjectOf(copy: Copy, item: AuditItem) {
     return detail.name ?? "";
   }
   if (item.event === "device.registered" || item.event === "device.updated") {
-    return [detail.name, detail.uuid, detail.customer].filter(Boolean).join(" · ");
+    return [detail.brand, detail.model, detail.uuid, detail.customer].filter(Boolean).join(" · ");
   }
   if (item.event === "device.status_changed") {
     const from = statusLabel(detail.from ?? "", copy);
     const to = statusLabel(detail.to ?? "", copy);
-    return [detail.name, detail.uuid, `${from} → ${to}`].filter(Boolean).join(" · ");
+    return [detail.brand, detail.model, detail.uuid, `${from} → ${to}`].filter(Boolean).join(" · ");
   }
   if (item.event === "user.created") {
     return [detail.username, roleName(copy, detail.role)].filter(Boolean).join(" · ");

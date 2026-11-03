@@ -98,13 +98,11 @@ func Migrate(ctx context.Context, database *sql.DB) error {
 		CREATE TABLE IF NOT EXISTS devices (
 			id TEXT PRIMARY KEY,
 			customer_id INTEGER NOT NULL REFERENCES customers(id),
-			name TEXT NOT NULL,
 			brand TEXT NOT NULL,
 			model TEXT NOT NULL,
 			serial TEXT NOT NULL DEFAULT '',
 			note TEXT NOT NULL,
 			status TEXT NOT NULL DEFAULT 'registered' %s,
-			name_fold TEXT NOT NULL,
 			brand_fold TEXT NOT NULL,
 			model_fold TEXT NOT NULL,
 			serial_fold TEXT NOT NULL,

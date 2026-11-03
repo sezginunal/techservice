@@ -62,7 +62,6 @@ function fieldLine(copy: Copy, field: string, kind: "missing" | "invalid") {
   const required: Record<string, string> = {
     customer: copy.customerNameRequired,
     customerName: copy.customerNameRequired,
-    name: copy.deviceNameRequired,
     brand: copy.brandRequired,
     model: copy.modelRequired,
     note: copy.noteRequired,
@@ -79,7 +78,6 @@ function fieldLabel(copy: Copy, field: string) {
   }
   const labels: Record<string, string> = {
     customerName: copy.customerName,
-    name: copy.deviceName,
     brand: copy.brand,
     model: copy.model,
     serial: copy.serial,

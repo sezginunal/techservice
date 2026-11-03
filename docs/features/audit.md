@@ -32,8 +32,8 @@ These events write a row:
 
 - A customer is created. The subject is the customer name.
 - A customer is corrected. The subject is the customer name. A rename shows the previous name and the new name.
-- A device is registered. The subject is the device name, the device UUID, and the customer name. The screen calls this event "Device registered" in English and "Kayıt açıldı" in Turkish.
-- A device is corrected. The subject is the device name, the device UUID, and the customer name. The screen calls this event "Device updated" in English and "Cihaz düzeltildi" in Turkish.
+- A device is registered. The subject is the brand, the model, the device UUID, and the customer name. The screen calls this event "Device registered" in English and "Kayıt açıldı" in Turkish.
+- A device is corrected. The subject is the brand, the model, the device UUID, and the customer name. The screen calls this event "Device updated" in English and "Cihaz düzeltildi" in Turkish.
 - A device status changes. The row shows the previous status and the new status. The screen calls this event "Status changed" in English and "Durum değiştirildi" in Turkish. Intake does not change status. A later feature writes this row when it changes one.
 - A user is created. The subject is the new username and the new role.
 - A user's role changes. The row shows the previous role and the new role.
@@ -57,6 +57,6 @@ These do not write a row:
 - The filters apply together. Either date may be empty. The date is the calendar day of the time shown on the screen.
 - The person filter matches the actor's username.
 - The event filter is the event list above. An empty choice means every event.
-- The subject filter matches the customer name, the device name, the device UUID, or, for a user change, that username.
+- The subject filter matches the customer name, the brand, the model, the device UUID, or, for a user change, that username.
 - The person filter and the subject filter wait until the operator pauses or submits.
 - An empty log says there are no rows. A filter that matches nothing says so.

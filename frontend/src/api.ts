@@ -61,7 +61,6 @@ export type StatusChange = {
 
 export type Device = {
   id: string;
-  name: string;
   brand: string;
   model: string;
   image: boolean;
@@ -77,7 +76,6 @@ export type Device = {
 
 export type DeviceItem = {
   id: string;
-  name: string;
   brand: string;
   model: string;
   image: boolean;
@@ -89,6 +87,8 @@ export type DeviceItem = {
 export type AuditDetail = {
   name?: string;
   previousName?: string;
+  brand?: string;
+  model?: string;
   uuid?: string;
   customer?: string;
   username?: string;

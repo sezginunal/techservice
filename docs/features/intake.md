@@ -20,7 +20,7 @@ The signed-in navigation adds Devices and Customers. User management stays as it
 
 ## Device
 
-- The device name, brand, model, and device notes are required.
+- The brand, model, and device notes are required.
 - The device notes are the operator's text about the device.
 - The serial number is optional.
 - On a successful save the system assigns a UUID. The operator does not type it. The device list, the device detail, and the page address use that UUID. It does not change later.
@@ -53,7 +53,7 @@ The signed-in navigation adds Devices and Customers. User management stays as it
 - The customer section comes first. The operator searches existing customers or enters a new one.
 - Search matches the name, the phone, or the email. Each result shows the name, the phone, and the email, so two people with the same name can be told apart.
 - The operator either selects an existing customer or enters a new one. Selecting an existing customer shows that person's name, phone, and email and does not change them on this screen.
-- The device section takes the name, brand, model, serial number, and device notes.
+- The device section takes the brand, model, serial number, and device notes.
 - The parts section adds part rows. Each row takes the part name, the part note, and that part's photos.
 - The device photos sit on the device.
 - One save writes the new customer, when the operator entered one, and the device with its parts and photos.
@@ -64,12 +64,12 @@ The signed-in navigation adds Devices and Customers. User management stays as it
 
 - The device list and the customer list follow the lists rule.
 - The device list shows the newest registration first.
-- A row shows the UUID, device name, brand, model, customer name, status, and registration date. It does not show photos or parts.
-- One search box matches the device name, brand, model, serial number, customer name, phone, or UUID.
+- A row shows the UUID, brand, model, customer name, status, and registration date. It does not show photos or parts.
+- One search box matches the brand, model, serial number, customer name, phone, or UUID.
 - An empty shop says there are no devices. A search that matches nothing says so.
-- Opening a row opens the device. The detail shows the UUID, status, registration date, name, brand, model, serial number when present, device notes, customer name, phone, and email, the device photos, and each part with its note and photos.
+- Opening a row opens the device. The detail shows the UUID, status, registration date, brand, model, serial number when present, device notes, customer name, phone, and email, the device photos, and each part with its note and photos.
 - The parts section is visible when there are no parts.
-- From the detail the operator corrects the device name, brand, model, serial number, device notes, parts, and photos, and corrects the customer's name, phone, and email.
+- From the detail the operator corrects the brand, model, serial number, device notes, parts, and photos, and corrects the customer's name, phone, and email.
 - The correction is kept on save. The UUID and the status stay as they are.
 
 ## Customer list and detail
@@ -78,7 +78,7 @@ The signed-in navigation adds Devices and Customers. User management stays as it
 - A row shows the name, phone, and email. The phone and the email are blank when they were not entered.
 - One search box matches the name, the phone, or the email.
 - An empty book says there are no customers. A search that matches nothing says so.
-- The detail shows the name, phone, and email, and the devices of that customer. A device row shows the device name, brand, model, status, and registration date. Opening it goes to the device.
+- The detail shows the name, phone, and email, and the devices of that customer. A device row shows the brand, model, status, and registration date. Opening it goes to the device.
 - The operator corrects the name, phone, and email from this detail.
 - When the customer has no devices, the detail says so.
 - From this detail the operator starts a new device. The registration screen opens with this customer already selected and shown. The operator can select a different customer or enter a new one before saving.

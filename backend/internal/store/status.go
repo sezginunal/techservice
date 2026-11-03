@@ -83,24 +83,22 @@ func widenDeviceStatus(ctx context.Context, database *sql.DB) error {
 		CREATE TABLE devices_next (
 			id TEXT PRIMARY KEY,
 			customer_id INTEGER NOT NULL REFERENCES customers(id),
-			name TEXT NOT NULL,
 			brand TEXT NOT NULL,
 			model TEXT NOT NULL,
 			serial TEXT NOT NULL DEFAULT '',
 			note TEXT NOT NULL,
 			status TEXT NOT NULL DEFAULT 'registered' %s,
-			name_fold TEXT NOT NULL,
 			brand_fold TEXT NOT NULL,
 			model_fold TEXT NOT NULL,
 			serial_fold TEXT NOT NULL,
 			created_at TEXT NOT NULL
 		);
 		INSERT INTO devices_next (
-			id, customer_id, name, brand, model, serial, note, status,
-			name_fold, brand_fold, model_fold, serial_fold, created_at
+			id, customer_id, brand, model, serial, note, status,
+			brand_fold, model_fold, serial_fold, created_at
 		)
-		SELECT id, customer_id, name, brand, model, serial, note, status,
-			name_fold, brand_fold, model_fold, serial_fold, created_at
+		SELECT id, customer_id, brand, model, serial, note, status,
+			brand_fold, model_fold, serial_fold, created_at
 		FROM devices;
 		DROP TABLE devices;
 		ALTER TABLE devices_next RENAME TO devices;
@@ -209,8 +207,9 @@ func ChangeDeviceStatus(ctx context.Context, database *sql.DB, root string, acto
 	`, id, actor.Username, fresh.Status, next, note, photoPathValue, photoSize, photoType, timestamp(time.Now())); err != nil {
 		return Device{}, fmt.Errorf("insert status change: %w", err)
 	}
-	if err := insertAudit(ctx, tx, actor, EventDeviceStatusChanged, fresh.Name+" "+id+" "+fresh.Customer.Name, map[string]string{
-		"name":     fresh.Name,
+	if err := insertAudit(ctx, tx, actor, EventDeviceStatusChanged, fresh.Brand+" "+fresh.Model+" "+id+" "+fresh.Customer.Name, map[string]string{
+		"brand":    fresh.Brand,
+		"model":    fresh.Model,
 		"uuid":     id,
 		"customer": fresh.Customer.Name,
 		"from":     fresh.Status,

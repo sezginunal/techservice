@@ -35,7 +35,6 @@ type Part struct {
 type Device struct {
 	ID        string
 	Customer  Customer
-	Name      string
 	Brand     string
 	Model     string
 	Serial    string
@@ -49,7 +48,6 @@ type Device struct {
 
 type DeviceListItem struct {
 	ID           string
-	Name         string
 	Brand        string
 	Model        string
 	CustomerName string
@@ -72,7 +70,6 @@ type NewDevice struct {
 	CustomerName  string
 	CustomerPhone string
 	CustomerEmail string
-	Name          string
 	Brand         string
 	Model         string
 	Serial        string
@@ -91,7 +88,6 @@ type PartChange struct {
 }
 
 type DeviceChange struct {
-	Name          string
 	Brand         string
 	Model         string
 	Serial        string
@@ -243,12 +239,11 @@ func ListDevices(ctx context.Context, database *sql.DB, query DeviceQuery) (Devi
 	if strings.TrimSpace(query.Text) != "" {
 		pattern := likePattern(query.Text)
 		clauses = append(clauses, `(
-			devices.name_fold LIKE ? ESCAPE '\' OR devices.brand_fold LIKE ? ESCAPE '\'
-			OR devices.model_fold LIKE ? ESCAPE '\' OR devices.serial_fold LIKE ? ESCAPE '\'
-			OR devices.id LIKE ? ESCAPE '\' OR customers.name_fold LIKE ? ESCAPE '\'
-			OR customers.phone_fold LIKE ? ESCAPE '\'
+			devices.brand_fold LIKE ? ESCAPE '\' OR devices.model_fold LIKE ? ESCAPE '\'
+			OR devices.serial_fold LIKE ? ESCAPE '\' OR devices.id LIKE ? ESCAPE '\'
+			OR customers.name_fold LIKE ? ESCAPE '\' OR customers.phone_fold LIKE ? ESCAPE '\'
 		)`)
-		args = append(args, pattern, pattern, pattern, pattern, pattern, pattern, pattern)
+		args = append(args, pattern, pattern, pattern, pattern, pattern, pattern)
 	}
 	if query.HasAfter {
 		clauses = append(clauses, "(devices.created_at < ? OR (devices.created_at = ? AND devices.id < ?))")
@@ -260,7 +255,7 @@ func ListDevices(ctx context.Context, database *sql.DB, query DeviceQuery) (Devi
 	}
 	args = append(args, limit+1)
 	rows, err := database.QueryContext(ctx, `
-		SELECT devices.id, devices.name, devices.brand, devices.model, customers.name, devices.status, devices.created_at
+		SELECT devices.id, devices.brand, devices.model, customers.name, devices.status, devices.created_at
 		FROM devices
 		JOIN customers ON customers.id = devices.customer_id
 		`+where+`
@@ -276,7 +271,7 @@ func ListDevices(ctx context.Context, database *sql.DB, query DeviceQuery) (Devi
 	for rows.Next() {
 		var item DeviceListItem
 		var created string
-		if err := rows.Scan(&item.ID, &item.Name, &item.Brand, &item.Model, &item.CustomerName, &item.Status, &created); err != nil {
+		if err := rows.Scan(&item.ID, &item.Brand, &item.Model, &item.CustomerName, &item.Status, &created); err != nil {
 			return DevicePage{}, fmt.Errorf("scan device: %w", err)
 		}
 		parsed, err := time.Parse(timestampLayout, created)
@@ -314,7 +309,6 @@ func RegisterDevice(ctx context.Context, database *sql.DB, root string, actor Us
 	} else if *input.CustomerID <= 0 {
 		fields.addInvalid("customer")
 	}
-	name := requiredText(input.Name, maxNameLen, "name", fields)
 	brand := requiredText(input.Brand, maxNameLen, "brand", fields)
 	model := requiredText(input.Model, maxNameLen, "model", fields)
 	serial := optionalText(input.Serial, maxSerialLen, "serial", fields)
@@ -384,11 +378,11 @@ func RegisterDevice(ctx context.Context, database *sql.DB, root string, actor Us
 
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO devices (
-			id, customer_id, name, brand, model, serial, note, status,
-			name_fold, brand_fold, model_fold, serial_fold, created_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, deviceID, customer.ID, name, brand, model, serial, note, StatusRegistered,
-		fold(name), fold(brand), fold(model), fold(serial), now)
+			id, customer_id, brand, model, serial, note, status,
+			brand_fold, model_fold, serial_fold, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, deviceID, customer.ID, brand, model, serial, note, StatusRegistered,
+		fold(brand), fold(model), fold(serial), now)
 	if err != nil {
 		return Device{}, fmt.Errorf("insert device: %w", err)
 	}
@@ -415,8 +409,9 @@ func RegisterDevice(ctx context.Context, database *sql.DB, root string, actor Us
 			return Device{}, err
 		}
 	}
-	if err := insertAudit(ctx, tx, actor, EventDeviceRegistered, name+" "+deviceID+" "+customer.Name, map[string]string{
-		"name":     name,
+	if err := insertAudit(ctx, tx, actor, EventDeviceRegistered, brand+" "+model+" "+deviceID+" "+customer.Name, map[string]string{
+		"brand":    brand,
+		"model":    model,
 		"uuid":     deviceID,
 		"customer": customer.Name,
 	}); err != nil {
@@ -436,7 +431,6 @@ func UpdateDevice(ctx context.Context, database *sql.DB, root string, actor User
 	}
 
 	fields := &FieldError{}
-	name := requiredText(input.Name, maxNameLen, "name", fields)
 	brand := requiredText(input.Brand, maxNameLen, "brand", fields)
 	model := requiredText(input.Model, maxNameLen, "model", fields)
 	serial := optionalText(input.Serial, maxSerialLen, "serial", fields)
@@ -464,7 +458,7 @@ func UpdateDevice(ctx context.Context, database *sql.DB, root string, actor User
 	if err := fields.asError(); err != nil {
 		return Device{}, err
 	}
-	input.Name, input.Brand, input.Model, input.Serial, input.Note = name, brand, model, serial, note
+	input.Brand, input.Model, input.Serial, input.Note = brand, model, serial, note
 	input.CustomerName, input.CustomerPhone, input.CustomerEmail = customerName, phone, email
 	photoCount := len(input.Files) + len(input.DeviceKeep)
 	for _, part := range input.Parts {
@@ -660,7 +654,7 @@ func applyDevice(ctx context.Context, tx *sql.Tx, actor User, root string, curre
 		}
 	}
 
-	changed := current.Name != input.Name || current.Brand != input.Brand || current.Model != input.Model ||
+	changed := current.Brand != input.Brand || current.Model != input.Model ||
 		current.Serial != input.Serial || current.Note != input.Note || len(removed) > 0 || len(photos) > 0 ||
 		len(current.Parts) != len(input.Parts)
 	if !changed {
@@ -675,11 +669,11 @@ func applyDevice(ctx context.Context, tx *sql.Tx, actor User, root string, curre
 
 	if _, err := tx.ExecContext(ctx, `
 		UPDATE devices
-		SET name = ?, brand = ?, model = ?, serial = ?, note = ?,
-			name_fold = ?, brand_fold = ?, model_fold = ?, serial_fold = ?
+		SET brand = ?, model = ?, serial = ?, note = ?,
+			brand_fold = ?, model_fold = ?, serial_fold = ?
 		WHERE id = ?
-	`, input.Name, input.Brand, input.Model, input.Serial, input.Note,
-		fold(input.Name), fold(input.Brand), fold(input.Model), fold(input.Serial), current.ID); err != nil {
+	`, input.Brand, input.Model, input.Serial, input.Note,
+		fold(input.Brand), fold(input.Model), fold(input.Serial), current.ID); err != nil {
 		return nil, fmt.Errorf("update device: %w", err)
 	}
 
@@ -711,8 +705,9 @@ func applyDevice(ctx context.Context, tx *sql.Tx, actor User, root string, curre
 		return nil, err
 	}
 	if changed {
-		if err := insertAudit(ctx, tx, actor, EventDeviceUpdated, input.Name+" "+current.ID+" "+input.CustomerName, map[string]string{
-			"name":     input.Name,
+		if err := insertAudit(ctx, tx, actor, EventDeviceUpdated, input.Brand+" "+input.Model+" "+current.ID+" "+input.CustomerName, map[string]string{
+			"brand":    input.Brand,
+			"model":    input.Model,
 			"uuid":     current.ID,
 			"customer": input.CustomerName,
 		}); err != nil {
@@ -723,7 +718,7 @@ func applyDevice(ctx context.Context, tx *sql.Tx, actor User, root string, curre
 }
 
 func deviceUnchanged(current Device, input DeviceChange) bool {
-	if current.Name != input.Name || current.Brand != input.Brand || current.Model != input.Model ||
+	if current.Brand != input.Brand || current.Model != input.Model ||
 		current.Serial != input.Serial || current.Note != input.Note {
 		return false
 	}
@@ -804,13 +799,13 @@ func loadDevice(ctx context.Context, q queryer, id string) (Device, error) {
 	var created string
 	var customerCreated string
 	err := q.QueryRowContext(ctx, `
-		SELECT devices.id, devices.name, devices.brand, devices.model, devices.serial, devices.note,
+		SELECT devices.id, devices.brand, devices.model, devices.serial, devices.note,
 			devices.status, devices.created_at, customers.id, customers.name, customers.phone, customers.email, customers.created_at
 		FROM devices
 		JOIN customers ON customers.id = devices.customer_id
 		WHERE devices.id = ?
 	`, id).Scan(
-		&device.ID, &device.Name, &device.Brand, &device.Model, &device.Serial, &device.Note,
+		&device.ID, &device.Brand, &device.Model, &device.Serial, &device.Note,
 		&device.Status, &created, &device.Customer.ID, &device.Customer.Name, &device.Customer.Phone,
 		&device.Customer.Email, &customerCreated,
 	)

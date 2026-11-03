@@ -38,15 +38,15 @@ func TestIntakeAndAudit(t *testing.T) {
 
 	_, err = RegisterDevice(ctx, database, root, tech, NewDevice{CustomerName: "Ada"})
 	var fields *FieldError
-	if !errors.As(err, &fields) || !contains(fields.Missing, "name") {
-		t.Fatalf("missing name: %v", err)
+	if !errors.As(err, &fields) || !contains(fields.Missing, "brand") || contains(fields.Missing, "name") {
+		t.Fatalf("missing brand: %v", err)
 	}
 	if countRows(t, database, `SELECT COUNT(*) FROM customers`) != 0 {
 		t.Fatal("invalid register wrote a customer")
 	}
 
 	_, err = RegisterDevice(ctx, database, root, tech, NewDevice{
-		CustomerName: "Ada", Name: "Printer", Brand: "HP", Model: "Laser", Note: "ok", CustomerEmail: "nope",
+		CustomerName: "Ada", Brand: "HP", Model: "Laser", Note: "ok", CustomerEmail: "nope",
 	})
 	if !errors.As(err, &fields) || !contains(fields.Invalid, "email") {
 		t.Fatalf("email: %v", err)
@@ -55,7 +55,6 @@ func TestIntakeAndAudit(t *testing.T) {
 	device, err := RegisterDevice(ctx, database, root, tech, NewDevice{
 		CustomerName:  "Ada Lovelace",
 		CustomerPhone: "555",
-		Name:          "Printer",
 		Brand:         "HP",
 		Model:         "Laser",
 		Note:          "works",
@@ -105,7 +104,7 @@ func TestIntakeAndAudit(t *testing.T) {
 	}
 
 	renamed, err := UpdateDevice(ctx, database, root, tech, device.ID, DeviceChange{
-		Name: device.Name, Brand: device.Brand, Model: device.Model, Note: device.Note,
+		Brand: device.Brand, Model: device.Model, Note: device.Note,
 		CustomerName: "Ada King", CustomerPhone: "555",
 		Parts: []PartChange{{
 			ID: device.Parts[0].ID, Name: "Cable", Note: "ok", Keep: []string{device.Parts[0].Photos[0].ID},
@@ -126,7 +125,7 @@ func TestIntakeAndAudit(t *testing.T) {
 	}
 
 	same, err := UpdateDevice(ctx, database, root, tech, device.ID, DeviceChange{
-		Name: renamed.Name, Brand: renamed.Brand, Model: renamed.Model, Note: renamed.Note,
+		Brand: renamed.Brand, Model: renamed.Model, Note: renamed.Note,
 		CustomerName: renamed.Customer.Name, CustomerPhone: renamed.Customer.Phone,
 		Parts: []PartChange{{
 			ID: renamed.Parts[0].ID, Name: renamed.Parts[0].Name, Note: renamed.Parts[0].Note,
@@ -141,7 +140,7 @@ func TestIntakeAndAudit(t *testing.T) {
 	}
 
 	_, err = UpdateDevice(ctx, database, root, tech, device.ID, DeviceChange{
-		Name: renamed.Name, Brand: renamed.Brand, Model: renamed.Model, Note: "changed",
+		Brand: renamed.Brand, Model: renamed.Model, Note: "changed",
 		CustomerName: renamed.Customer.Name, CustomerPhone: renamed.Customer.Phone,
 		Parts: []PartChange{{
 			ID: renamed.Parts[0].ID, Name: renamed.Parts[0].Name, Note: renamed.Parts[0].Note,
@@ -159,7 +158,7 @@ func TestIntakeAndAudit(t *testing.T) {
 	}
 
 	cleared, err := UpdateDevice(ctx, database, root, tech, device.ID, DeviceChange{
-		Name: kept.Name, Brand: kept.Brand, Model: kept.Model, Note: kept.Note,
+		Brand: kept.Brand, Model: kept.Model, Note: kept.Note,
 		CustomerName: kept.Customer.Name, CustomerPhone: kept.Customer.Phone,
 	})
 	if err != nil {
@@ -175,7 +174,7 @@ func TestIntakeAndAudit(t *testing.T) {
 	big := make([]byte, maxPhotoBytes+1)
 	copy(big, pngBytes())
 	_, err = RegisterDevice(ctx, database, root, tech, NewDevice{
-		CustomerName: "Big", Name: "Big", Brand: "Big", Model: "Big", Note: "big",
+		CustomerName: "Big", Brand: "Big", Model: "Big", Note: "big",
 		Files: []Upload{uploadBytes(big)}, DevicePhotos: []int{0},
 	})
 	if !errors.As(err, &fields) || fields.Photo != "size" {
@@ -189,20 +188,19 @@ func TestIntakeAndAudit(t *testing.T) {
 		indexes[i] = i
 	}
 	_, err = RegisterDevice(ctx, database, root, tech, NewDevice{
-		CustomerName: "Many", Name: "Many", Brand: "Many", Model: "Many", Note: "many",
+		CustomerName: "Many", Brand: "Many", Model: "Many", Note: "many",
 		Files: files, DevicePhotos: indexes,
 	})
 	if !errors.As(err, &fields) || fields.Photo != "limit" {
 		t.Fatalf("limit: %v", err)
 	}
 
-	for i, name := range []string{"First", "Second", "Third"} {
+	for _, model := range []string{"First", "Second", "Third"} {
 		if _, err := RegisterDevice(ctx, database, root, owner, NewDevice{
-			CustomerID: &kept.Customer.ID, Name: name, Brand: "HP", Model: "M", Note: "n",
+			CustomerID: &kept.Customer.ID, Brand: "HP", Model: model, Note: "n",
 		}); err != nil {
 			t.Fatal(err)
 		}
-		_ = i
 	}
 	first, err := ListDevices(ctx, database, DeviceQuery{Limit: 2})
 	if err != nil || len(first.Items) != 2 || !first.HasMore {
@@ -251,7 +249,7 @@ func TestDeviceStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 	device, err := RegisterDevice(ctx, database, root, tech, NewDevice{
-		CustomerName: "Ada", Name: "Printer", Brand: "HP", Model: "Laser", Note: "works",
+		CustomerName: "Ada", Brand: "HP", Model: "Laser", Note: "works",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -310,7 +308,7 @@ func TestDeviceStatus(t *testing.T) {
 	}
 
 	kept, err := UpdateDevice(ctx, database, root, tech, device.ID, DeviceChange{
-		Name: "Printer", Brand: "HP", Model: "Laser", Note: "works",
+		Brand: "HP", Model: "Laser", Note: "works",
 		CustomerName: "Ada", Parts: []PartChange{},
 	})
 	if err != nil {
@@ -332,7 +330,7 @@ func TestDeviceStatus(t *testing.T) {
 	if err != nil || len(matched.Items) != 1 || matched.Items[0].ID != device.ID {
 		t.Fatalf("status filter %+v %v", matched, err)
 	}
-	other, err := ListDevices(ctx, database, DeviceQuery{Status: StatusRegistered, Text: "Printer", Limit: 10})
+	other, err := ListDevices(ctx, database, DeviceQuery{Status: StatusRegistered, Text: "Laser", Limit: 10})
 	if err != nil || len(other.Items) != 0 {
 		t.Fatalf("combined filter %+v %v", other, err)
 	}
@@ -396,6 +394,17 @@ func TestWidenDeviceStatus(t *testing.T) {
 	}
 	if _, err := database.ExecContext(ctx, `UPDATE devices SET status = ? WHERE id = 'dev'`, StatusInStorage); err != nil {
 		t.Fatal(err)
+	}
+	var ddl string
+	if err := database.QueryRowContext(ctx, `SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'devices'`).Scan(&ddl); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(ddl, "name_fold") || strings.Contains(ddl, "name TEXT") {
+		t.Fatalf("device name column remained: %s", ddl)
+	}
+	var brand, model string
+	if err := database.QueryRowContext(ctx, `SELECT brand, model FROM devices WHERE id = 'dev'`).Scan(&brand, &model); err != nil || brand != "HP" || model != "Laser" {
+		t.Fatalf("device after migrate: %s %s %v", brand, model, err)
 	}
 	var name string
 	if err := database.QueryRowContext(ctx, `SELECT name FROM parts WHERE device_id = 'dev'`).Scan(&name); err != nil || name != "Cable" {

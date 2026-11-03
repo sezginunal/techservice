@@ -40,7 +40,6 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [catalog, setCatalog] = useState<CatalogBrand[]>([]);
@@ -77,7 +76,6 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
     const controller = new AbortController();
     request<Device>(`/api/devices/${deviceId}`, { signal: controller.signal })
       .then((device) => {
-        setName(device.name);
         setBrand(device.brand);
         setModel(device.model);
         setSerial(device.serial);
@@ -184,9 +182,6 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
     if (editing && !customerName.trim()) {
       missing.push("customerName");
     }
-    if (!name.trim()) {
-      missing.push("name");
-    }
     if (!brand.trim()) {
       missing.push("brand");
     }
@@ -233,7 +228,6 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
       });
     const payload = editing
       ? {
-          name,
           brand,
           model,
           serial,
@@ -253,7 +247,6 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
         }
       : {
           ...(selected ? { customerId: selected.id } : { customerName, customerPhone: phone, customerEmail: email }),
-          name,
           brand,
           model,
           serial,
@@ -389,10 +382,6 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
 
       <section className="panel stack">
         <h2>{copy.devices}</h2>
-        <label className="field">
-          {copy.deviceName}
-          <input value={name} onChange={(event) => setName(event.target.value)} />
-        </label>
         <div className="split">
           <Suggest
             label={copy.brand}

@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, request, type Customer, type DeviceItem, type Page } from "./api";
+import { ModelIcon } from "./ModelIcon";
 import { formatWhen, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
 import { End, useWindow } from "./list";
@@ -117,8 +118,9 @@ export function CustomerDetail({ copy, lang, id, onNavigate, onUnauthorized }: P
         <h2>{copy.customerDevices}</h2>
         {devices.items.map((item) => (
           <button className="button secondary" type="button" key={item.id} onClick={() => onNavigate(`/devices/${item.id}`)}>
-            <strong>
-              {item.name} · {item.brand} {item.model}
+            <strong className="with-icon">
+              {item.image ? <ModelIcon brand={item.brand} model={item.model} /> : null}
+              {item.brand} {item.model}
             </strong>
             <span className="muted">
               {statusLabel(item.status, copy)} · {formatWhen(item.createdAt, lang)}

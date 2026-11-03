@@ -4,7 +4,7 @@ Status: approved.
 
 A signed-in technician, owner, or admin picks a brand and a model while registering a device, and while correcting one. The three roles see and do the same work. A signed-out request is unauthorized.
 
-The brand and the model stay required. The operator picks a suggestion or types a value the catalog does not list. The device name stays a value the operator types.
+The brand and the model stay required. The operator picks a suggestion or types a value the catalog does not list.
 
 The saved device stores the brand text and the model text left in the fields. A later edit of the catalog file does not change a device already saved.
 
@@ -52,5 +52,4 @@ A suggestion row shows the model image at icon size when that model has one. The
 ## Not in this feature
 
 - A screen that edits the catalog.
-- Filling the device name from the catalog.
 - Changing a saved device when the file changes.

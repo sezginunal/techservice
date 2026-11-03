@@ -80,7 +80,6 @@ export function Devices({ copy, lang, onNavigate, onUnauthorized }: Props) {
           <thead>
             <tr>
               <th>{copy.recordId}</th>
-              <th>{copy.deviceName}</th>
               <th>{copy.brand}</th>
               <th>{copy.model}</th>
               <th>{copy.customer}</th>
@@ -95,7 +94,6 @@ export function Devices({ copy, lang, onNavigate, onUnauthorized }: Props) {
                 <td data-label={copy.recordId} className="uuid">
                   {item.id}
                 </td>
-                <td data-label={copy.deviceName}>{item.name}</td>
                 <td data-label={copy.brand}>{item.brand}</td>
                 <td data-label={copy.model}>
                   <span className="with-icon">
