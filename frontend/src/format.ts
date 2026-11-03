@@ -1,4 +1,18 @@
-import type { Lang } from "./i18n";
+import type { Copy, Lang } from "./i18n";
+
+export const deviceStatuses = [
+  "registered",
+  "inspecting",
+  "repair_warranty",
+  "repair_out_of_warranty",
+  "waiting_partner_part",
+  "waiting_own_part",
+  "final_testing",
+  "preparing_delivery",
+  "in_storage",
+  "left_storage",
+  "delivered",
+] as const;
 
 export function formatWhen(value: string, lang: Lang) {
   const date = new Date(value);
@@ -11,8 +25,11 @@ export function formatWhen(value: string, lang: Lang) {
   }).format(date);
 }
 
-export function statusLabel(status: string, registered: string) {
-  return status === "registered" ? registered : status;
+export function statusLabel(status: string, copy: Copy) {
+  if (status in copy.statuses) {
+    return copy.statuses[status as keyof typeof copy.statuses];
+  }
+  return status;
 }
 
 export function dayStart(value: string) {

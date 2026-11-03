@@ -66,6 +66,8 @@ function fieldLine(copy: Copy, field: string, kind: "missing" | "invalid") {
     brand: copy.brandRequired,
     model: copy.modelRequired,
     note: copy.noteRequired,
+    status: kind === "invalid" ? copy.statusSame : copy.statusRequired,
+    statusPhoto: copy.statusPhotoOne,
   };
   return required[field] ?? copy.unexpected;
 }
@@ -82,6 +84,7 @@ function fieldLabel(copy: Copy, field: string) {
     model: copy.model,
     serial: copy.serial,
     note: copy.conditionNote,
+    statusNote: copy.statusNote,
     phone: copy.phone,
     email: copy.email,
   };

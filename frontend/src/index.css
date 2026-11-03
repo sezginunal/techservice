@@ -598,7 +598,8 @@ input[type="checkbox"] {
 
 .split,
 .filters,
-.search-row {
+.search-row,
+.device-filters {
   display: grid;
   gap: var(--space-3);
 }
@@ -668,6 +669,11 @@ input[type="checkbox"] {
 
   .search-row {
     grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .device-filters {
+    grid-template-columns: minmax(0, 1.4fr) minmax(16rem, 1fr) auto;
     align-items: end;
   }
 }
@@ -758,6 +764,10 @@ input[type="checkbox"] {
 
   .table .button {
     width: 100%;
+  }
+
+  .table td.row-action {
+    padding-top: var(--space-3);
   }
 }
 

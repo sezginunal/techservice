@@ -32,6 +32,7 @@ const (
 	timestampLayout  = "2006-01-02T15:04:05.000Z"
 	StatusRegistered = "registered"
 	MaxUploadBody    = int64(maxPhotos)*int64(maxPhotoBytes) + (1 << 20)
+	StatusUploadBody = int64(maxPhotoBytes) + (1 << 20)
 )
 
 var (
@@ -49,6 +50,7 @@ var (
 	ErrInvalidSort        = errors.New("invalid_sort")
 	ErrInvalidTime        = errors.New("invalid_time")
 	ErrInvalidEvent       = errors.New("invalid_event")
+	ErrInvalidStatus      = errors.New("invalid_status")
 
 	dummyHash = mustHash("dummy-password")
 )
@@ -67,7 +69,7 @@ type Session struct {
 }
 
 func Migrate(ctx context.Context, database *sql.DB) error {
-	_, err := database.ExecContext(ctx, `
+	_, err := database.ExecContext(ctx, fmt.Sprintf(`
 		CREATE TABLE IF NOT EXISTS users (
 			id INTEGER PRIMARY KEY,
 			username TEXT NOT NULL UNIQUE COLLATE NOCASE,
@@ -101,7 +103,7 @@ func Migrate(ctx context.Context, database *sql.DB) error {
 			model TEXT NOT NULL,
 			serial TEXT NOT NULL DEFAULT '',
 			note TEXT NOT NULL,
-			status TEXT NOT NULL DEFAULT 'registered' CHECK (status = 'registered'),
+			status TEXT NOT NULL DEFAULT 'registered' %s,
 			name_fold TEXT NOT NULL,
 			brand_fold TEXT NOT NULL,
 			model_fold TEXT NOT NULL,
@@ -110,6 +112,20 @@ func Migrate(ctx context.Context, database *sql.DB) error {
 		);
 		CREATE INDEX IF NOT EXISTS devices_created ON devices (created_at, id);
 		CREATE INDEX IF NOT EXISTS devices_customer ON devices (customer_id, created_at, id);
+		CREATE INDEX IF NOT EXISTS devices_status ON devices (status, created_at, id);
+		CREATE TABLE IF NOT EXISTS device_status_changes (
+			id INTEGER PRIMARY KEY,
+			device_id TEXT NOT NULL REFERENCES devices(id),
+			actor_username TEXT NOT NULL,
+			from_status TEXT NOT NULL,
+			to_status TEXT NOT NULL,
+			note TEXT NOT NULL DEFAULT '',
+			photo_path TEXT NOT NULL DEFAULT '',
+			photo_size INTEGER NOT NULL DEFAULT 0,
+			photo_type TEXT NOT NULL DEFAULT '',
+			created_at TEXT NOT NULL
+		);
+		CREATE INDEX IF NOT EXISTS device_status_changes_device ON device_status_changes (device_id, created_at, id);
 		CREATE TABLE IF NOT EXISTS parts (
 			id TEXT PRIMARY KEY,
 			device_id TEXT NOT NULL REFERENCES devices(id),
@@ -141,9 +157,12 @@ func Migrate(ctx context.Context, database *sql.DB) error {
 		);
 		CREATE INDEX IF NOT EXISTS audit_time ON audit_events (created_at, id);
 		CREATE INDEX IF NOT EXISTS audit_role_time ON audit_events (actor_role, created_at, id);
-	`)
+	`, deviceStatusCheck()))
 	if err != nil {
 		return fmt.Errorf("migrate: %w", err)
+	}
+	if err := widenDeviceStatus(ctx, database); err != nil {
+		return err
 	}
 	return nil
 }

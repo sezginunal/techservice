@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ApiError, request, type DeviceItem, type Page } from "./api";
-import { formatWhen, statusLabel } from "./format";
+import { deviceStatuses, formatWhen, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
 import { End, useQuery, useWindow } from "./list";
 import { problemText } from "./problems";
@@ -14,10 +14,14 @@ type Props = {
 
 export function Devices({ copy, lang, onNavigate, onUnauthorized }: Props) {
   const search = useQuery();
-  const list = useWindow(search.query, (after: DeviceItem | null, signal) => {
+  const [status, setStatus] = useState("");
+  const list = useWindow(`${search.query}|${status}`, (after: DeviceItem | null, signal) => {
     const params = new URLSearchParams();
     if (search.query) {
       params.set("q", search.query);
+    }
+    if (status) {
+      params.set("status", status);
     }
     if (after) {
       params.set("after", after.createdAt);
@@ -45,7 +49,7 @@ export function Devices({ copy, lang, onNavigate, onUnauthorized }: Props) {
           {copy.newDevice}
         </button>
       </header>
-      <form className="search-row" onSubmit={search.commit}>
+      <form className="device-filters" onSubmit={search.commit}>
         <label className="field">
           {copy.search}
           <input
@@ -53,6 +57,17 @@ export function Devices({ copy, lang, onNavigate, onUnauthorized }: Props) {
             placeholder={copy.searchDevices}
             onChange={(event) => search.setValue(event.target.value)}
           />
+        </label>
+        <label className="field">
+          {copy.status}
+          <select value={status} onChange={(event) => setStatus(event.target.value)}>
+            <option value="">{copy.allStatuses}</option>
+            {deviceStatuses.map((id) => (
+              <option key={id} value={id}>
+                {statusLabel(id, copy)}
+              </option>
+            ))}
+          </select>
         </label>
         <button className="button" type="submit">
           {copy.search}
@@ -70,6 +85,7 @@ export function Devices({ copy, lang, onNavigate, onUnauthorized }: Props) {
               <th>{copy.customer}</th>
               <th>{copy.status}</th>
               <th>{copy.registeredOn}</th>
+              <th>{copy.open}</th>
             </tr>
           </thead>
           <tbody>
@@ -78,23 +94,26 @@ export function Devices({ copy, lang, onNavigate, onUnauthorized }: Props) {
                 <td data-label={copy.recordId} className="uuid">
                   {item.id}
                 </td>
-                <td data-label={copy.deviceName}>
-                  <button className="button linkish" type="button" onClick={() => onNavigate(`/devices/${item.id}`)}>
-                    {item.name}
-                  </button>
-                </td>
+                <td data-label={copy.deviceName}>{item.name}</td>
                 <td data-label={copy.brand}>{item.brand}</td>
                 <td data-label={copy.model}>{item.model}</td>
                 <td data-label={copy.customer}>{item.customerName}</td>
                 <td data-label={copy.status}>
-                  <span className="badge">{statusLabel(item.status, copy.statusRegistered)}</span>
+                  <span className="badge">{statusLabel(item.status, copy)}</span>
                 </td>
                 <td data-label={copy.registeredOn}>{formatWhen(item.createdAt, lang)}</td>
+                <td className="row-action">
+                  <button className="button secondary" type="button" onClick={() => onNavigate(`/devices/${item.id}`)}>
+                    {copy.open}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {empty ? <p className="muted empty">{search.query ? copy.noDeviceMatches : copy.noDevices}</p> : null}
+        {empty ? (
+          <p className="muted empty">{search.query || status ? copy.noDeviceMatches : copy.noDevices}</p>
+        ) : null}
         {list.loading ? <p className="muted empty">{copy.loading}</p> : null}
         <End enabled={list.hasMore && !list.loading} onEnd={list.more} />
       </div>

@@ -4,11 +4,15 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"techservice/internal/db"
 )
 
 func TestIntakeAndAudit(t *testing.T) {
@@ -228,6 +232,174 @@ func TestIntakeAndAudit(t *testing.T) {
 	}
 	if bytes.Contains([]byte(detail), []byte(password)) {
 		t.Fatal("password stored in audit")
+	}
+}
+
+func TestDeviceStatus(t *testing.T) {
+	ctx := context.Background()
+	database := openTestDB(t)
+	root := t.TempDir()
+	if err := EnsureAdmin(ctx, database, "admin", "admin1234"); err != nil {
+		t.Fatal(err)
+	}
+	admin, err := Login(ctx, database, "admin", "admin1234")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tech, err := CreateUser(ctx, database, admin.User, "tech", "tech12345", RoleTechnician)
+	if err != nil {
+		t.Fatal(err)
+	}
+	device, err := RegisterDevice(ctx, database, root, tech, NewDevice{
+		CustomerName: "Ada", Name: "Printer", Brand: "HP", Model: "Laser", Note: "works",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	samePhoto := uploadBytes(pngBytes())
+	_, err = ChangeDeviceStatus(ctx, database, root, tech, device.ID, device.Status, "again", &samePhoto)
+	var fields *FieldError
+	if !errors.As(err, &fields) || !contains(fields.Invalid, "status") {
+		t.Fatalf("same status: %v", err)
+	}
+	if countRows(t, database, `SELECT COUNT(*) FROM device_status_changes`) != 0 {
+		t.Fatal("same status wrote history")
+	}
+	if countRows(t, database, `SELECT COUNT(*) FROM audit_events WHERE event = ?`, EventDeviceStatusChanged) != 0 {
+		t.Fatal("same status wrote audit")
+	}
+
+	photo := uploadBytes(pngBytes())
+	changed, err := ChangeDeviceStatus(ctx, database, root, tech, device.ID, StatusInspecting, "looked at it", &photo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed.Status != StatusInspecting || len(changed.History) != 1 || changed.History[0].Note != "looked at it" || !changed.History[0].HasPhoto {
+		t.Fatalf("change %+v", changed.History)
+	}
+	if changed.History[0].From != StatusRegistered || changed.History[0].To != StatusInspecting || changed.History[0].ActorUsername != tech.Username {
+		t.Fatalf("history row %+v", changed.History[0])
+	}
+	if countRows(t, database, `SELECT COUNT(*) FROM photos WHERE device_id = ?`, device.ID) != 0 {
+		t.Fatal("status photo counted as a device photo")
+	}
+	full, media, err := OpenStatusPhoto(ctx, database, root, device.ID, changed.History[0].ID)
+	if err != nil || media != "image/png" {
+		t.Fatalf("photo %s %s %v", full, media, err)
+	}
+	if _, err := os.Stat(full); err != nil {
+		t.Fatal(err)
+	}
+
+	var detail string
+	if err := database.QueryRowContext(ctx, `
+		SELECT detail FROM audit_events WHERE event = ? ORDER BY id DESC LIMIT 1
+	`, EventDeviceStatusChanged).Scan(&detail); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(detail, "looked") || strings.Contains(detail, "devices") {
+		t.Fatalf("audit stored the note or photo: %s", detail)
+	}
+	var parsed map[string]string
+	if err := json.Unmarshal([]byte(detail), &parsed); err != nil {
+		t.Fatal(err)
+	}
+	if parsed["from"] != StatusRegistered || parsed["to"] != StatusInspecting || parsed["uuid"] != device.ID {
+		t.Fatalf("audit detail %s", detail)
+	}
+
+	kept, err := UpdateDevice(ctx, database, root, tech, device.ID, DeviceChange{
+		Name: "Printer", Brand: "HP", Model: "Laser", Note: "works",
+		CustomerName: "Ada", Parts: []PartChange{},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if kept.Status != StatusInspecting {
+		t.Fatalf("correction changed status to %s", kept.Status)
+	}
+
+	again, err := ChangeDeviceStatus(ctx, database, root, tech, device.ID, StatusDelivered, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(again.History) != 2 || again.History[0].To != StatusDelivered || again.History[1].To != StatusInspecting || again.History[0].HasPhoto {
+		t.Fatalf("history order %+v", again.History)
+	}
+
+	matched, err := ListDevices(ctx, database, DeviceQuery{Status: StatusDelivered, Limit: 10})
+	if err != nil || len(matched.Items) != 1 || matched.Items[0].ID != device.ID {
+		t.Fatalf("status filter %+v %v", matched, err)
+	}
+	other, err := ListDevices(ctx, database, DeviceQuery{Status: StatusRegistered, Text: "Printer", Limit: 10})
+	if err != nil || len(other.Items) != 0 {
+		t.Fatalf("combined filter %+v %v", other, err)
+	}
+	if _, err := ListDevices(ctx, database, DeviceQuery{Status: "nope"}); !errors.Is(err, ErrInvalidStatus) {
+		t.Fatalf("bad status filter: %v", err)
+	}
+}
+
+func TestWidenDeviceStatus(t *testing.T) {
+	ctx := context.Background()
+	database, err := db.Open(ctx, filepath.Join(t.TempDir(), "old.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { database.Close() })
+	if _, err := database.ExecContext(ctx, `
+		CREATE TABLE customers (
+			id INTEGER PRIMARY KEY,
+			name TEXT NOT NULL,
+			phone TEXT NOT NULL DEFAULT '',
+			email TEXT NOT NULL DEFAULT '',
+			name_fold TEXT NOT NULL,
+			phone_fold TEXT NOT NULL,
+			email_fold TEXT NOT NULL,
+			created_at TEXT NOT NULL
+		);
+		CREATE TABLE devices (
+			id TEXT PRIMARY KEY,
+			customer_id INTEGER NOT NULL REFERENCES customers(id),
+			name TEXT NOT NULL,
+			brand TEXT NOT NULL,
+			model TEXT NOT NULL,
+			serial TEXT NOT NULL DEFAULT '',
+			note TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'registered' CHECK (status = 'registered'),
+			name_fold TEXT NOT NULL,
+			brand_fold TEXT NOT NULL,
+			model_fold TEXT NOT NULL,
+			serial_fold TEXT NOT NULL,
+			created_at TEXT NOT NULL
+		);
+		INSERT INTO customers (id, name, phone, email, name_fold, phone_fold, email_fold, created_at)
+		VALUES (1, 'Ada', '', '', 'ada', '', '', '2026-01-01T00:00:00.000Z');
+		INSERT INTO devices (
+			id, customer_id, name, brand, model, serial, note, status,
+			name_fold, brand_fold, model_fold, serial_fold, created_at
+		) VALUES ('dev', 1, 'Printer', 'HP', 'Laser', '', 'works', 'registered', 'printer', 'hp', 'laser', '', '2026-01-01T00:00:00.000Z');
+		CREATE TABLE parts (
+			id TEXT PRIMARY KEY,
+			device_id TEXT NOT NULL REFERENCES devices(id),
+			name TEXT NOT NULL,
+			note TEXT NOT NULL,
+			position INTEGER NOT NULL
+		);
+		INSERT INTO parts (id, device_id, name, note, position) VALUES ('part', 'dev', 'Cable', 'ok', 0);
+	`); err != nil {
+		t.Fatal(err)
+	}
+	if err := Migrate(ctx, database); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := database.ExecContext(ctx, `UPDATE devices SET status = ? WHERE id = 'dev'`, StatusInStorage); err != nil {
+		t.Fatal(err)
+	}
+	var name string
+	if err := database.QueryRowContext(ctx, `SELECT name FROM parts WHERE device_id = 'dev'`).Scan(&name); err != nil || name != "Cable" {
+		t.Fatalf("part after migrate: %s %v", name, err)
 	}
 }
 

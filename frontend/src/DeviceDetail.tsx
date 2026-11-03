@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { ApiError, photoSrc, request, type Device } from "./api";
-import { formatWhen, statusLabel } from "./format";
+import { useEffect, useState, type FormEvent } from "react";
+import { ApiError, photoSrc, request, statusPhotoSrc, type Device } from "./api";
+import { deviceStatuses, formatWhen, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
-import { problemText } from "./problems";
+import { fileProblem, problemText } from "./problems";
 
 type Props = {
   copy: Copy;
@@ -15,6 +15,12 @@ type Props = {
 export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Props) {
   const [device, setDevice] = useState<Device | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [next, setNext] = useState("");
+  const [note, setNote] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [fileKey, setFileKey] = useState(0);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -33,6 +39,42 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
     return () => controller.abort();
   }, [copy, id, onUnauthorized]);
 
+  async function saveStatus(event: FormEvent) {
+    event.preventDefault();
+    if (!device) {
+      return;
+    }
+    const missing = next ? [] : ["status"];
+    const photo = file ? fileProblem(file) : null;
+    if (missing.length || photo) {
+      setStatusError(problemText(copy, new ApiError("validation", { missing, photo: photo ?? "" })));
+      return;
+    }
+    const body = new FormData();
+    body.set("payload", JSON.stringify({ status: next, note }));
+    if (file) {
+      body.set("file0", file);
+    }
+    setSaving(true);
+    setStatusError(null);
+    try {
+      const saved = await request<Device>(`/api/devices/${device.id}/status`, { method: "POST", body });
+      setDevice(saved);
+      setNext("");
+      setNote("");
+      setFile(null);
+      setFileKey((value) => value + 1);
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.code === "unauthorized") {
+        onUnauthorized();
+        return;
+      }
+      setStatusError(problemText(copy, err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (!device) {
     return <p className={error ? "alert" : "muted"}>{error ?? copy.loading}</p>;
   }
@@ -46,7 +88,7 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
           <p className="muted">
             {copy.registeredOn}: {formatWhen(device.createdAt, lang)}
           </p>
-          <span className="badge">{statusLabel(device.status, copy.statusRegistered)}</span>
+          <span className="badge">{statusLabel(device.status, copy)}</span>
         </div>
         <button className="button" type="button" onClick={() => onNavigate(`/devices/${device.id}/edit`)}>
           {copy.correct}
@@ -79,6 +121,53 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
             <h2>{part.name}</h2>
             <p>{part.note}</p>
             <PhotoRow deviceId={device.id} photos={part.photos} />
+          </div>
+        ))}
+      </section>
+      <form className="panel stack" onSubmit={(event) => void saveStatus(event)}>
+        <h2>{copy.changeStatus}</h2>
+        <label className="field">
+          {copy.status}
+          <select value={next} onChange={(event) => setNext(event.target.value)}>
+            <option value="">{copy.statusRequired}</option>
+            {deviceStatuses.map((id) => (
+              <option key={id} value={id}>
+                {statusLabel(id, copy)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          {copy.statusNote}
+          <textarea value={note} onChange={(event) => setNote(event.target.value)} />
+        </label>
+        <label className="field">
+          {copy.statusPhoto}
+          <input
+            key={fileKey}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+          />
+        </label>
+        {statusError ? <p className="alert">{statusError}</p> : null}
+        <button className="button" type="submit" disabled={saving}>
+          {copy.save}
+        </button>
+      </form>
+      <section className="panel stack">
+        <h2>{copy.statusHistory}</h2>
+        {device.history.length === 0 ? <p className="muted">{copy.noStatusHistory}</p> : null}
+        {device.history.map((change) => (
+          <div className="stack part" key={change.id}>
+            <p>
+              {formatWhen(change.createdAt, lang)} · {change.actorUsername}
+            </p>
+            <p>
+              {statusLabel(change.from, copy)} → {statusLabel(change.to, copy)}
+            </p>
+            {change.note ? <p>{change.note}</p> : null}
+            {change.hasPhoto ? <img className="thumb" src={statusPhotoSrc(device.id, change.id)} alt="" /> : null}
           </div>
         ))}
       </section>

@@ -121,7 +121,7 @@ export function CustomerDetail({ copy, lang, id, onNavigate, onUnauthorized }: P
               {item.name} · {item.brand} {item.model}
             </strong>
             <span className="muted">
-              {statusLabel(item.status, copy.statusRegistered)} · {formatWhen(item.createdAt, lang)}
+              {statusLabel(item.status, copy)} · {formatWhen(item.createdAt, lang)}
             </span>
           </button>
         ))}

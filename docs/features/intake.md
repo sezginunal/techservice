@@ -20,8 +20,8 @@ The signed-in navigation adds Devices and Customers. User management stays as it
 
 ## Device
 
-- The device name, brand, model, and condition note are required.
-- The condition note is the operator's comment on the condition of the device.
+- The device name, brand, model, and device notes are required.
+- The device notes are the operator's text about the device.
 - The serial number is optional.
 - On a successful save the system assigns a UUID. The operator does not type it. The device list, the device detail, and the page address use that UUID. It does not change later.
 - The status is `registered`. The screen shows it as "Registered" in English and "Kayıt yapıldı" in Turkish.
@@ -33,7 +33,7 @@ The signed-in navigation adds Devices and Customers. User management stays as it
 ## Parts
 
 - Parts are optional. Each part is its own row. Two cables are two rows.
-- A part name and that part's condition note are required.
+- A part name and that part's note are required.
 - A part has no brand, model, or serial number.
 - The operator can add, change, and remove a part while registering or while correcting the device.
 - Removing a part removes that part's photos.
@@ -53,8 +53,8 @@ The signed-in navigation adds Devices and Customers. User management stays as it
 - The customer section comes first. The operator searches existing customers or enters a new one.
 - Search matches the name, the phone, or the email. Each result shows the name, the phone, and the email, so two people with the same name can be told apart.
 - The operator either selects an existing customer or enters a new one. Selecting an existing customer shows that person's name, phone, and email and does not change them on this screen.
-- The device section takes the name, brand, model, serial number, and condition note.
-- The parts section adds part rows. Each row takes the part name, the condition note, and that part's photos.
+- The device section takes the name, brand, model, serial number, and device notes.
+- The parts section adds part rows. Each row takes the part name, the part note, and that part's photos.
 - The device photos sit on the device.
 - One save writes the new customer, when the operator entered one, and the device with its parts and photos.
 - A failed save writes nothing. The screen names each missing required field.
@@ -67,9 +67,9 @@ The signed-in navigation adds Devices and Customers. User management stays as it
 - A row shows the UUID, device name, brand, model, customer name, status, and registration date. It does not show photos or parts.
 - One search box matches the device name, brand, model, serial number, customer name, phone, or UUID.
 - An empty shop says there are no devices. A search that matches nothing says so.
-- Opening a row opens the device. The detail shows the UUID, status, registration date, name, brand, model, serial number when present, condition note, customer name, phone, and email, the device photos, and each part with its note and photos.
+- Opening a row opens the device. The detail shows the UUID, status, registration date, name, brand, model, serial number when present, device notes, customer name, phone, and email, the device photos, and each part with its note and photos.
 - The parts section is visible when there are no parts.
-- From the detail the operator corrects the device name, brand, model, serial number, condition note, parts, and photos, and corrects the customer's name, phone, and email.
+- From the detail the operator corrects the device name, brand, model, serial number, device notes, parts, and photos, and corrects the customer's name, phone, and email.
 - The correction is kept on save. The UUID and the status stay as they are.
 
 ## Customer list and detail

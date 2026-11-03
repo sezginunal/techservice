@@ -37,6 +37,8 @@ func New(database *sql.DB, uploadPath string) http.Handler {
 	mux.HandleFunc("GET /api/devices", authenticated(database, listDevices(database)))
 	mux.HandleFunc("POST /api/devices", authenticated(database, registerDevice(database, uploadPath)))
 	mux.HandleFunc("GET /api/devices/{id}/photos/{photoId}", authenticated(database, getPhoto(database, uploadPath)))
+	mux.HandleFunc("GET /api/devices/{id}/status/{changeId}/photo", authenticated(database, getStatusPhoto(database, uploadPath)))
+	mux.HandleFunc("POST /api/devices/{id}/status", authenticated(database, changeDeviceStatus(database, uploadPath)))
 	mux.HandleFunc("GET /api/devices/{id}", authenticated(database, getDevice(database)))
 	mux.HandleFunc("PUT /api/devices/{id}", authenticated(database, updateDevice(database, uploadPath)))
 	mux.HandleFunc("GET /api/audit", authenticated(database, listAudit(database)))
@@ -278,6 +280,8 @@ func writeStoreError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusBadRequest, "invalid_time")
 	case errors.Is(err, store.ErrInvalidEvent):
 		writeError(w, http.StatusBadRequest, "invalid_event")
+	case errors.Is(err, store.ErrInvalidStatus):
+		writeError(w, http.StatusBadRequest, "invalid_status")
 	default:
 		log.Printf("store: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal")

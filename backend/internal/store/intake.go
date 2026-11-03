@@ -44,6 +44,7 @@ type Device struct {
 	CreatedAt time.Time
 	Parts     []Part
 	Photos    []Photo
+	History   []StatusChange
 }
 
 type DeviceListItem struct {
@@ -119,6 +120,7 @@ type CustomerPage struct {
 
 type DeviceQuery struct {
 	Text        string
+	Status      string
 	CustomerID  int64
 	HasCustomer bool
 	Limit       int
@@ -230,6 +232,13 @@ func ListDevices(ctx context.Context, database *sql.DB, query DeviceQuery) (Devi
 	if query.HasCustomer {
 		clauses = append(clauses, "devices.customer_id = ?")
 		args = append(args, query.CustomerID)
+	}
+	if query.Status != "" {
+		if !knownStatus(query.Status) {
+			return DevicePage{}, ErrInvalidStatus
+		}
+		clauses = append(clauses, "devices.status = ?")
+		args = append(args, query.Status)
 	}
 	if strings.TrimSpace(query.Text) != "" {
 		pattern := likePattern(query.Text)
@@ -822,6 +831,7 @@ func loadDevice(ctx context.Context, q queryer, id string) (Device, error) {
 
 	device.Parts = []Part{}
 	device.Photos = []Photo{}
+	device.History = []StatusChange{}
 	partRows, err := q.QueryContext(ctx, `
 		SELECT id, name, note FROM parts WHERE device_id = ? ORDER BY position, id
 	`, id)
@@ -874,6 +884,11 @@ func loadDevice(ctx context.Context, q queryer, id string) (Device, error) {
 	if err := photoRows.Err(); err != nil {
 		return Device{}, fmt.Errorf("list photos: %w", err)
 	}
+	history, err := loadStatusHistory(ctx, q, id)
+	if err != nil {
+		return Device{}, err
+	}
+	device.History = history
 	return device, nil
 }
 

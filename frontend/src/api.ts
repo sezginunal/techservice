@@ -27,6 +27,16 @@ export type Part = {
   photos: Photo[];
 };
 
+export type StatusChange = {
+  id: number;
+  actorUsername: string;
+  from: string;
+  to: string;
+  note: string;
+  hasPhoto: boolean;
+  createdAt: string;
+};
+
 export type Device = {
   id: string;
   name: string;
@@ -39,6 +49,7 @@ export type Device = {
   customer: Customer;
   parts: Part[];
   photos: Photo[];
+  history: StatusChange[];
 };
 
 export type DeviceItem = {
@@ -122,4 +133,8 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function photoSrc(deviceId: string, photoId: string) {
   return `/api/devices/${deviceId}/photos/${photoId}`;
+}
+
+export function statusPhotoSrc(deviceId: string, changeId: number) {
+  return `/api/devices/${deviceId}/status/${changeId}/photo`;
 }

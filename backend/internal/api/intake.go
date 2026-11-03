@@ -100,7 +100,7 @@ func listDevices(database *sql.DB) http.HandlerFunc {
 			writeStoreError(w, err)
 			return
 		}
-		query := store.DeviceQuery{Text: r.URL.Query().Get("q"), Limit: limit}
+		query := store.DeviceQuery{Text: r.URL.Query().Get("q"), Status: r.URL.Query().Get("status"), Limit: limit}
 		if value := r.URL.Query().Get("customerId"); value != "" {
 			id, err := strconv.ParseInt(value, 10, 64)
 			if err != nil || id <= 0 {
@@ -257,6 +257,52 @@ func updateDevice(database *sql.DB, root string) http.HandlerFunc {
 	}
 }
 
+func changeDeviceStatus(database *sql.DB, root string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Status string `json:"status"`
+			Note   string `json:"note"`
+		}
+		file, err := readStatusForm(w, r, &body)
+		if err != nil {
+			writeFormError(w, err)
+			return
+		}
+		defer clearForm(r)
+		device, err := store.ChangeDeviceStatus(r.Context(), database, root, userFrom(r.Context()), r.PathValue("id"), body.Status, body.Note, file)
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, deviceJSON(device))
+	}
+}
+
+func getStatusPhoto(database *sql.DB, root string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		changeID, err := strconv.ParseInt(r.PathValue("changeId"), 10, 64)
+		if err != nil || changeID <= 0 {
+			writeError(w, http.StatusBadRequest, "invalid_id")
+			return
+		}
+		full, media, err := store.OpenStatusPhoto(r.Context(), database, root, r.PathValue("id"), changeID)
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		file, err := os.Open(full)
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		defer file.Close()
+		w.Header().Set("Content-Type", media)
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Cache-Control", "private, max-age=3600")
+		http.ServeContent(w, r, "", time.Time{}, file)
+	}
+}
+
 func getPhoto(database *sql.DB, root string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		full, media, err := store.OpenPhoto(r.Context(), database, root, r.PathValue("id"), r.PathValue("photoId"))
@@ -308,7 +354,24 @@ func deviceJSON(device store.Device) map[string]any {
 		"customer":  customerJSON(device.Customer),
 		"parts":     parts,
 		"photos":    photosJSON(device.Photos),
+		"history":   historyJSON(device.History),
 	}
+}
+
+func historyJSON(history []store.StatusChange) []map[string]any {
+	items := make([]map[string]any, 0, len(history))
+	for _, change := range history {
+		items = append(items, map[string]any{
+			"id":            change.ID,
+			"actorUsername": change.ActorUsername,
+			"from":          change.From,
+			"to":            change.To,
+			"note":          change.Note,
+			"hasPhoto":      change.HasPhoto,
+			"createdAt":     store.FormatTime(change.CreatedAt),
+		})
+	}
+	return items
 }
 
 func photosJSON(photos []store.Photo) []map[string]any {
@@ -321,6 +384,37 @@ func photosJSON(photos []store.Photo) []map[string]any {
 		})
 	}
 	return items
+}
+
+func readStatusForm(w http.ResponseWriter, r *http.Request, dest any) (*store.Upload, error) {
+	r.Body = http.MaxBytesReader(w, r.Body, store.StatusUploadBody)
+	if err := r.ParseMultipartForm(1 << 20); err != nil {
+		var max *http.MaxBytesError
+		if errors.As(err, &max) {
+			return nil, &store.FieldError{Photo: "size"}
+		}
+		return nil, err
+	}
+	decoder := json.NewDecoder(strings.NewReader(r.FormValue("payload")))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(dest); err != nil {
+		return nil, err
+	}
+	for name := range r.MultipartForm.File {
+		if name != "file0" {
+			return nil, &store.FieldError{Invalid: []string{"statusPhoto"}}
+		}
+	}
+	header, err := formFile(r, "file0")
+	if errors.Is(err, http.ErrMissingFile) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &store.Upload{Open: func() (io.ReadCloser, error) {
+		return header.Open()
+	}}, nil
 }
 
 func readDeviceForm(w http.ResponseWriter, r *http.Request, dest any) ([]store.Upload, error) {

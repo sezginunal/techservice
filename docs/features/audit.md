@@ -26,7 +26,7 @@ The stored roles stay `admin`, `owner`, and `technician`. The visible names chan
 
 A successful change to a record writes one row. A save that changes nothing writes nothing. Parts and photos are part of the device row. They do not write their own rows.
 
-The row does not contain a password, a condition note, or a photo file.
+The row does not contain a password, device notes, or a photo file.
 
 These events write a row:
 

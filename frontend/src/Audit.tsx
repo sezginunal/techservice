@@ -183,8 +183,8 @@ function subjectOf(copy: Copy, item: AuditItem) {
     return [detail.name, detail.uuid, detail.customer].filter(Boolean).join(" · ");
   }
   if (item.event === "device.status_changed") {
-    const from = statusLabel(detail.from ?? "", copy.statusRegistered);
-    const to = statusLabel(detail.to ?? "", copy.statusRegistered);
+    const from = statusLabel(detail.from ?? "", copy);
+    const to = statusLabel(detail.to ?? "", copy);
     return [detail.name, detail.uuid, `${from} → ${to}`].filter(Boolean).join(" · ");
   }
   if (item.event === "user.created") {
