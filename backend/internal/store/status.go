@@ -19,6 +19,7 @@ const (
 	StatusInStorage           = "in_storage"
 	StatusLeftStorage         = "left_storage"
 	StatusDelivered           = "delivered"
+	StatusCancelled           = "cancelled"
 )
 
 func deviceStatusList() []string {
@@ -34,6 +35,7 @@ func deviceStatusList() []string {
 		StatusInStorage,
 		StatusLeftStorage,
 		StatusDelivered,
+		StatusCancelled,
 	}
 }
 
@@ -60,7 +62,7 @@ func widenDeviceStatus(ctx context.Context, database *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("devices ddl: %w", err)
 	}
-	if !strings.Contains(ddl, "CHECK (status = 'registered')") {
+	if strings.Contains(ddl, "'"+StatusCancelled+"'") {
 		return nil
 	}
 

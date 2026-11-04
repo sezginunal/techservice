@@ -27,12 +27,15 @@ The state is one of these values. The screen shows the English name, then the Tu
 - `in_storage` — In storage — Depoda
 - `left_storage` — Left storage — Depodan çıkış yapıldı
 - `delivered` — Delivered — Teslim edildi
+- `cancelled` — Cancelled — İptal edildi
 
 Registration sets `registered`. The registration screen has no state control.
 
 The operator moves a device from any state to any other state. A save that keeps the same state is refused and writes nothing.
 
 Warranty lives only in `repair_warranty` and `repair_out_of_warranty`. A device in another state is not filtered as under warranty. The previous state stays in the history. This feature adds no separate warranty field.
+
+A cancelled device is not delivered. Home counts that leave out only `delivered` still include it.
 
 ## Device list
 

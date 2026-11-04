@@ -28,7 +28,7 @@ func TestSummaryEmpty(t *testing.T) {
 			t.Fatalf("day %s count %d", day.Date, day.Count)
 		}
 	}
-	if len(summary.ByStatus) != len(deviceStatusList()) || summary.ByStatus[0].Status != StatusRegistered || summary.ByStatus[len(summary.ByStatus)-1].Status != StatusDelivered {
+	if len(summary.ByStatus) != len(deviceStatusList()) || summary.ByStatus[0].Status != StatusRegistered || summary.ByStatus[len(summary.ByStatus)-1].Status != StatusCancelled {
 		t.Fatalf("status order %+v", summary.ByStatus)
 	}
 	for _, item := range summary.ByStatus {
@@ -153,22 +153,23 @@ func TestSummaryShop(t *testing.T) {
 	open("Shop", "Ready", StatusPreparingDelivery)
 	open("Shop", "Done", StatusDelivered)
 	open("Shop", "Stored", StatusInStorage)
+	open("Shop", "Cancelled", StatusCancelled)
 
 	summary, err := LoadSummary(ctx, shop.db, now)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.InShop != 6 || summary.Delivered != 1 || summary.WaitingPart != 2 || summary.Ready != 1 || summary.Idle7 != 0 || len(summary.Unchanged) != 0 {
+	if summary.InShop != 7 || summary.Delivered != 1 || summary.WaitingPart != 2 || summary.Ready != 1 || summary.Idle7 != 0 || len(summary.Unchanged) != 0 {
 		t.Fatalf("shop %+v unchanged %d", summary, len(summary.Unchanged))
 	}
 	got := map[string]int{}
 	for _, item := range summary.ByStatus {
 		got[item.Status] = item.Count
 	}
-	if got[StatusRegistered] != 1 || got[StatusInspecting] != 1 || got[StatusWaitingPartnerPart] != 1 || got[StatusWaitingOwnPart] != 1 || got[StatusPreparingDelivery] != 1 || got[StatusDelivered] != 1 || got[StatusInStorage] != 1 || got[StatusFinalTesting] != 0 {
+	if got[StatusRegistered] != 1 || got[StatusInspecting] != 1 || got[StatusWaitingPartnerPart] != 1 || got[StatusWaitingOwnPart] != 1 || got[StatusPreparingDelivery] != 1 || got[StatusDelivered] != 1 || got[StatusInStorage] != 1 || got[StatusCancelled] != 1 || got[StatusFinalTesting] != 0 {
 		t.Fatalf("by status %+v", summary.ByStatus)
 	}
-	if summary.ByStatus[0].Status != StatusRegistered || summary.ByStatus[len(summary.ByStatus)-1].Status != StatusDelivered {
+	if summary.ByStatus[0].Status != StatusRegistered || summary.ByStatus[len(summary.ByStatus)-1].Status != StatusCancelled {
 		t.Fatalf("order %+v", summary.ByStatus)
 	}
 }
@@ -202,12 +203,15 @@ func TestSummaryIdleClock(t *testing.T) {
 	setStatusAt(t, ctx, shop, recent.ID, StatusFinalTesting, now.Add(-time.Hour))
 	delivered := add(now.Add(-100 * fullDay))
 	setStatusAt(t, ctx, shop, delivered.ID, StatusDelivered, now.Add(-50*fullDay))
+	cancelled := add(now.Add(-100 * fullDay))
+	cancelAt := now.Add(-9 * fullDay)
+	setStatusAt(t, ctx, shop, cancelled.ID, StatusCancelled, cancelAt)
 
 	summary, err := LoadSummary(ctx, shop.db, now)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.Idle7 != 2 || summary.UnchangedMore || len(summary.Unchanged) != 4 {
+	if summary.Idle7 != 3 || summary.UnchangedMore || len(summary.Unchanged) != 5 {
 		t.Fatalf("idle7 %d more %v rows %+v", summary.Idle7, summary.UnchangedMore, summary.Unchanged)
 	}
 	want := []struct {
@@ -216,6 +220,7 @@ func TestSummaryIdleClock(t *testing.T) {
 		status string
 		since  time.Time
 	}{
+		{cancelled.ID, 9, StatusCancelled, cancelAt},
 		{changed.ID, 8, StatusInspecting, changeAt},
 		{seven.ID, 7, StatusRegistered, now.Add(-7 * fullDay)},
 		{almostSeven.ID, 6, StatusRegistered, now.Add(-7*fullDay + time.Millisecond)},

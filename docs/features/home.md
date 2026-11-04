@@ -24,7 +24,7 @@ The title is "Registrations" in English and "Kayıtlar" in Turkish. The caption 
 
 Four figures sit under the chart.
 
-- In the shop — Dükkanda. Every device that is not delivered. The delivered count sits beside it: "{n} delivered" in English and "{n} teslim edildi" in Turkish.
+- In the shop — Dükkanda. Every device that is not delivered. A cancelled device is included. The delivered count sits beside it: "{n} delivered" in English and "{n} teslim edildi" in Turkish.
 - Idle 7 days or more — 7 gündür aynı durumda. This is the count defined in the unchanged section.
 - Waiting for a part — Parça bekleyen. `waiting_partner_part` and `waiting_own_part` together.
 - Ready to deliver — Teslime hazır. `preparing_delivery`.
@@ -49,7 +49,7 @@ When nothing was registered in those 30 days, the screen says "No device was reg
 
 ## Status unchanged
 
-A device is listed when it is not delivered and its state has stayed the same for at least one full day. A full day is 24 hours. The clock starts at the latest state change. When the state has never changed, the clock starts at registration.
+A device is listed when it is not delivered and its state has stayed the same for at least one full day. A cancelled device is included. A full day is 24 hours. The clock starts at the latest state change. When the state has never changed, the clock starts at registration.
 
 Delivered devices are absent.
 
@@ -69,7 +69,7 @@ The title is "Status unchanged" in English and "Durumu değişmeyenler" in Turki
 
 When no open device has waited a full day, the screen says "No open device has waited a full day." in English and "Bir tam gündür bekleyen açık cihaz yok." in Turkish.
 
-The figure "Idle 7 days or more" counts every non-delivered device that has waited 7 full days or more. That count includes devices past the 12 shown.
+The figure "Idle 7 days or more" counts every non-delivered device that has waited 7 full days or more, including a cancelled device. That count includes devices past the 12 shown.
 
 ## Latest registrations
 

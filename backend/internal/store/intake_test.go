@@ -330,11 +330,16 @@ func TestDeviceStatus(t *testing.T) {
 		t.Fatalf("correction changed status to %s", kept.Status)
 	}
 
+	cancelled, err := ChangeDeviceStatus(ctx, database, root, tech, device.ID, StatusCancelled, "", nil)
+	if err != nil || cancelled.Status != StatusCancelled {
+		t.Fatalf("cancel %+v %v", cancelled.Status, err)
+	}
+
 	again, err := ChangeDeviceStatus(ctx, database, root, tech, device.ID, StatusDelivered, "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(again.History) != 2 || again.History[0].To != StatusDelivered || again.History[1].To != StatusInspecting || again.History[0].HasPhoto {
+	if len(again.History) != 3 || again.History[0].To != StatusDelivered || again.History[1].To != StatusCancelled || again.History[2].To != StatusInspecting || again.History[0].HasPhoto {
 		t.Fatalf("history order %+v", again.History)
 	}
 
@@ -479,6 +484,59 @@ func TestWidenDeviceStatus(t *testing.T) {
 	var address string
 	if err := database.QueryRowContext(ctx, `SELECT address FROM customers WHERE id = 1`).Scan(&address); err != nil || address != "" {
 		t.Fatalf("address after migrate: %q %v", address, err)
+	}
+}
+
+func TestWidenCancelledStatus(t *testing.T) {
+	ctx := context.Background()
+	database, err := db.Open(ctx, filepath.Join(t.TempDir(), "prior.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { database.Close() })
+	if _, err := database.ExecContext(ctx, `
+		CREATE TABLE customers (
+			id INTEGER PRIMARY KEY,
+			name TEXT NOT NULL,
+			phone TEXT NOT NULL DEFAULT '',
+			email TEXT NOT NULL DEFAULT '',
+			address TEXT NOT NULL DEFAULT '',
+			name_fold TEXT NOT NULL,
+			phone_fold TEXT NOT NULL,
+			email_fold TEXT NOT NULL,
+			address_fold TEXT NOT NULL DEFAULT '',
+			created_at TEXT NOT NULL
+		);
+		CREATE TABLE devices (
+			id TEXT PRIMARY KEY,
+			customer_id INTEGER NOT NULL REFERENCES customers(id),
+			brand TEXT NOT NULL,
+			model TEXT NOT NULL,
+			serial TEXT NOT NULL DEFAULT '',
+			note TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'registered' CHECK (status IN ('registered', 'inspecting', 'repair_warranty', 'repair_out_of_warranty', 'waiting_partner_part', 'waiting_own_part', 'final_testing', 'preparing_delivery', 'in_storage', 'left_storage', 'delivered')),
+			brand_fold TEXT NOT NULL,
+			model_fold TEXT NOT NULL,
+			serial_fold TEXT NOT NULL,
+			created_at TEXT NOT NULL
+		);
+		INSERT INTO customers (id, name, phone, email, address, name_fold, phone_fold, email_fold, address_fold, created_at)
+		VALUES (1, 'Ada', '', '', '', 'ada', '', '', '', '2026-01-01T00:00:00.000Z');
+		INSERT INTO devices (
+			id, customer_id, brand, model, serial, note, status,
+			brand_fold, model_fold, serial_fold, created_at
+		) VALUES ('dev', 1, 'HP', 'Laser', '', 'works', 'delivered', 'hp', 'laser', '', '2026-01-01T00:00:00.000Z');
+	`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := database.ExecContext(ctx, `UPDATE devices SET status = 'cancelled' WHERE id = 'dev'`); err == nil {
+		t.Fatal("old check accepted cancelled")
+	}
+	if err := Migrate(ctx, database); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := database.ExecContext(ctx, `UPDATE devices SET status = ? WHERE id = 'dev'`, StatusCancelled); err != nil {
+		t.Fatal(err)
 	}
 }
 

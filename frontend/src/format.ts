@@ -12,6 +12,7 @@ export const deviceStatuses = [
   "in_storage",
   "left_storage",
   "delivered",
+  "cancelled",
 ] as const;
 
 export function formatWhen(value: string, lang: Lang) {
