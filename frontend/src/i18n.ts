@@ -350,7 +350,7 @@ const storageKey = "techservice.lang";
 
 export function readLang(): Lang {
   const value = localStorage.getItem(storageKey);
-  return value === "tr" ? "tr" : "en";
+  return value === "en" ? "en" : "tr";
 }
 
 export function writeLang(lang: Lang) {

@@ -7,16 +7,13 @@ import { DeviceDetail } from "./DeviceDetail";
 import { DeviceForm } from "./DeviceForm";
 import { Devices } from "./Devices";
 import { Home } from "./Home";
-import { shopName, text, writeLang, type Lang } from "./i18n";
+import { readLang, shopName, text, writeLang, type Lang } from "./i18n";
 import { Login } from "./Login";
 import { Shell, type NavItem } from "./Shell";
 import { Users } from "./Users";
 
 export function App() {
-  const [lang, setLang] = useState<Lang>(() => {
-    const value = localStorage.getItem("techservice.lang");
-    return value === "tr" ? "tr" : "en";
-  });
+  const [lang, setLang] = useState<Lang>(readLang);
   const [user, setUser] = useState<User | null>(null);
   const [brand, setBrand] = useState<Brand>({ name: "", logo: false });
   const [ready, setReady] = useState(false);
