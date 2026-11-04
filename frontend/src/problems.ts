@@ -88,6 +88,7 @@ function fieldLabel(copy: Copy, field: string) {
     statusNote: copy.statusNote,
     phone: copy.phone,
     email: copy.email,
+    address: copy.address,
   };
   return labels[field] ?? field;
 }

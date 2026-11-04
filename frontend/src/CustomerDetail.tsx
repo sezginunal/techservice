@@ -20,6 +20,7 @@ export function CustomerDetail({ copy, lang, id, onNavigate, onUnauthorized }: P
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const devices = useWindow(id, (after: DeviceItem | null, signal) => {
@@ -39,6 +40,7 @@ export function CustomerDetail({ copy, lang, id, onNavigate, onUnauthorized }: P
         setName(loaded.name);
         setPhone(loaded.phone);
         setEmail(loaded.email);
+        setAddress(loaded.address);
       })
       .catch((err: unknown) => {
         if (controller.signal.aborted) {
@@ -81,12 +83,13 @@ export function CustomerDetail({ copy, lang, id, onNavigate, onUnauthorized }: P
     try {
       const saved = await request<Customer>(`/api/customers/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ name, phone, email }),
+        body: JSON.stringify({ name, phone, email, address }),
       });
       setCustomer(saved);
       setName(saved.name);
       setPhone(saved.phone);
       setEmail(saved.email);
+      setAddress(saved.address);
     } catch (err) {
       if (err instanceof ApiError && err.code === "unauthorized") {
         onUnauthorized();
@@ -123,6 +126,10 @@ export function CustomerDetail({ copy, lang, id, onNavigate, onUnauthorized }: P
           <label className="field">
             {copy.email}
             <input value={email} inputMode="email" autoComplete="email" onChange={(event) => setEmail(event.target.value)} />
+          </label>
+          <label className="field">
+            {copy.address}
+            <input value={address} autoComplete="street-address" onChange={(event) => setAddress(event.target.value)} />
           </label>
         </div>
         {error ? <p className="alert">{error}</p> : null}

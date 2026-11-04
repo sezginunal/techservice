@@ -77,15 +77,16 @@ func updateCustomer(database *sql.DB) http.HandlerFunc {
 			return
 		}
 		var body struct {
-			Name  string `json:"name"`
-			Phone string `json:"phone"`
-			Email string `json:"email"`
+			Name    string `json:"name"`
+			Phone   string `json:"phone"`
+			Email   string `json:"email"`
+			Address string `json:"address"`
 		}
 		if err := readJSON(w, r, &body); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_json")
 			return
 		}
-		customer, err := store.UpdateCustomer(r.Context(), database, userFrom(r.Context()), id, body.Name, body.Phone, body.Email)
+		customer, err := store.UpdateCustomer(r.Context(), database, userFrom(r.Context()), id, body.Name, body.Phone, body.Email, body.Address)
 		if err != nil {
 			writeStoreError(w, err)
 			return
@@ -157,15 +158,16 @@ func getDevice(database *sql.DB, images catalog.Index) http.HandlerFunc {
 func registerDevice(database *sql.DB, root string, images catalog.Index) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			CustomerID    *int64 `json:"customerId"`
-			CustomerName  string `json:"customerName"`
-			CustomerPhone string `json:"customerPhone"`
-			CustomerEmail string `json:"customerEmail"`
-			Brand         string `json:"brand"`
-			Model         string `json:"model"`
-			Serial        string `json:"serial"`
-			Note          string `json:"note"`
-			Parts         []struct {
+			CustomerID      *int64 `json:"customerId"`
+			CustomerName    string `json:"customerName"`
+			CustomerPhone   string `json:"customerPhone"`
+			CustomerEmail   string `json:"customerEmail"`
+			CustomerAddress string `json:"customerAddress"`
+			Brand           string `json:"brand"`
+			Model           string `json:"model"`
+			Serial          string `json:"serial"`
+			Note            string `json:"note"`
+			Parts           []struct {
 				Name   string `json:"name"`
 				Note   string `json:"note"`
 				Photos []int  `json:"photos"`
@@ -183,17 +185,18 @@ func registerDevice(database *sql.DB, root string, images catalog.Index) http.Ha
 			parts[i] = store.NewPart{Name: part.Name, Note: part.Note, Photos: part.Photos}
 		}
 		device, err := store.RegisterDevice(r.Context(), database, root, userFrom(r.Context()), store.NewDevice{
-			CustomerID:    body.CustomerID,
-			CustomerName:  body.CustomerName,
-			CustomerPhone: body.CustomerPhone,
-			CustomerEmail: body.CustomerEmail,
-			Brand:         body.Brand,
-			Model:         body.Model,
-			Serial:        body.Serial,
-			Note:          body.Note,
-			Parts:         parts,
-			Files:         files,
-			DevicePhotos:  body.DevicePhotos,
+			CustomerID:      body.CustomerID,
+			CustomerName:    body.CustomerName,
+			CustomerPhone:   body.CustomerPhone,
+			CustomerEmail:   body.CustomerEmail,
+			CustomerAddress: body.CustomerAddress,
+			Brand:           body.Brand,
+			Model:           body.Model,
+			Serial:          body.Serial,
+			Note:            body.Note,
+			Parts:           parts,
+			Files:           files,
+			DevicePhotos:    body.DevicePhotos,
 		})
 		if err != nil {
 			writeStoreError(w, err)
@@ -206,14 +209,15 @@ func registerDevice(database *sql.DB, root string, images catalog.Index) http.Ha
 func updateDevice(database *sql.DB, root string, images catalog.Index) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			Brand         string `json:"brand"`
-			Model         string `json:"model"`
-			Serial        string `json:"serial"`
-			Note          string `json:"note"`
-			CustomerName  string `json:"customerName"`
-			CustomerPhone string `json:"customerPhone"`
-			CustomerEmail string `json:"customerEmail"`
-			Parts         []struct {
+			Brand           string `json:"brand"`
+			Model           string `json:"model"`
+			Serial          string `json:"serial"`
+			Note            string `json:"note"`
+			CustomerName    string `json:"customerName"`
+			CustomerPhone   string `json:"customerPhone"`
+			CustomerEmail   string `json:"customerEmail"`
+			CustomerAddress string `json:"customerAddress"`
+			Parts           []struct {
 				ID     string   `json:"id"`
 				Name   string   `json:"name"`
 				Note   string   `json:"note"`
@@ -234,17 +238,18 @@ func updateDevice(database *sql.DB, root string, images catalog.Index) http.Hand
 			parts[i] = store.PartChange{ID: part.ID, Name: part.Name, Note: part.Note, Keep: part.Keep, Photos: part.Photos}
 		}
 		device, err := store.UpdateDevice(r.Context(), database, root, userFrom(r.Context()), r.PathValue("id"), store.DeviceChange{
-			Brand:         body.Brand,
-			Model:         body.Model,
-			Serial:        body.Serial,
-			Note:          body.Note,
-			CustomerName:  body.CustomerName,
-			CustomerPhone: body.CustomerPhone,
-			CustomerEmail: body.CustomerEmail,
-			Parts:         parts,
-			Files:         files,
-			DeviceKeep:    body.DeviceKeep,
-			DevicePhotos:  body.DevicePhotos,
+			Brand:           body.Brand,
+			Model:           body.Model,
+			Serial:          body.Serial,
+			Note:            body.Note,
+			CustomerName:    body.CustomerName,
+			CustomerPhone:   body.CustomerPhone,
+			CustomerEmail:   body.CustomerEmail,
+			CustomerAddress: body.CustomerAddress,
+			Parts:           parts,
+			Files:           files,
+			DeviceKeep:      body.DeviceKeep,
+			DevicePhotos:    body.DevicePhotos,
 		})
 		if err != nil {
 			writeStoreError(w, err)
@@ -322,10 +327,11 @@ func getPhoto(database *sql.DB, root string) http.HandlerFunc {
 
 func customerJSON(customer store.Customer) map[string]any {
 	return map[string]any{
-		"id":    customer.ID,
-		"name":  customer.Name,
-		"phone": customer.Phone,
-		"email": customer.Email,
+		"id":      customer.ID,
+		"name":    customer.Name,
+		"phone":   customer.Phone,
+		"email":   customer.Email,
+		"address": customer.Address,
 	}
 }
 

@@ -41,6 +41,7 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [catalog, setCatalog] = useState<CatalogBrand[]>([]);
@@ -84,6 +85,7 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
         setCustomerName(device.customer.name);
         setPhone(device.customer.phone);
         setEmail(device.customer.email);
+        setAddress(device.customer.address);
         setDeviceExisting(device.photos.map((photo) => ({ id: photo.id })));
         setParts(
           device.parts.map((part) => ({
@@ -235,6 +237,7 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
           customerName,
           customerPhone: phone,
           customerEmail: email,
+          customerAddress: address,
           deviceKeep: deviceExisting.map((photo) => photo.id),
           devicePhotos: indexes(deviceFiles),
           parts: parts.map((part) => ({
@@ -246,7 +249,9 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
           })),
         }
       : {
-          ...(selected ? { customerId: selected.id } : { customerName, customerPhone: phone, customerEmail: email }),
+          ...(selected
+            ? { customerId: selected.id }
+            : { customerName, customerPhone: phone, customerEmail: email, customerAddress: address }),
           brand,
           model,
           serial,
@@ -309,6 +314,7 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
                 <strong>{selected.name}</strong>
                 <span>{selected.phone}</span>
                 <span>{selected.email}</span>
+                <span>{selected.address}</span>
                 <button className="button secondary" type="button" onClick={() => setSelected(null)}>
                   {copy.clearCustomer}
                 </button>
@@ -326,6 +332,10 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
                 <label className="field">
                   {copy.email}
                   <input value={email} inputMode="email" autoComplete="email" onChange={(event) => setEmail(event.target.value)} />
+                </label>
+                <label className="field">
+                  {copy.address}
+                  <input value={address} autoComplete="street-address" onChange={(event) => setAddress(event.target.value)} />
                 </label>
               </div>
             )}
@@ -355,7 +365,7 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
                   >
                     <strong>{customer.name}</strong>
                     <span className="muted">
-                      {[customer.phone, customer.email].filter(Boolean).join(" · ")}
+                      {[customer.phone, customer.email, customer.address].filter(Boolean).join(" · ")}
                     </span>
                   </button>
                 ))}
@@ -374,6 +384,10 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
               <label className="field">
                 {copy.email}
                 <input value={email} inputMode="email" autoComplete="email" onChange={(event) => setEmail(event.target.value)} />
+              </label>
+              <label className="field">
+                {copy.address}
+                <input value={address} autoComplete="street-address" onChange={(event) => setAddress(event.target.value)} />
               </label>
             </div>
           </>
@@ -643,3 +657,4 @@ function PhotoFields({
     </div>
   );
 }
+

@@ -59,6 +59,7 @@ export function Customers({ copy, onNavigate, onUnauthorized }: Props) {
               <th>{copy.customerName}</th>
               <th>{copy.phone}</th>
               <th>{copy.email}</th>
+              <th>{copy.address}</th>
             </tr>
           </thead>
           <tbody>
@@ -71,6 +72,7 @@ export function Customers({ copy, onNavigate, onUnauthorized }: Props) {
                 </td>
                 <td data-label={copy.phone}>{customer.phone}</td>
                 <td data-label={copy.email}>{customer.email}</td>
+                <td data-label={copy.address}>{customer.address}</td>
               </tr>
             ))}
           </tbody>

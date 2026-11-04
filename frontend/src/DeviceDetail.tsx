@@ -104,6 +104,7 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
         <p>{device.customer.name}</p>
         <p>{device.customer.phone}</p>
         <p>{device.customer.email}</p>
+        <p>{device.customer.address}</p>
       </section>
       <section className="panel stack">
         <h2>{copy.devices}</h2>

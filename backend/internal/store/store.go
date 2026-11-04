@@ -25,6 +25,7 @@ const (
 	maxEmailLen      = 254
 	maxPhoneLen      = 40
 	maxSerialLen     = 100
+	maxAddressLen    = 400
 	maxPhotoBytes    = 8 << 20
 	maxPhotos        = 30
 	maxPage          = 100
@@ -89,9 +90,11 @@ func Migrate(ctx context.Context, database *sql.DB) error {
 			name TEXT NOT NULL,
 			phone TEXT NOT NULL DEFAULT '',
 			email TEXT NOT NULL DEFAULT '',
+			address TEXT NOT NULL DEFAULT '',
 			name_fold TEXT NOT NULL,
 			phone_fold TEXT NOT NULL,
 			email_fold TEXT NOT NULL,
+			address_fold TEXT NOT NULL DEFAULT '',
 			created_at TEXT NOT NULL
 		);
 		CREATE INDEX IF NOT EXISTS customers_name ON customers (name COLLATE NOCASE, id);
@@ -161,6 +164,49 @@ func Migrate(ctx context.Context, database *sql.DB) error {
 	}
 	if err := widenDeviceStatus(ctx, database); err != nil {
 		return err
+	}
+	if err := ensureCustomerAddress(ctx, database); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ensureCustomerAddress(ctx context.Context, database *sql.DB) error {
+	rows, err := database.QueryContext(ctx, `PRAGMA table_info(customers)`)
+	if err != nil {
+		return fmt.Errorf("customers info: %w", err)
+	}
+	defer rows.Close()
+	hasAddress := false
+	hasFold := false
+	for rows.Next() {
+		var cid int
+		var name, colType string
+		var notNull int
+		var dflt sql.NullString
+		var pk int
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &dflt, &pk); err != nil {
+			return fmt.Errorf("customers column: %w", err)
+		}
+		if name == "address" {
+			hasAddress = true
+		}
+		if name == "address_fold" {
+			hasFold = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("customers columns: %w", err)
+	}
+	if !hasAddress {
+		if _, err := database.ExecContext(ctx, `ALTER TABLE customers ADD COLUMN address TEXT NOT NULL DEFAULT ''`); err != nil {
+			return fmt.Errorf("add address: %w", err)
+		}
+	}
+	if !hasFold {
+		if _, err := database.ExecContext(ctx, `ALTER TABLE customers ADD COLUMN address_fold TEXT NOT NULL DEFAULT ''`); err != nil {
+			return fmt.Errorf("add address fold: %w", err)
+		}
 	}
 	return nil
 }

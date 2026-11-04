@@ -351,7 +351,7 @@ func TestDeviceStatus(t *testing.T) {
 	}
 }
 
-func TestOptionalNotes(t *testing.T) {
+func TestOptionalNotesAndAddress(t *testing.T) {
 	ctx := context.Background()
 	database := openTestDB(t)
 	root := t.TempDir()
@@ -364,20 +364,40 @@ func TestOptionalNotes(t *testing.T) {
 	}
 
 	device, err := RegisterDevice(ctx, database, root, admin.User, NewDevice{
-		CustomerName: "Ada",
-		Brand:        "HP",
-		Model:        "Laser",
-		Parts:        []NewPart{{Name: "Cable"}},
+		CustomerName:    "Ada",
+		CustomerAddress: "Atatürk Cad. 1",
+		Brand:           "HP",
+		Model:           "Laser",
+		Parts:           []NewPart{{Name: "Cable"}},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if device.Note != "" || len(device.Parts) != 1 || device.Parts[0].Note != "" {
+	if device.Note != "" || len(device.Parts) != 1 || device.Parts[0].Note != "" || device.Customer.Address != "Atatürk Cad. 1" {
 		t.Fatalf("optional fields %+v", device)
 	}
 
+	customers, err := ListCustomers(ctx, database, CustomerQuery{Text: "atatürk", Limit: 10})
+	if err != nil || len(customers.Items) != 1 || customers.Items[0].Address != "Atatürk Cad. 1" {
+		t.Fatalf("address search %+v %v", customers, err)
+	}
+	devices, err := ListDevices(ctx, database, DeviceQuery{Text: "cad", Limit: 10})
+	if err != nil || len(devices.Items) != 1 || devices.Items[0].ID != device.ID {
+		t.Fatalf("device address search %+v %v", devices, err)
+	}
+
+	updated, err := UpdateCustomer(ctx, database, admin.User, device.Customer.ID, "Ada", "", "", "  Yeni sokak  ")
+	if err != nil || updated.Address != "Yeni sokak" {
+		t.Fatalf("address update %+v %v", updated, err)
+	}
+	_, err = UpdateCustomer(ctx, database, admin.User, device.Customer.ID, "Ada", "", "", strings.Repeat("a", maxAddressLen+1))
+	var fields *FieldError
+	if !errors.As(err, &fields) || !contains(fields.TooLong, "address") {
+		t.Fatalf("long address: %v", err)
+	}
+
 	cleared, err := UpdateDevice(ctx, database, root, admin.User, device.ID, DeviceChange{
-		Brand: "HP", Model: "Laser", CustomerName: "Ada",
+		Brand: "HP", Model: "Laser", CustomerName: "Ada", CustomerAddress: "Yeni sokak",
 		Parts: []PartChange{{ID: device.Parts[0].ID, Name: "Cable"}},
 	})
 	if err != nil || cleared.Note != "" || cleared.Parts[0].Note != "" {
@@ -455,6 +475,10 @@ func TestWidenDeviceStatus(t *testing.T) {
 	var name string
 	if err := database.QueryRowContext(ctx, `SELECT name FROM parts WHERE device_id = 'dev'`).Scan(&name); err != nil || name != "Cable" {
 		t.Fatalf("part after migrate: %s %v", name, err)
+	}
+	var address string
+	if err := database.QueryRowContext(ctx, `SELECT address FROM customers WHERE id = 1`).Scan(&address); err != nil || address != "" {
+		t.Fatalf("address after migrate: %q %v", address, err)
 	}
 }
 

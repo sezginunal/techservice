@@ -9,13 +9,14 @@ The signed-in navigation adds Devices and Customers. User management stays as it
 ## Customer
 
 - A customer is a separate record. A device belongs to one customer.
-- The name is required. The phone and the email are optional.
+- The name is required. The phone, the email, and the address are optional.
 - The name is one field.
 - A required value is refused when it is empty or only space. The screen names the field.
 - The phone is kept as the operator typed it, with surrounding space removed. When a phone is entered, a value that is not a phone number is refused. The shape is the frontend input rule.
 - When an email is entered, a value that is not an email address is refused.
 - The same name may exist on more than one customer. The screen does not merge them.
-- Changing the name, phone, or email updates that customer. Every device of that customer shows the new values.
+- The address is kept as the operator typed it, with surrounding space removed. The screen does not check an address format.
+- Changing the name, phone, email, or address updates that customer. Every device of that customer shows the new values.
 - This feature does not delete a customer.
 
 ## Device
@@ -51,8 +52,8 @@ The signed-in navigation adds Devices and Customers. User management stays as it
 
 - One screen registers the device.
 - The customer section comes first. The operator searches existing customers or enters a new one.
-- Search matches the name, the phone, or the email. Each result shows the name, the phone, and the email, so two people with the same name can be told apart.
-- The operator either selects an existing customer or enters a new one. Selecting an existing customer shows that person's name, phone, and email and does not change them on this screen.
+- Search matches the name, the phone, the email, or the address. Each result shows the name, the phone, the email, and the address, so two people with the same name can be told apart.
+- The operator either selects an existing customer or enters a new one. Selecting an existing customer shows that person's name, phone, email, and address and does not change them on this screen.
 - The device section takes the brand, model, serial number, and device notes.
 - The parts section adds part rows. Each row takes the part name, the part note, and that part's photos.
 - The device photos sit on the device.
@@ -65,21 +66,21 @@ The signed-in navigation adds Devices and Customers. User management stays as it
 - The device list and the customer list follow the lists rule.
 - The device list shows the newest registration first.
 - A row shows the UUID, brand, model, customer name, status, and registration date. It does not show photos or parts.
-- One search box matches the brand, model, serial number, customer name, phone, or UUID.
+- One search box matches the brand, model, serial number, customer name, phone, address, or UUID.
 - An empty shop says there are no devices. A search that matches nothing says so.
-- Opening a row opens the device. The detail shows the UUID, status, registration date, brand, model, serial number when present, device notes, customer name, phone, and email, the device photos, and each part with its note and photos.
+- Opening a row opens the device. The detail shows the UUID, status, registration date, brand, model, serial number when present, device notes, customer name, phone, email, and address, the device photos, and each part with its note and photos.
 - The parts section is visible when there are no parts.
-- From the detail the operator corrects the brand, model, serial number, device notes, parts, and photos, and corrects the customer's name, phone, and email.
+- From the detail the operator corrects the brand, model, serial number, device notes, parts, and photos, and corrects the customer's name, phone, email, and address.
 - The correction is kept on save. The UUID and the status stay as they are.
 
 ## Customer list and detail
 
 - The customer list is ordered by name.
-- A row shows the name, phone, and email. The phone and the email are blank when they were not entered.
-- One search box matches the name, the phone, or the email.
+- A row shows the name, phone, email, and address. The phone, the email, and the address are blank when they were not entered.
+- One search box matches the name, the phone, the email, or the address.
 - An empty book says there are no customers. A search that matches nothing says so.
-- The detail shows the name, phone, and email, and the devices of that customer. A device row shows the brand, model, status, and registration date. Opening it goes to the device.
-- The operator corrects the name, phone, and email from this detail.
+- The detail shows the name, phone, email, and address, and the devices of that customer. A device row shows the brand, model, status, and registration date. Opening it goes to the device.
+- The operator corrects the name, phone, email, and address from this detail.
 - When the customer has no devices, the detail says so.
 - From this detail the operator starts a new device. The registration screen opens with this customer already selected and shown. The operator can select a different customer or enter a new one before saving.
 

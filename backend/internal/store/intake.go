@@ -15,6 +15,7 @@ type Customer struct {
 	Name      string
 	Phone     string
 	Email     string
+	Address   string
 	CreatedAt time.Time
 }
 
@@ -66,17 +67,18 @@ type NewPart struct {
 }
 
 type NewDevice struct {
-	CustomerID    *int64
-	CustomerName  string
-	CustomerPhone string
-	CustomerEmail string
-	Brand         string
-	Model         string
-	Serial        string
-	Note          string
-	Parts         []NewPart
-	Files         []Upload
-	DevicePhotos  []int
+	CustomerID      *int64
+	CustomerName    string
+	CustomerPhone   string
+	CustomerEmail   string
+	CustomerAddress string
+	Brand           string
+	Model           string
+	Serial          string
+	Note            string
+	Parts           []NewPart
+	Files           []Upload
+	DevicePhotos    []int
 }
 
 type PartChange struct {
@@ -88,17 +90,18 @@ type PartChange struct {
 }
 
 type DeviceChange struct {
-	Brand         string
-	Model         string
-	Serial        string
-	Note          string
-	CustomerName  string
-	CustomerPhone string
-	CustomerEmail string
-	Parts         []PartChange
-	Files         []Upload
-	DeviceKeep    []string
-	DevicePhotos  []int
+	Brand           string
+	Model           string
+	Serial          string
+	Note            string
+	CustomerName    string
+	CustomerPhone   string
+	CustomerEmail   string
+	CustomerAddress string
+	Parts           []PartChange
+	Files           []Upload
+	DeviceKeep      []string
+	DevicePhotos    []int
 }
 
 type CustomerQuery struct {
@@ -139,8 +142,8 @@ func ListCustomers(ctx context.Context, database *sql.DB, query CustomerQuery) (
 	args := []any{}
 	if strings.TrimSpace(query.Text) != "" {
 		pattern := likePattern(query.Text)
-		clauses = append(clauses, "(name_fold LIKE ? ESCAPE '\\' OR phone_fold LIKE ? ESCAPE '\\' OR email_fold LIKE ? ESCAPE '\\')")
-		args = append(args, pattern, pattern, pattern)
+		clauses = append(clauses, "(name_fold LIKE ? ESCAPE '\\' OR phone_fold LIKE ? ESCAPE '\\' OR email_fold LIKE ? ESCAPE '\\' OR address_fold LIKE ? ESCAPE '\\')")
+		args = append(args, pattern, pattern, pattern, pattern)
 	}
 	if query.HasAfter {
 		clauses = append(clauses, "(name COLLATE NOCASE > ? OR (name COLLATE NOCASE = ? AND id > ?))")
@@ -152,7 +155,7 @@ func ListCustomers(ctx context.Context, database *sql.DB, query CustomerQuery) (
 	}
 	args = append(args, limit+1)
 	rows, err := database.QueryContext(ctx, `
-		SELECT id, name, phone, email, created_at
+		SELECT id, name, phone, email, address, created_at
 		FROM customers
 		`+where+`
 		ORDER BY name COLLATE NOCASE, id
@@ -189,11 +192,12 @@ func GetCustomer(ctx context.Context, database *sql.DB, id int64) (Customer, err
 	return loadCustomer(ctx, database, id)
 }
 
-func UpdateCustomer(ctx context.Context, database *sql.DB, actor User, id int64, name string, phone string, email string) (Customer, error) {
+func UpdateCustomer(ctx context.Context, database *sql.DB, actor User, id int64, name string, phone string, email string, address string) (Customer, error) {
 	fields := &FieldError{}
 	name = requiredText(name, maxNameLen, "customerName", fields)
 	phone = optionalPhone(phone, fields)
 	email = optionalEmail(email, fields)
+	address = optionalText(address, maxAddressLen, "address", fields)
 	if err := fields.asError(); err != nil {
 		return Customer{}, err
 	}
@@ -208,7 +212,7 @@ func UpdateCustomer(ctx context.Context, database *sql.DB, actor User, id int64,
 	if err != nil {
 		return Customer{}, err
 	}
-	next, err := writeCustomer(ctx, tx, actor, current, name, phone, email)
+	next, err := writeCustomer(ctx, tx, actor, current, name, phone, email, address)
 	if err != nil {
 		return Customer{}, err
 	}
@@ -242,8 +246,9 @@ func ListDevices(ctx context.Context, database *sql.DB, query DeviceQuery) (Devi
 			devices.brand_fold LIKE ? ESCAPE '\' OR devices.model_fold LIKE ? ESCAPE '\'
 			OR devices.serial_fold LIKE ? ESCAPE '\' OR devices.id LIKE ? ESCAPE '\'
 			OR customers.name_fold LIKE ? ESCAPE '\' OR customers.phone_fold LIKE ? ESCAPE '\'
+			OR customers.address_fold LIKE ? ESCAPE '\'
 		)`)
-		args = append(args, pattern, pattern, pattern, pattern, pattern, pattern)
+		args = append(args, pattern, pattern, pattern, pattern, pattern, pattern, pattern)
 	}
 	if query.HasAfter {
 		clauses = append(clauses, "(devices.created_at < ? OR (devices.created_at = ? AND devices.id < ?))")
@@ -301,11 +306,12 @@ func GetDevice(ctx context.Context, database *sql.DB, id string) (Device, error)
 
 func RegisterDevice(ctx context.Context, database *sql.DB, root string, actor User, input NewDevice) (Device, error) {
 	fields := &FieldError{}
-	var customerName, phone, email string
+	var customerName, phone, email, address string
 	if input.CustomerID == nil {
 		customerName = requiredText(input.CustomerName, maxNameLen, "customerName", fields)
 		phone = optionalPhone(input.CustomerPhone, fields)
 		email = optionalEmail(input.CustomerEmail, fields)
+		address = optionalText(input.CustomerAddress, maxAddressLen, "address", fields)
 	} else if *input.CustomerID <= 0 {
 		fields.addInvalid("customer")
 	}
@@ -360,7 +366,7 @@ func RegisterDevice(ctx context.Context, database *sql.DB, root string, actor Us
 	now := timestamp(time.Now())
 	var customer Customer
 	if input.CustomerID == nil {
-		customer, err = insertCustomer(ctx, tx, customerName, phone, email, now)
+		customer, err = insertCustomer(ctx, tx, customerName, phone, email, address, now)
 		if err != nil {
 			return Device{}, err
 		}
@@ -438,6 +444,7 @@ func UpdateDevice(ctx context.Context, database *sql.DB, root string, actor User
 	customerName := requiredText(input.CustomerName, maxNameLen, "customerName", fields)
 	phone := optionalPhone(input.CustomerPhone, fields)
 	email := optionalEmail(input.CustomerEmail, fields)
+	address := optionalText(input.CustomerAddress, maxAddressLen, "address", fields)
 	groups := [][]int{input.DevicePhotos}
 	for i, part := range input.Parts {
 		input.Parts[i].Name = requiredText(part.Name, maxNameLen, fmt.Sprintf("parts.%d.name", i), fields)
@@ -449,7 +456,7 @@ func UpdateDevice(ctx context.Context, database *sql.DB, root string, actor User
 		return Device{}, err
 	}
 	input.Brand, input.Model, input.Serial, input.Note = brand, model, serial, note
-	input.CustomerName, input.CustomerPhone, input.CustomerEmail = customerName, phone, email
+	input.CustomerName, input.CustomerPhone, input.CustomerEmail, input.CustomerAddress = customerName, phone, email, address
 	photoCount := len(input.Files) + len(input.DeviceKeep)
 	for _, part := range input.Parts {
 		photoCount += len(part.Keep)
@@ -486,7 +493,7 @@ func UpdateDevice(ctx context.Context, database *sql.DB, root string, actor User
 	if err != nil {
 		return Device{}, err
 	}
-	if _, err := writeCustomer(ctx, tx, actor, current.Customer, customerName, phone, email); err != nil {
+	if _, err := writeCustomer(ctx, tx, actor, current.Customer, customerName, phone, email, address); err != nil {
 		return Device{}, err
 	}
 	removed, err := applyDevice(ctx, tx, actor, root, current, input, photos)
@@ -520,15 +527,15 @@ func OpenPhoto(ctx context.Context, database *sql.DB, root string, deviceID stri
 	return full, media, nil
 }
 
-func writeCustomer(ctx context.Context, tx *sql.Tx, actor User, current Customer, name string, phone string, email string) (Customer, error) {
-	if current.Name == name && current.Phone == phone && current.Email == email {
+func writeCustomer(ctx context.Context, tx *sql.Tx, actor User, current Customer, name string, phone string, email string, address string) (Customer, error) {
+	if current.Name == name && current.Phone == phone && current.Email == email && current.Address == address {
 		return current, nil
 	}
 	if _, err := tx.ExecContext(ctx, `
 		UPDATE customers
-		SET name = ?, phone = ?, email = ?, name_fold = ?, phone_fold = ?, email_fold = ?
+		SET name = ?, phone = ?, email = ?, address = ?, name_fold = ?, phone_fold = ?, email_fold = ?, address_fold = ?
 		WHERE id = ?
-	`, name, phone, email, fold(name), fold(phone), fold(email), current.ID); err != nil {
+	`, name, phone, email, address, fold(name), fold(phone), fold(email), fold(address), current.ID); err != nil {
 		return Customer{}, fmt.Errorf("update customer: %w", err)
 	}
 	detail := map[string]string{"name": name}
@@ -543,6 +550,7 @@ func writeCustomer(ctx context.Context, tx *sql.Tx, actor User, current Customer
 	current.Name = name
 	current.Phone = phone
 	current.Email = email
+	current.Address = address
 	return current, nil
 }
 
@@ -712,7 +720,7 @@ func deviceUnchanged(current Device, input DeviceChange) bool {
 		current.Serial != input.Serial || current.Note != input.Note {
 		return false
 	}
-	if current.Customer.Name != input.CustomerName || current.Customer.Phone != input.CustomerPhone || current.Customer.Email != input.CustomerEmail {
+	if current.Customer.Name != input.CustomerName || current.Customer.Phone != input.CustomerPhone || current.Customer.Email != input.CustomerEmail || current.Customer.Address != input.CustomerAddress {
 		return false
 	}
 	if len(input.Files) > 0 || len(current.Parts) != len(input.Parts) {
@@ -733,11 +741,11 @@ func deviceUnchanged(current Device, input DeviceChange) bool {
 	return true
 }
 
-func insertCustomer(ctx context.Context, tx *sql.Tx, name string, phone string, email string, now string) (Customer, error) {
+func insertCustomer(ctx context.Context, tx *sql.Tx, name string, phone string, email string, address string, now string) (Customer, error) {
 	result, err := tx.ExecContext(ctx, `
-		INSERT INTO customers (name, phone, email, name_fold, phone_fold, email_fold, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-	`, name, phone, email, fold(name), fold(phone), fold(email), now)
+		INSERT INTO customers (name, phone, email, address, name_fold, phone_fold, email_fold, address_fold, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, name, phone, email, address, fold(name), fold(phone), fold(email), fold(address), now)
 	if err != nil {
 		return Customer{}, fmt.Errorf("insert customer: %w", err)
 	}
@@ -749,12 +757,12 @@ func insertCustomer(ctx context.Context, tx *sql.Tx, name string, phone string, 
 	if err != nil {
 		return Customer{}, err
 	}
-	return Customer{ID: id, Name: name, Phone: phone, Email: email, CreatedAt: created}, nil
+	return Customer{ID: id, Name: name, Phone: phone, Email: email, Address: address, CreatedAt: created}, nil
 }
 
 func loadCustomer(ctx context.Context, q queryer, id int64) (Customer, error) {
 	row := q.QueryRowContext(ctx, `
-		SELECT id, name, phone, email, created_at FROM customers WHERE id = ?
+		SELECT id, name, phone, email, address, created_at FROM customers WHERE id = ?
 	`, id)
 	customer, err := scanCustomer(row)
 	if err == sql.ErrNoRows {
@@ -773,7 +781,7 @@ type scanner interface {
 func scanCustomer(row scanner) (Customer, error) {
 	var customer Customer
 	var created string
-	if err := row.Scan(&customer.ID, &customer.Name, &customer.Phone, &customer.Email, &created); err != nil {
+	if err := row.Scan(&customer.ID, &customer.Name, &customer.Phone, &customer.Email, &customer.Address, &created); err != nil {
 		return Customer{}, err
 	}
 	parsed, err := time.Parse(timestampLayout, created)
@@ -790,14 +798,15 @@ func loadDevice(ctx context.Context, q queryer, id string) (Device, error) {
 	var customerCreated string
 	err := q.QueryRowContext(ctx, `
 		SELECT devices.id, devices.brand, devices.model, devices.serial, devices.note,
-			devices.status, devices.created_at, customers.id, customers.name, customers.phone, customers.email, customers.created_at
+			devices.status, devices.created_at, customers.id, customers.name, customers.phone, customers.email,
+			customers.address, customers.created_at
 		FROM devices
 		JOIN customers ON customers.id = devices.customer_id
 		WHERE devices.id = ?
 	`, id).Scan(
 		&device.ID, &device.Brand, &device.Model, &device.Serial, &device.Note,
 		&device.Status, &created, &device.Customer.ID, &device.Customer.Name, &device.Customer.Phone,
-		&device.Customer.Email, &customerCreated,
+		&device.Customer.Email, &device.Customer.Address, &customerCreated,
 	)
 	if err == sql.ErrNoRows {
 		return Device{}, ErrNotFound
