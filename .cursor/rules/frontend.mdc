@@ -1,5 +1,5 @@
 ---
-description: One TypeScript and React app. History API navigation and index.css tokens
+description: One TypeScript and React app. History API navigation, index.css tokens, and input checks
 globs: frontend/**/*.ts,frontend/**/*.tsx,frontend/**/*.css
 alwaysApply: false
 ---
@@ -16,3 +16,14 @@ alwaysApply: false
 - Add a color to the template first, then use it. A screen does not introduce a one-off color.
 - UI dependencies stay free and open source.
 - Navigation uses the History API in `App`. Do not add a routing library, a CSS framework, or another UI library.
+
+## Input
+
+- Check a phone, an email, a username, and a password on the screen before the request. The backend refuses the same value.
+- An empty optional phone or email is allowed.
+- A phone contains 10 to 15 digits. Spaces, parentheses, `+`, and hyphens are allowed. Any other character is refused. Store the trimmed text. The screen does not reformat it.
+- An email has one `@`, no spaces, and a dot in the domain.
+- A username this screen sets is required and at most 64 characters. A password this screen sets is 8 to 72 characters. An empty new password on an existing user leaves the password unchanged.
+- Login does not say which of the username or the password failed.
+- A name, brand, model, serial number, note, or search box has no character format. A required one is still refused when it is empty or only spaces.
+- The checks live in one module. The screen names the field. The words are in `i18n.ts`, in English and Turkish.

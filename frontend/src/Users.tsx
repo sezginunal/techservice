@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, request, type Role, type User } from "./api";
 import type { Copy } from "./i18n";
 import { messageFor } from "./Login";
+import { passwordProblem, usernameOk } from "./fields";
 import { initials } from "./Shell";
 
 const roles: Role[] = ["technician", "owner", "admin"];
@@ -29,6 +30,19 @@ export function Users({ copy, onUnauthorized }: { copy: Copy; onUnauthorized: ()
 
   async function create(event: FormEvent) {
     event.preventDefault();
+    if (!usernameOk(username)) {
+      setError(username.trim() ? copy.tooLong.replace("{field}", copy.username) : copy.invalidUsername);
+      return;
+    }
+    const problem = passwordProblem(password);
+    if (problem === "short") {
+      setError(copy.passwordTooShort);
+      return;
+    }
+    if (problem === "long") {
+      setError(copy.passwordTooLong);
+      return;
+    }
     setError(null);
     try {
       const created = await request<User>("/api/users", {
@@ -45,6 +59,17 @@ export function Users({ copy, onUnauthorized }: { copy: Copy; onUnauthorized: ()
   }
 
   async function save(user: User, nextRole: Role, nextPassword: string, nextActive: boolean) {
+    if (nextPassword) {
+      const problem = passwordProblem(nextPassword);
+      if (problem === "short") {
+        setError(copy.passwordTooShort);
+        return false;
+      }
+      if (problem === "long") {
+        setError(copy.passwordTooLong);
+        return false;
+      }
+    }
     setError(null);
     try {
       const saved = await request<User>(`/api/users/${user.id}`, {

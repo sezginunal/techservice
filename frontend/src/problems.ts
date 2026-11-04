@@ -53,6 +53,9 @@ function fieldLine(copy: Copy, field: string, kind: "missing" | "invalid") {
   if (field === "email") {
     return copy.emailInvalid;
   }
+  if (kind === "invalid" && field === "phone") {
+    return copy.phoneInvalid;
+  }
   if (kind === "invalid" && field === "photos") {
     return copy.photosStale;
   }

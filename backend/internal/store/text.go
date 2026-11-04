@@ -104,6 +104,32 @@ func optionalText(value string, max int, field string, fields *FieldError) strin
 	return value
 }
 
+func optionalPhone(value string, fields *FieldError) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	if len([]rune(value)) > maxPhoneLen {
+		fields.addTooLong("phone")
+		return value
+	}
+	digits := 0
+	for _, r := range value {
+		switch {
+		case r >= '0' && r <= '9':
+			digits++
+		case r == '+' || r == '-' || r == '(' || r == ')' || r == ' ':
+		default:
+			fields.addInvalid("phone")
+			return value
+		}
+	}
+	if digits < 10 || digits > 15 {
+		fields.addInvalid("phone")
+	}
+	return value
+}
+
 func optionalEmail(value string, fields *FieldError) string {
 	value = strings.TrimSpace(value)
 	if value == "" {

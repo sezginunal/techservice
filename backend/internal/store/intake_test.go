@@ -51,10 +51,22 @@ func TestIntakeAndAudit(t *testing.T) {
 	if !errors.As(err, &fields) || !contains(fields.Invalid, "email") {
 		t.Fatalf("email: %v", err)
 	}
+	_, err = RegisterDevice(ctx, database, root, tech, NewDevice{
+		CustomerName: "Ada", Brand: "HP", Model: "Laser", Note: "ok", CustomerPhone: "asdas",
+	})
+	if !errors.As(err, &fields) || !contains(fields.Invalid, "phone") {
+		t.Fatalf("phone: %v", err)
+	}
+	_, err = RegisterDevice(ctx, database, root, tech, NewDevice{
+		CustomerName: "Ada", Brand: "HP", Model: "Laser", Note: "ok", CustomerPhone: "555",
+	})
+	if !errors.As(err, &fields) || !contains(fields.Invalid, "phone") {
+		t.Fatalf("short phone: %v", err)
+	}
 
 	device, err := RegisterDevice(ctx, database, root, tech, NewDevice{
 		CustomerName:  "Ada Lovelace",
-		CustomerPhone: "555",
+		CustomerPhone: "555 111 22 33",
 		Brand:         "HP",
 		Model:         "Laser",
 		Note:          "works",
@@ -105,7 +117,7 @@ func TestIntakeAndAudit(t *testing.T) {
 
 	renamed, err := UpdateDevice(ctx, database, root, tech, device.ID, DeviceChange{
 		Brand: device.Brand, Model: device.Model, Note: device.Note,
-		CustomerName: "Ada King", CustomerPhone: "555",
+		CustomerName: "Ada King", CustomerPhone: "555 111 22 33",
 		Parts: []PartChange{{
 			ID: device.Parts[0].ID, Name: "Cable", Note: "ok", Keep: []string{device.Parts[0].Photos[0].ID},
 		}},

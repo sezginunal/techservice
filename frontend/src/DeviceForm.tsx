@@ -4,6 +4,7 @@ import { ModelIcon } from "./ModelIcon";
 import type { Copy } from "./i18n";
 import { usePaused } from "./list";
 import { PhotoButton } from "./PhotoView";
+import { emailOk, phoneOk } from "./fields";
 import { fileProblem, maxPhotos, problemText } from "./problems";
 
 type LocalFile = { key: string; file: File; url: string };
@@ -191,8 +192,13 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
     if (!note.trim()) {
       missing.push("note");
     }
-    if (email.trim() && !emailOk(email)) {
-      invalid.push("email");
+    if (editing || !selected) {
+      if (!phoneOk(phone)) {
+        invalid.push("phone");
+      }
+      if (!emailOk(email)) {
+        invalid.push("email");
+      }
     }
     parts.forEach((part, index) => {
       if (!part.name.trim()) {
@@ -321,11 +327,11 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
                 </label>
                 <label className="field">
                   {copy.phone}
-                  <input value={phone} onChange={(event) => setPhone(event.target.value)} />
+                  <input value={phone} inputMode="tel" autoComplete="tel" onChange={(event) => setPhone(event.target.value)} />
                 </label>
                 <label className="field">
                   {copy.email}
-                  <input value={email} onChange={(event) => setEmail(event.target.value)} />
+                  <input value={email} inputMode="email" autoComplete="email" onChange={(event) => setEmail(event.target.value)} />
                 </label>
               </div>
             )}
@@ -369,11 +375,11 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
               </label>
               <label className="field">
                 {copy.phone}
-                <input value={phone} onChange={(event) => setPhone(event.target.value)} />
+                <input value={phone} inputMode="tel" autoComplete="tel" onChange={(event) => setPhone(event.target.value)} />
               </label>
               <label className="field">
                 {copy.email}
-                <input value={email} onChange={(event) => setEmail(event.target.value)} />
+                <input value={email} inputMode="email" autoComplete="email" onChange={(event) => setEmail(event.target.value)} />
               </label>
             </div>
           </>
@@ -642,10 +648,4 @@ function PhotoFields({
       </div>
     </div>
   );
-}
-
-function emailOk(value: string) {
-  const email = value.trim();
-  const at = email.lastIndexOf("@");
-  return at > 0 && !email.includes(" ") && email.slice(at + 1).includes(".");
 }

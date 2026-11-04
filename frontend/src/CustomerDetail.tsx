@@ -4,6 +4,7 @@ import { ModelIcon } from "./ModelIcon";
 import { formatWhen, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
 import { End, useWindow } from "./list";
+import { emailOk, phoneOk } from "./fields";
 import { problemText } from "./problems";
 
 type Props = {
@@ -60,6 +61,21 @@ export function CustomerDetail({ copy, lang, id, onNavigate, onUnauthorized }: P
 
   async function save(event: FormEvent) {
     event.preventDefault();
+    const missing: string[] = [];
+    const invalid: string[] = [];
+    if (!name.trim()) {
+      missing.push("customerName");
+    }
+    if (!phoneOk(phone)) {
+      invalid.push("phone");
+    }
+    if (!emailOk(email)) {
+      invalid.push("email");
+    }
+    if (missing.length || invalid.length) {
+      setError(problemText(copy, new ApiError("validation", { missing, invalid })));
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -102,11 +118,11 @@ export function CustomerDetail({ copy, lang, id, onNavigate, onUnauthorized }: P
           </label>
           <label className="field">
             {copy.phone}
-            <input value={phone} onChange={(event) => setPhone(event.target.value)} />
+            <input value={phone} inputMode="tel" autoComplete="tel" onChange={(event) => setPhone(event.target.value)} />
           </label>
           <label className="field">
             {copy.email}
-            <input value={email} onChange={(event) => setEmail(event.target.value)} />
+            <input value={email} inputMode="email" autoComplete="email" onChange={(event) => setEmail(event.target.value)} />
           </label>
         </div>
         {error ? <p className="alert">{error}</p> : null}

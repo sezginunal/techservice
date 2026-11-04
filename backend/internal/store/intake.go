@@ -192,7 +192,7 @@ func GetCustomer(ctx context.Context, database *sql.DB, id int64) (Customer, err
 func UpdateCustomer(ctx context.Context, database *sql.DB, actor User, id int64, name string, phone string, email string) (Customer, error) {
 	fields := &FieldError{}
 	name = requiredText(name, maxNameLen, "customerName", fields)
-	phone = optionalText(phone, maxPhoneLen, "phone", fields)
+	phone = optionalPhone(phone, fields)
 	email = optionalEmail(email, fields)
 	if err := fields.asError(); err != nil {
 		return Customer{}, err
@@ -304,7 +304,7 @@ func RegisterDevice(ctx context.Context, database *sql.DB, root string, actor Us
 	var customerName, phone, email string
 	if input.CustomerID == nil {
 		customerName = requiredText(input.CustomerName, maxNameLen, "customerName", fields)
-		phone = optionalText(input.CustomerPhone, maxPhoneLen, "phone", fields)
+		phone = optionalPhone(input.CustomerPhone, fields)
 		email = optionalEmail(input.CustomerEmail, fields)
 	} else if *input.CustomerID <= 0 {
 		fields.addInvalid("customer")
@@ -436,7 +436,7 @@ func UpdateDevice(ctx context.Context, database *sql.DB, root string, actor User
 	serial := optionalText(input.Serial, maxSerialLen, "serial", fields)
 	note := requiredText(input.Note, maxNoteLen, "note", fields)
 	customerName := requiredText(input.CustomerName, maxNameLen, "customerName", fields)
-	phone := optionalText(input.CustomerPhone, maxPhoneLen, "phone", fields)
+	phone := optionalPhone(input.CustomerPhone, fields)
 	email := optionalEmail(input.CustomerEmail, fields)
 	groups := [][]int{input.DevicePhotos}
 	for i, part := range input.Parts {
