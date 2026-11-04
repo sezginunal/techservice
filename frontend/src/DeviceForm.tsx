@@ -189,9 +189,6 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
     if (!model.trim()) {
       missing.push("model");
     }
-    if (!note.trim()) {
-      missing.push("note");
-    }
     if (editing || !selected) {
       if (!phoneOk(phone)) {
         invalid.push("phone");
@@ -203,9 +200,6 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
     parts.forEach((part, index) => {
       if (!part.name.trim()) {
         missing.push(`parts.${index}.name`);
-      }
-      if (!part.note.trim()) {
-        missing.push(`parts.${index}.note`);
       }
     });
     const locals = [...deviceFiles, ...parts.flatMap((part) => part.files)];

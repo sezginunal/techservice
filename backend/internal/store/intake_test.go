@@ -351,6 +351,40 @@ func TestDeviceStatus(t *testing.T) {
 	}
 }
 
+func TestOptionalNotes(t *testing.T) {
+	ctx := context.Background()
+	database := openTestDB(t)
+	root := t.TempDir()
+	if err := EnsureAdmin(ctx, database, "admin", "admin1234"); err != nil {
+		t.Fatal(err)
+	}
+	admin, err := Login(ctx, database, "admin", "admin1234")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	device, err := RegisterDevice(ctx, database, root, admin.User, NewDevice{
+		CustomerName: "Ada",
+		Brand:        "HP",
+		Model:        "Laser",
+		Parts:        []NewPart{{Name: "Cable"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if device.Note != "" || len(device.Parts) != 1 || device.Parts[0].Note != "" {
+		t.Fatalf("optional fields %+v", device)
+	}
+
+	cleared, err := UpdateDevice(ctx, database, root, admin.User, device.ID, DeviceChange{
+		Brand: "HP", Model: "Laser", CustomerName: "Ada",
+		Parts: []PartChange{{ID: device.Parts[0].ID, Name: "Cable"}},
+	})
+	if err != nil || cleared.Note != "" || cleared.Parts[0].Note != "" {
+		t.Fatalf("cleared notes %+v %v", cleared, err)
+	}
+}
+
 func TestWidenDeviceStatus(t *testing.T) {
 	ctx := context.Background()
 	database, err := db.Open(ctx, filepath.Join(t.TempDir(), "old.db"))

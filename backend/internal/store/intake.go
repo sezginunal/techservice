@@ -312,13 +312,13 @@ func RegisterDevice(ctx context.Context, database *sql.DB, root string, actor Us
 	brand := requiredText(input.Brand, maxNameLen, "brand", fields)
 	model := requiredText(input.Model, maxNameLen, "model", fields)
 	serial := optionalText(input.Serial, maxSerialLen, "serial", fields)
-	note := requiredText(input.Note, maxNoteLen, "note", fields)
+	note := optionalText(input.Note, maxNoteLen, "note", fields)
 	parts := make([]NewPart, len(input.Parts))
 	groups := [][]int{input.DevicePhotos}
 	for i, part := range input.Parts {
 		parts[i] = NewPart{
 			Name:   requiredText(part.Name, maxNameLen, fmt.Sprintf("parts.%d.name", i), fields),
-			Note:   requiredText(part.Note, maxNoteLen, fmt.Sprintf("parts.%d.note", i), fields),
+			Note:   optionalText(part.Note, maxNoteLen, fmt.Sprintf("parts.%d.note", i), fields),
 			Photos: part.Photos,
 		}
 		groups = append(groups, part.Photos)
@@ -434,25 +434,15 @@ func UpdateDevice(ctx context.Context, database *sql.DB, root string, actor User
 	brand := requiredText(input.Brand, maxNameLen, "brand", fields)
 	model := requiredText(input.Model, maxNameLen, "model", fields)
 	serial := optionalText(input.Serial, maxSerialLen, "serial", fields)
-	note := requiredText(input.Note, maxNoteLen, "note", fields)
+	note := optionalText(input.Note, maxNoteLen, "note", fields)
 	customerName := requiredText(input.CustomerName, maxNameLen, "customerName", fields)
 	phone := optionalPhone(input.CustomerPhone, fields)
 	email := optionalEmail(input.CustomerEmail, fields)
 	groups := [][]int{input.DevicePhotos}
 	for i, part := range input.Parts {
-		if strings.TrimSpace(part.Name) == "" {
-			fields.addMissing(fmt.Sprintf("parts.%d.name", i))
-		} else if len([]rune(strings.TrimSpace(part.Name))) > maxNameLen {
-			fields.addTooLong(fmt.Sprintf("parts.%d.name", i))
-		}
-		if strings.TrimSpace(part.Note) == "" {
-			fields.addMissing(fmt.Sprintf("parts.%d.note", i))
-		} else if len([]rune(strings.TrimSpace(part.Note))) > maxNoteLen {
-			fields.addTooLong(fmt.Sprintf("parts.%d.note", i))
-		}
+		input.Parts[i].Name = requiredText(part.Name, maxNameLen, fmt.Sprintf("parts.%d.name", i), fields)
+		input.Parts[i].Note = optionalText(part.Note, maxNoteLen, fmt.Sprintf("parts.%d.note", i), fields)
 		groups = append(groups, part.Photos)
-		input.Parts[i].Name = strings.TrimSpace(part.Name)
-		input.Parts[i].Note = strings.TrimSpace(part.Note)
 	}
 	claimPhotos(len(input.Files), groups, fields)
 	if err := fields.asError(); err != nil {

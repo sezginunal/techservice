@@ -6,9 +6,9 @@ A signed-in technician, owner, or admin lists every device, opens one, and chang
 
 ## Device notes
 
-The free-text field on the device is the device notes. Every screen shows it as "Device notes" in English and "Cihaz notları" in Turkish. It stays required. The operator writes any text.
+The free-text field on the device is the device notes. Every screen shows it as "Device notes (optional)" in English and "Cihaz notları (isteğe bağlı)" in Turkish. It is optional. The operator writes any text, or leaves it empty.
 
-The part note shows "Part note" in English and "Parça notu" in Turkish. It stays required.
+The part note shows "Part note (optional)" in English and "Parça notu (isteğe bağlı)" in Turkish. It is optional.
 
 "Status" in English and "Durum" in Turkish mean only the device state.
 

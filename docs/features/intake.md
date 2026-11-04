@@ -20,8 +20,8 @@ The signed-in navigation adds Devices and Customers. User management stays as it
 
 ## Device
 
-- The brand, model, and device notes are required.
-- The device notes are the operator's text about the device.
+- The brand and the model are required.
+- The device notes are the operator's text about the device. They are optional.
 - The serial number is optional.
 - On a successful save the system assigns a UUID. The operator does not type it. The device list, the device detail, and the page address use that UUID. It does not change later.
 - The status is `registered`. The screen shows it as "Registered" in English and "Kayıt yapıldı" in Turkish.
@@ -33,7 +33,7 @@ The signed-in navigation adds Devices and Customers. User management stays as it
 ## Parts
 
 - Parts are optional. Each part is its own row. Two cables are two rows.
-- A part name and that part's note are required.
+- A part name is required. That part's note is optional.
 - A part has no brand, model, or serial number.
 - The operator can add, change, and remove a part while registering or while correcting the device.
 - Removing a part removes that part's photos.
