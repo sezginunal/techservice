@@ -12,7 +12,7 @@ The signed-in navigation adds Devices and Customers. User management stays as it
 - The name is required. The phone and the email are optional.
 - The name is one field.
 - A required value is refused when it is empty or only space. The screen names the field.
-- The phone is kept as the operator typed it, with surrounding space removed. The screen does not check a phone format.
+- The phone is kept as the operator typed it, with surrounding space removed. When a phone is entered, a value that is not a phone number is refused. The shape is the frontend input rule.
 - When an email is entered, a value that is not an email address is refused.
 - The same name may exist on more than one customer. The screen does not merge them.
 - Changing the name, phone, or email updates that customer. Every device of that customer shows the new values.
