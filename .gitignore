@@ -1,5 +1,8 @@
 .env
 node_modules/
+
+# Local scratchpad. Work is not taken from here.
+/docs/todo.md
 dist/
 *.db
 *.db-wal

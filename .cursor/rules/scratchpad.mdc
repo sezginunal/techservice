@@ -1,0 +1,17 @@
+---
+description: docs/todo.md is a local scratchpad, not a work queue
+alwaysApply: true
+---
+
+# Scratchpad
+
+`docs/todo.md` is a local scratchpad. It stays in `.gitignore`.
+
+- Do not take work from it. A line there is not a request and not an approved feature.
+- Work starts when the user states it in the conversation. It then follows the feature rule.
+- When a line is taken into a feature document, delete that line from `docs/todo.md` in the same change.
+
+```text
+Strong: the user agrees to a workflow, the feature document is written, and that line is removed from docs/todo.md.
+Weak: an agent opens docs/todo.md and implements the next line.
+```
