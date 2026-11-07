@@ -6,10 +6,11 @@ alwaysApply: false
 
 # Frontend
 
-- The frontend is one web application. Staff open it in a browser on a phone, tablet, PC, or TV.
+- The frontend is one web application. Staff open it in Chrome, Safari, Firefox, and Edge, including the phone browsers, on a phone, tablet, PC, or TV.
 - Write it in TypeScript. The browser receives the JavaScript produced from that TypeScript.
 - Build the screens with React. TypeScript is the language. React is the UI library.
 - Use one responsive layout that stays readable and operable from a phone screen to a TV.
+- The page is served over http on the local network. That origin is not a secure context. Do not call an API the browser exposes only on https or localhost. `crypto.randomUUID` is one of those. A local id uses `crypto.getRandomValues`.
 - User-visible strings live in `frontend/src/i18n.ts`.
 - Follow the design template in `frontend/src/index.css`. Color, type, spacing, radius, and control styles are tokens in that file.
 - Reuse the template classes for buttons, fields, panels, and alerts. A widget does not invent its own colors, spacing, or radius.

@@ -159,7 +159,7 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
     return files.map((file) => {
       const url = URL.createObjectURL(file);
       urls.current.add(url);
-      return { key: crypto.randomUUID(), file, url };
+      return { key: localKey(), file, url };
     });
   }
 
@@ -430,7 +430,10 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
           files={deviceFiles}
           deviceId={deviceId}
           onUnauthorized={onUnauthorized}
-          onAdd={(list) => setDeviceFiles((current) => [...current, ...takeFiles(list)])}
+          onAdd={(list) => {
+            const added = takeFiles(list);
+            setDeviceFiles((current) => [...current, ...added]);
+          }}
           onDropExisting={(id) => setDeviceExisting((current) => current.filter((photo) => photo.id !== id))}
           onDropFile={(file) => {
             dropFile(file);
@@ -445,12 +448,10 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
           <button
             className="button secondary"
             type="button"
-            onClick={() =>
-              setParts((current) => [
-                ...current,
-                { key: crypto.randomUUID(), id: "", name: "", note: "", existing: [], files: [] },
-              ])
-            }
+            onClick={() => {
+              const key = localKey();
+              setParts((current) => [...current, { key, id: "", name: "", note: "", existing: [], files: [] }]);
+            }}
           >
             {copy.addPart}
           </button>
@@ -502,13 +503,14 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
               files={part.files}
               deviceId={deviceId}
               onUnauthorized={onUnauthorized}
-              onAdd={(list) =>
+              onAdd={(list) => {
+                const added = takeFiles(list);
                 setParts((current) =>
                   current.map((item) =>
-                    item.key === part.key ? { ...item, files: [...item.files, ...takeFiles(list)] } : item,
+                    item.key === part.key ? { ...item, files: [...item.files, ...added] } : item,
                   ),
-                )
-              }
+                );
+              }}
               onDropExisting={(id) =>
                 setParts((current) =>
                   current.map((item) =>
@@ -738,6 +740,11 @@ function suggestBox(anchor: HTMLElement): SuggestBox {
     width: rect.width,
     maxHeight,
   };
+}
+
+function localKey() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function modelsFor(catalog: CatalogBrand[], brand: string) {
