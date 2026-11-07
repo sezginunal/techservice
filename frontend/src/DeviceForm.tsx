@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { ApiError, photoSrc, request, type CatalogBrand, type CatalogModel, type Customer, type Device, type Page } from "./api";
 import { ModelIcon } from "./ModelIcon";
 import type { Copy } from "./i18n";
@@ -550,42 +551,191 @@ function Suggest({
   onChange: (value: string) => void;
 }) {
   const id = useId();
+  const listId = `${id}-list`;
+  const root = useRef<HTMLDivElement>(null);
+  const placed = useRef(false);
   const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const [box, setBox] = useState<SuggestBox | null>(null);
   const query = value.trim().toLowerCase();
   const shown = options.filter((option) => option.name.toLowerCase().includes(query));
+  const index = shown.length === 0 ? 0 : Math.min(active, shown.length - 1);
+
+  useEffect(() => {
+    setActive(0);
+  }, [query]);
+
+  useLayoutEffect(() => {
+    const anchor = root.current?.querySelector("input");
+    if (!open || !(anchor instanceof HTMLElement)) {
+      placed.current = false;
+      setBox(null);
+      return;
+    }
+    if (!placed.current) {
+      placed.current = true;
+      const rect = anchor.getBoundingClientRect();
+      if (window.innerHeight - rect.bottom < 200) {
+        anchor.scrollIntoView({ block: "center", inline: "nearest" });
+      }
+    }
+    function place() {
+      if (!(anchor instanceof HTMLElement)) {
+        return;
+      }
+      const next = suggestBox(anchor);
+      setBox((current) => (sameBox(current, next) ? current : next));
+    }
+    place();
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => {
+      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("resize", place);
+    };
+  }, [open, shown.length]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const option = document.getElementById(listId)?.querySelector<HTMLElement>(".suggest-option[aria-selected='true']");
+    const menu = option?.parentElement;
+    if (!option || !menu) {
+      return;
+    }
+    const top = option.offsetTop;
+    const bottom = top + option.offsetHeight;
+    if (top < menu.scrollTop) {
+      menu.scrollTop = top;
+    } else if (bottom > menu.scrollTop + menu.clientHeight) {
+      menu.scrollTop = bottom - menu.clientHeight;
+    }
+  }, [listId, open, index, box]);
+
+  function choose(name: string) {
+    onChange(name);
+    setOpen(false);
+  }
+
   return (
-    <div className="field">
+    <div className="field suggest-field" ref={root}>
       <label htmlFor={id}>{label}</label>
       <input
         id={id}
+        role="combobox"
+        aria-expanded={open && shown.length > 0}
+        aria-controls={listId}
+        aria-autocomplete="list"
+        autoComplete="off"
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => {
+          onChange(event.target.value);
+          setOpen(true);
+        }}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            if (!open || shown.length === 0) {
+              setOpen(true);
+              return;
+            }
+            setActive((index + 1) % shown.length);
+            return;
+          }
+          if (event.key === "ArrowUp") {
+            event.preventDefault();
+            if (!open || shown.length === 0) {
+              setOpen(true);
+              return;
+            }
+            setActive((index - 1 + shown.length) % shown.length);
+            return;
+          }
+          if (event.key === "Escape") {
+            setOpen(false);
+            return;
+          }
+          if (event.key === "Enter" && open && shown[index] && shown[index].name !== value) {
+            event.preventDefault();
+            choose(shown[index].name);
+          }
+        }}
       />
-      {open && shown.length > 0 ? (
-        <div className="choices suggest">
-          {shown.map((option) => (
-            <button
-              className="button secondary"
-              type="button"
-              key={option.name}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => {
-                onChange(option.name);
-                setOpen(false);
+      {open && shown.length > 0 && box
+        ? createPortal(
+            <div
+              className="suggest"
+              id={listId}
+              role="listbox"
+              style={{
+                top: box.top,
+                bottom: box.bottom,
+                left: box.left,
+                width: box.width,
+                maxHeight: box.maxHeight,
               }}
             >
-              <span className="with-icon">
-                {option.image ? <ModelIcon brand={brand} model={option.name} /> : null}
-                {option.name}
-              </span>
-            </button>
-          ))}
-        </div>
-      ) : null}
+              {shown.map((option, optionIndex) => (
+                <button
+                  className="suggest-option"
+                  type="button"
+                  role="option"
+                  tabIndex={-1}
+                  aria-selected={optionIndex === index}
+                  data-current={option.name.toLowerCase() === query ? true : undefined}
+                  key={option.name}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onMouseEnter={() => setActive(optionIndex)}
+                  onClick={() => choose(option.name)}
+                >
+                  {option.image ? <ModelIcon brand={brand} model={option.name} /> : null}
+                  {option.name}
+                </button>
+              ))}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
+}
+
+type SuggestBox = {
+  top: number | "auto";
+  bottom: number | "auto";
+  left: number;
+  width: number;
+  maxHeight: number;
+};
+
+function sameBox(current: SuggestBox | null, next: SuggestBox) {
+  return (
+    current !== null &&
+    current.top === next.top &&
+    current.bottom === next.bottom &&
+    current.left === next.left &&
+    current.width === next.width &&
+    current.maxHeight === next.maxHeight
+  );
+}
+
+function suggestBox(anchor: HTMLElement): SuggestBox {
+  const rect = anchor.getBoundingClientRect();
+  const gap = 4;
+  const spaceBelow = window.innerHeight - rect.bottom - gap - 8;
+  const spaceAbove = rect.top - gap - 8;
+  const below = spaceBelow >= 96 || spaceBelow >= spaceAbove;
+  const maxHeight = Math.min(256, Math.max(120, below ? spaceBelow : spaceAbove));
+  return {
+    top: below ? rect.bottom + gap : "auto",
+    bottom: below ? "auto" : window.innerHeight - rect.top + gap,
+    left: rect.left,
+    width: rect.width,
+    maxHeight,
+  };
 }
 
 function modelsFor(catalog: CatalogBrand[], brand: string) {

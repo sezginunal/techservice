@@ -844,14 +844,58 @@ img.mark {
   gap: var(--space-3);
 }
 
+.split {
+  align-items: start;
+}
+
 .choices {
   display: grid;
   gap: var(--space-2);
 }
 
+.suggest-field {
+  position: relative;
+}
+
 .suggest {
-  max-height: 16rem;
+  position: fixed;
+  z-index: 25;
+  display: grid;
+  align-content: start;
+  gap: 2px;
   overflow: auto;
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px rgba(24, 24, 27, 0.12);
+}
+
+.suggest-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 2.5rem;
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: start;
+  cursor: pointer;
+}
+
+.suggest-option:hover,
+.suggest-option[aria-selected="true"] {
+  background: var(--color-hover);
+}
+
+.suggest-option[data-current="true"] {
+  color: var(--color-accent);
 }
 
 .with-icon {
