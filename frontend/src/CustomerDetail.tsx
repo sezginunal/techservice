@@ -68,7 +68,9 @@ export function CustomerDetail({ copy, lang, id, onNavigate, onUnauthorized }: P
     if (!name.trim()) {
       missing.push("customerName");
     }
-    if (!phoneOk(phone)) {
+    if (!phone.trim()) {
+      missing.push("phone");
+    } else if (!phoneOk(phone)) {
       invalid.push("phone");
     }
     if (!emailOk(email)) {

@@ -4,12 +4,14 @@ import (
 	"net/mail"
 	"strings"
 	"time"
+	"unicode"
 )
 
 type FieldError struct {
 	Missing []string
 	Invalid []string
 	TooLong []string
+	Taken   []string
 	Photo   string
 }
 
@@ -30,7 +32,7 @@ func (e *FieldError) addTooLong(field string) {
 }
 
 func (e *FieldError) empty() bool {
-	return len(e.Missing) == 0 && len(e.Invalid) == 0 && len(e.TooLong) == 0 && e.Photo == ""
+	return len(e.Missing) == 0 && len(e.Invalid) == 0 && len(e.TooLong) == 0 && len(e.Taken) == 0 && e.Photo == ""
 }
 
 func (e *FieldError) asError() error {
@@ -104,30 +106,77 @@ func optionalText(value string, max int, field string, fields *FieldError) strin
 	return value
 }
 
-func optionalPhone(value string, fields *FieldError) string {
+func requiredPhone(value string, fields *FieldError) string {
 	value = strings.TrimSpace(value)
 	if value == "" {
+		fields.addMissing("phone")
 		return ""
 	}
 	if len([]rune(value)) > maxPhoneLen {
 		fields.addTooLong("phone")
-		return value
+		return ""
 	}
-	digits := 0
 	for _, r := range value {
 		switch {
 		case r >= '0' && r <= '9':
-			digits++
 		case r == '+' || r == '-' || r == '(' || r == ')' || r == ' ':
 		default:
 			fields.addInvalid("phone")
-			return value
+			return ""
 		}
 	}
-	if digits < 10 || digits > 15 {
+	key := canonicalPhone(digitsOnly(value))
+	if len(key) < 10 || len(key) > 15 {
 		fields.addInvalid("phone")
+		return ""
 	}
-	return value
+	return key
+}
+
+func digitsOnly(value string) string {
+	var b strings.Builder
+	for _, r := range value {
+		if r >= '0' && r <= '9' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+func canonicalPhone(digits string) string {
+	switch {
+	case strings.HasPrefix(digits, "0090") && len(digits) >= 14:
+		return canonicalPhone(digits[4:])
+	case strings.HasPrefix(digits, "90") && len(digits) >= 12 && len(digits) <= 13:
+		return canonicalPhone(digits[2:])
+	case strings.HasPrefix(digits, "0") && len(digits) == 11:
+		return digits[1:]
+	default:
+		return digits
+	}
+}
+
+func phoneSearchPattern(value string) string {
+	if !hasLetter(value) {
+		digits := digitsOnly(value)
+		if digits != "" {
+			return likePattern(canonicalPhone(digits))
+		}
+	}
+	return likePattern(value)
+}
+
+func hasLetter(value string) bool {
+	for _, r := range value {
+		if unicode.IsLetter(r) {
+			return true
+		}
+	}
+	return false
+}
+
+func phoneConflict(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "UNIQUE") && strings.Contains(err.Error(), "phone")
 }
 
 func optionalEmail(value string, fields *FieldError) string {

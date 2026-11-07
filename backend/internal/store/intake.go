@@ -143,7 +143,7 @@ func ListCustomers(ctx context.Context, database *sql.DB, query CustomerQuery) (
 	if strings.TrimSpace(query.Text) != "" {
 		pattern := likePattern(query.Text)
 		clauses = append(clauses, "(name_fold LIKE ? ESCAPE '\\' OR phone_fold LIKE ? ESCAPE '\\' OR email_fold LIKE ? ESCAPE '\\' OR address_fold LIKE ? ESCAPE '\\')")
-		args = append(args, pattern, pattern, pattern, pattern)
+		args = append(args, pattern, phoneSearchPattern(query.Text), pattern, pattern)
 	}
 	if query.HasAfter {
 		clauses = append(clauses, "(name COLLATE NOCASE > ? OR (name COLLATE NOCASE = ? AND id > ?))")
@@ -195,7 +195,7 @@ func GetCustomer(ctx context.Context, database *sql.DB, id int64) (Customer, err
 func UpdateCustomer(ctx context.Context, database *sql.DB, actor User, id int64, name string, phone string, email string, address string) (Customer, error) {
 	fields := &FieldError{}
 	name = requiredText(name, maxNameLen, "customerName", fields)
-	phone = optionalPhone(phone, fields)
+	phone = requiredPhone(phone, fields)
 	email = optionalEmail(email, fields)
 	address = optionalText(address, maxAddressLen, "address", fields)
 	if err := fields.asError(); err != nil {
@@ -248,7 +248,7 @@ func ListDevices(ctx context.Context, database *sql.DB, query DeviceQuery) (Devi
 			OR customers.name_fold LIKE ? ESCAPE '\' OR customers.phone_fold LIKE ? ESCAPE '\'
 			OR customers.address_fold LIKE ? ESCAPE '\'
 		)`)
-		args = append(args, pattern, pattern, pattern, pattern, pattern, pattern, pattern)
+		args = append(args, pattern, pattern, pattern, pattern, pattern, phoneSearchPattern(query.Text), pattern)
 	}
 	if query.HasAfter {
 		clauses = append(clauses, "(devices.created_at < ? OR (devices.created_at = ? AND devices.id < ?))")
@@ -309,7 +309,7 @@ func RegisterDevice(ctx context.Context, database *sql.DB, root string, actor Us
 	var customerName, phone, email, address string
 	if input.CustomerID == nil {
 		customerName = requiredText(input.CustomerName, maxNameLen, "customerName", fields)
-		phone = optionalPhone(input.CustomerPhone, fields)
+		phone = requiredPhone(input.CustomerPhone, fields)
 		email = optionalEmail(input.CustomerEmail, fields)
 		address = optionalText(input.CustomerAddress, maxAddressLen, "address", fields)
 	} else if *input.CustomerID <= 0 {
@@ -442,7 +442,7 @@ func UpdateDevice(ctx context.Context, database *sql.DB, root string, actor User
 	serial := optionalText(input.Serial, maxSerialLen, "serial", fields)
 	note := optionalText(input.Note, maxNoteLen, "note", fields)
 	customerName := requiredText(input.CustomerName, maxNameLen, "customerName", fields)
-	phone := optionalPhone(input.CustomerPhone, fields)
+	phone := requiredPhone(input.CustomerPhone, fields)
 	email := optionalEmail(input.CustomerEmail, fields)
 	address := optionalText(input.CustomerAddress, maxAddressLen, "address", fields)
 	groups := [][]int{input.DevicePhotos}
@@ -536,6 +536,9 @@ func writeCustomer(ctx context.Context, tx *sql.Tx, actor User, current Customer
 		SET name = ?, phone = ?, email = ?, address = ?, name_fold = ?, phone_fold = ?, email_fold = ?, address_fold = ?
 		WHERE id = ?
 	`, name, phone, email, address, fold(name), fold(phone), fold(email), fold(address), current.ID); err != nil {
+		if phoneConflict(err) {
+			return Customer{}, &FieldError{Taken: []string{"phone"}}
+		}
 		return Customer{}, fmt.Errorf("update customer: %w", err)
 	}
 	detail := map[string]string{"name": name}
@@ -747,6 +750,9 @@ func insertCustomer(ctx context.Context, tx *sql.Tx, name string, phone string, 
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`, name, phone, email, address, fold(name), fold(phone), fold(email), fold(address), now)
 	if err != nil {
+		if phoneConflict(err) {
+			return Customer{}, &FieldError{Taken: []string{"phone"}}
+		}
 		return Customer{}, fmt.Errorf("insert customer: %w", err)
 	}
 	id, err := result.LastInsertId()

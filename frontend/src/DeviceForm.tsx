@@ -193,7 +193,9 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
       missing.push("model");
     }
     if (editing || !selected) {
-      if (!phoneOk(phone)) {
+      if (!phone.trim()) {
+        missing.push("phone");
+      } else if (!phoneOk(phone)) {
         invalid.push("phone");
       }
       if (!emailOk(email)) {

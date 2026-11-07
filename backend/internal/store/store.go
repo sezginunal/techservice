@@ -88,7 +88,7 @@ func Migrate(ctx context.Context, database *sql.DB) error {
 		CREATE TABLE IF NOT EXISTS customers (
 			id INTEGER PRIMARY KEY,
 			name TEXT NOT NULL,
-			phone TEXT NOT NULL DEFAULT '',
+			phone TEXT NOT NULL,
 			email TEXT NOT NULL DEFAULT '',
 			address TEXT NOT NULL DEFAULT '',
 			name_fold TEXT NOT NULL,
@@ -98,6 +98,8 @@ func Migrate(ctx context.Context, database *sql.DB) error {
 			created_at TEXT NOT NULL
 		);
 		CREATE INDEX IF NOT EXISTS customers_name ON customers (name COLLATE NOCASE, id);
+		DROP INDEX IF EXISTS customers_phone;
+		CREATE UNIQUE INDEX customers_phone ON customers (phone);
 		CREATE TABLE IF NOT EXISTS devices (
 			id TEXT PRIMARY KEY,
 			customer_id INTEGER NOT NULL REFERENCES customers(id),

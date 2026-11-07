@@ -31,6 +31,7 @@ export function problemText(copy: Copy, err: unknown) {
     ...err.missing.map((field) => fieldLine(copy, field, "missing")),
     ...err.invalid.map((field) => fieldLine(copy, field, "invalid")),
     ...err.tooLong.map((field) => copy.tooLong.replace("{field}", fieldLabel(copy, field))),
+    ...err.taken.map((field) => (field === "phone" ? copy.phoneTaken : copy.unexpected)),
   ];
   if (err.photo === "type") {
     lines.push(copy.photoType);
@@ -53,8 +54,8 @@ function fieldLine(copy: Copy, field: string, kind: "missing" | "invalid") {
   if (field === "email") {
     return copy.emailInvalid;
   }
-  if (kind === "invalid" && field === "phone") {
-    return copy.phoneInvalid;
+  if (field === "phone") {
+    return kind === "invalid" ? copy.phoneInvalid : copy.phoneRequired;
   }
   if (kind === "invalid" && field === "photos") {
     return copy.photosStale;

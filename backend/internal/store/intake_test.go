@@ -76,7 +76,7 @@ func TestIntakeAndAudit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if device.Status != StatusRegistered || device.Customer.Name != "Ada Lovelace" || len(device.Parts) != 1 || len(device.Parts[0].Photos) != 1 {
+	if device.Status != StatusRegistered || device.Customer.Name != "Ada Lovelace" || device.Customer.Phone != "5551112233" || len(device.Parts) != 1 || len(device.Parts[0].Photos) != 1 {
 		t.Fatalf("device %+v", device)
 	}
 	if _, err := os.Stat(filepath.Join(root, device.Parts[0].Photos[0].Path)); err != nil {
@@ -186,7 +186,7 @@ func TestIntakeAndAudit(t *testing.T) {
 	big := make([]byte, maxPhotoBytes+1)
 	copy(big, pngBytes())
 	_, err = RegisterDevice(ctx, database, root, tech, NewDevice{
-		CustomerName: "Big", Brand: "Big", Model: "Big", Note: "big",
+		CustomerName: "Big", CustomerPhone: "5550000001", Brand: "Big", Model: "Big", Note: "big",
 		Files: []Upload{uploadBytes(big)}, DevicePhotos: []int{0},
 	})
 	if !errors.As(err, &fields) || fields.Photo != "size" {
@@ -200,7 +200,7 @@ func TestIntakeAndAudit(t *testing.T) {
 		indexes[i] = i
 	}
 	_, err = RegisterDevice(ctx, database, root, tech, NewDevice{
-		CustomerName: "Many", Brand: "Many", Model: "Many", Note: "many",
+		CustomerName: "Many", CustomerPhone: "5550000002", Brand: "Many", Model: "Many", Note: "many",
 		Files: files, DevicePhotos: indexes,
 	})
 	if !errors.As(err, &fields) || fields.Photo != "limit" {
@@ -261,7 +261,7 @@ func TestDeviceStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 	device, err := RegisterDevice(ctx, database, root, tech, NewDevice{
-		CustomerName: "Ada", Brand: "HP", Model: "Laser", Note: "works",
+		CustomerName: "Ada", CustomerPhone: "5552223344", Brand: "HP", Model: "Laser", Note: "works",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -321,7 +321,7 @@ func TestDeviceStatus(t *testing.T) {
 
 	kept, err := UpdateDevice(ctx, database, root, tech, device.ID, DeviceChange{
 		Brand: "HP", Model: "Laser", Note: "works",
-		CustomerName: "Ada", Parts: []PartChange{},
+		CustomerName: "Ada", CustomerPhone: "5552223344", Parts: []PartChange{},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -356,6 +356,96 @@ func TestDeviceStatus(t *testing.T) {
 	}
 }
 
+func TestPhoneIdentifiesCustomer(t *testing.T) {
+	ctx := context.Background()
+	database := openTestDB(t)
+	root := t.TempDir()
+	if err := EnsureAdmin(ctx, database, "admin", "admin1234"); err != nil {
+		t.Fatal(err)
+	}
+	admin, err := Login(ctx, database, "admin", "admin1234")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	first, err := RegisterDevice(ctx, database, root, admin.User, NewDevice{
+		CustomerName: "Ada", CustomerPhone: "555 555 55 55", Brand: "HP", Model: "Laser",
+	})
+	if err != nil || first.Customer.Phone != "5555555555" {
+		t.Fatalf("stored phone %+v %v", first.Customer, err)
+	}
+	for _, phone := range []string{"5555555555", "05555555555", "0555555 55 55", "+90 555 555 55 55", "0090 555 555 55 55", "(0555) 555-55-55"} {
+		_, err := RegisterDevice(ctx, database, root, admin.User, NewDevice{
+			CustomerName: "Ada Other", CustomerPhone: phone, Brand: "HP", Model: "Other",
+		})
+		var fields *FieldError
+		if !errors.As(err, &fields) || !contains(fields.Taken, "phone") {
+			t.Fatalf("%s: %v", phone, err)
+		}
+	}
+	if countRows(t, database, `SELECT COUNT(*) FROM customers`) != 1 {
+		t.Fatal("duplicate phone wrote a customer")
+	}
+
+	second, err := RegisterDevice(ctx, database, root, admin.User, NewDevice{
+		CustomerName: "Ada", CustomerPhone: "555 111 22 33", Brand: "HP", Model: "Desk",
+	})
+	if err != nil || second.Customer.Phone != "5551112233" {
+		t.Fatalf("second %+v %v", second.Customer, err)
+	}
+	_, err = RegisterDevice(ctx, database, root, admin.User, NewDevice{
+		CustomerName: "Ada", Brand: "HP", Model: "Blank",
+	})
+	var fields *FieldError
+	if !errors.As(err, &fields) || !contains(fields.Missing, "phone") {
+		t.Fatalf("missing phone: %v", err)
+	}
+	if countRows(t, database, `SELECT COUNT(*) FROM customers`) != 2 {
+		t.Fatal("missing phone wrote a customer")
+	}
+
+	listed, err := ListCustomers(ctx, database, CustomerQuery{Text: "ada", Limit: 10})
+	if err != nil || len(listed.Items) != 2 {
+		t.Fatalf("name search %+v %v", listed, err)
+	}
+	phones := map[string]int{}
+	for _, item := range listed.Items {
+		if item.Name != "Ada" {
+			t.Fatal(item.Name)
+		}
+		phones[item.Phone]++
+	}
+	if phones["5555555555"] != 1 || phones["5551112233"] != 1 {
+		t.Fatalf("phones %+v", listed.Items)
+	}
+
+	byPhone, err := ListCustomers(ctx, database, CustomerQuery{Text: "0555 555 55 55", Limit: 10})
+	if err != nil || len(byPhone.Items) != 1 || byPhone.Items[0].ID != first.Customer.ID {
+		t.Fatalf("phone search %+v %v", byPhone, err)
+	}
+	devices, err := ListDevices(ctx, database, DeviceQuery{Text: "+90 555 111 22 33", Limit: 10})
+	if err != nil || len(devices.Items) != 1 || devices.Items[0].ID != second.ID {
+		t.Fatalf("device phone search %+v %v", devices, err)
+	}
+
+	_, err = UpdateCustomer(ctx, database, admin.User, second.Customer.ID, "Ada", "05555555555", "", "")
+	if !errors.As(err, &fields) || !contains(fields.Taken, "phone") {
+		t.Fatalf("update taken: %v", err)
+	}
+	kept, err := GetCustomer(ctx, database, second.Customer.ID)
+	if err != nil || kept.Phone != "5551112233" {
+		t.Fatalf("phone changed %+v %v", kept, err)
+	}
+	_, err = UpdateCustomer(ctx, database, admin.User, first.Customer.ID, "Ada", "  ", "", "")
+	if !errors.As(err, &fields) || !contains(fields.Missing, "phone") {
+		t.Fatalf("cleared phone: %v", err)
+	}
+	kept, err = GetCustomer(ctx, database, first.Customer.ID)
+	if err != nil || kept.Phone != "5555555555" {
+		t.Fatalf("phone cleared %+v %v", kept, err)
+	}
+}
+
 func TestOptionalNotesAndAddress(t *testing.T) {
 	ctx := context.Background()
 	database := openTestDB(t)
@@ -370,6 +460,7 @@ func TestOptionalNotesAndAddress(t *testing.T) {
 
 	device, err := RegisterDevice(ctx, database, root, admin.User, NewDevice{
 		CustomerName:    "Ada",
+		CustomerPhone:   "5553334455",
 		CustomerAddress: "Atatürk Cad. 1",
 		Brand:           "HP",
 		Model:           "Laser",
@@ -391,18 +482,18 @@ func TestOptionalNotesAndAddress(t *testing.T) {
 		t.Fatalf("device address search %+v %v", devices, err)
 	}
 
-	updated, err := UpdateCustomer(ctx, database, admin.User, device.Customer.ID, "Ada", "", "", "  Yeni sokak  ")
+	updated, err := UpdateCustomer(ctx, database, admin.User, device.Customer.ID, "Ada", "5553334455", "", "  Yeni sokak  ")
 	if err != nil || updated.Address != "Yeni sokak" {
 		t.Fatalf("address update %+v %v", updated, err)
 	}
-	_, err = UpdateCustomer(ctx, database, admin.User, device.Customer.ID, "Ada", "", "", strings.Repeat("a", maxAddressLen+1))
+	_, err = UpdateCustomer(ctx, database, admin.User, device.Customer.ID, "Ada", "5553334455", "", strings.Repeat("a", maxAddressLen+1))
 	var fields *FieldError
 	if !errors.As(err, &fields) || !contains(fields.TooLong, "address") {
 		t.Fatalf("long address: %v", err)
 	}
 
 	cleared, err := UpdateDevice(ctx, database, root, admin.User, device.ID, DeviceChange{
-		Brand: "HP", Model: "Laser", CustomerName: "Ada", CustomerAddress: "Yeni sokak",
+		Brand: "HP", Model: "Laser", CustomerName: "Ada", CustomerPhone: "5553334455", CustomerAddress: "Yeni sokak",
 		Parts: []PartChange{{ID: device.Parts[0].ID, Name: "Cable"}},
 	})
 	if err != nil || cleared.Note != "" || cleared.Parts[0].Note != "" {

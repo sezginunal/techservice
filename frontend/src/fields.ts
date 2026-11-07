@@ -1,15 +1,28 @@
 const phonePattern = /^[0-9+()\- ]+$/;
 
+function canonicalPhone(digits: string): string {
+  if (digits.startsWith("0090") && digits.length >= 14) {
+    return canonicalPhone(digits.slice(4));
+  }
+  if (digits.startsWith("90") && digits.length >= 12 && digits.length <= 13) {
+    return canonicalPhone(digits.slice(2));
+  }
+  if (digits.startsWith("0") && digits.length === 11) {
+    return digits.slice(1);
+  }
+  return digits;
+}
+
 export function phoneOk(value: string) {
   const phone = value.trim();
   if (!phone) {
-    return true;
+    return false;
   }
   if ([...phone].length > 40 || !phonePattern.test(phone)) {
     return false;
   }
-  const digits = phone.replace(/\D/g, "").length;
-  return digits >= 10 && digits <= 15;
+  const key = canonicalPhone(phone.replace(/\D/g, ""));
+  return key.length >= 10 && key.length <= 15;
 }
 
 export function emailOk(value: string) {

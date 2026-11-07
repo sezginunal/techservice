@@ -10,4 +10,4 @@ alwaysApply: false
 - Serve HTTP with the Go standard library. Add a web framework only after a later rule chooses one.
 - Handle requests in parallel.
 - Open SQLite with modernc.org/sqlite. Listen on port 8080 inside the Docker network.
-- A phone and an email follow the frontend input rule. Refuse a value that rule rejects. An empty phone or email stays allowed.
+- A phone and an email follow the frontend input rule. Refuse a value that rule rejects. A customer phone is required, and that stored phone belongs to one customer. An empty email stays allowed.

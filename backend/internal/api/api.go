@@ -355,6 +355,7 @@ func writeValidation(w http.ResponseWriter, fields *store.FieldError) {
 	missing := fields.Missing
 	invalid := fields.Invalid
 	tooLong := fields.TooLong
+	taken := fields.Taken
 	if missing == nil {
 		missing = []string{}
 	}
@@ -364,11 +365,15 @@ func writeValidation(w http.ResponseWriter, fields *store.FieldError) {
 	if tooLong == nil {
 		tooLong = []string{}
 	}
+	if taken == nil {
+		taken = []string{}
+	}
 	writeJSON(w, http.StatusBadRequest, map[string]any{
 		"error":   "validation",
 		"missing": missing,
 		"invalid": invalid,
 		"tooLong": tooLong,
+		"taken":   taken,
 		"photo":   fields.Photo,
 	})
 }

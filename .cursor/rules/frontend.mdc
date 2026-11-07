@@ -20,8 +20,8 @@ alwaysApply: false
 ## Input
 
 - Check a phone, an email, a username, and a password on the screen before the request. The backend refuses the same value.
-- An empty optional phone or email is allowed.
-- A phone contains 10 to 15 digits. Spaces, parentheses, `+`, and hyphens are allowed. Any other character is refused. Store the trimmed text. The screen does not reformat it.
+- A customer phone is required. An empty email is allowed.
+- A phone may contain digits, spaces, parentheses, `+`, and hyphens. Any other character is refused. Store the digits only. Remove a leading `0090`, a leading `90`, and a single leading `0` when they stand in front of the same 10-digit number, including a trunk `0` after `90`. The stored phone is 10 to 15 digits.
 - An email has one `@`, no spaces, and a dot in the domain.
 - A username this screen sets is required and at most 64 characters. A password this screen sets is 8 to 72 characters. An empty new password on an existing user leaves the password unchanged.
 - Login does not say which of the username or the password failed.

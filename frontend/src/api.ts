@@ -170,17 +170,19 @@ export class ApiError extends Error {
   missing: string[];
   invalid: string[];
   tooLong: string[];
+  taken: string[];
   photo: string;
 
   constructor(
     code: string,
-    extra?: { missing?: string[]; invalid?: string[]; tooLong?: string[]; photo?: string },
+    extra?: { missing?: string[]; invalid?: string[]; tooLong?: string[]; taken?: string[]; photo?: string },
   ) {
     super(code);
     this.code = code;
     this.missing = extra?.missing ?? [];
     this.invalid = extra?.invalid ?? [];
     this.tooLong = extra?.tooLong ?? [];
+    this.taken = extra?.taken ?? [];
     this.photo = extra?.photo ?? "";
   }
 }
@@ -201,6 +203,7 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     missing?: string[];
     invalid?: string[];
     tooLong?: string[];
+    taken?: string[];
     photo?: string;
   };
   if (!response.ok) {

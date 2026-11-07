@@ -320,6 +320,7 @@ func registerAt(t *testing.T, ctx context.Context, shop shopFix, customer *int64
 	input := NewDevice{Brand: brand, Model: model, Note: "ok", CustomerID: customer}
 	if customer == nil {
 		input.CustomerName = "Ada Lovelace"
+		input.CustomerPhone = "5550001122"
 	}
 	device, err := RegisterDevice(ctx, shop.db, shop.root, shop.actor, input)
 	if err != nil {
