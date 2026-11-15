@@ -3,11 +3,11 @@ services:
     build:
       context: ./backend
     environment:
-      ADDR: "${ADDR}"
-      DATABASE_PATH: "${DATABASE_PATH}"
-      UPLOAD_PATH: "${UPLOAD_PATH}"
-      ADMIN_USERNAME: "${ADMIN_USERNAME}"
-      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
+      ADDR: "${ADDR:-:8080}"
+      DATABASE_PATH: "${DATABASE_PATH:-/data/techservice.db}"
+      UPLOAD_PATH: "${UPLOAD_PATH:-/uploads}"
+      ADMIN_USERNAME: "${ADMIN_USERNAME:-}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
       COMPANY_NAME: "${COMPANY_NAME:-}"
       LOGO_PATH: "${LOGO_PATH:-}"
       DEVICE_CATALOG_PATH: "${DEVICE_CATALOG_PATH:-}"
@@ -28,7 +28,7 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
     ports:
-      - "${FRONTEND_PORT}:80"
+      - "${FRONTEND_PORT:-8080}:80"
     depends_on:
       backend:
         condition: service_healthy
