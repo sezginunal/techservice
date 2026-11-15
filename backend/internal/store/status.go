@@ -39,15 +39,6 @@ func deviceStatusList() []string {
 	}
 }
 
-func knownStatus(status string) bool {
-	for _, item := range deviceStatusList() {
-		if item == status {
-			return true
-		}
-	}
-	return false
-}
-
 func deviceStatusCheck() string {
 	quoted := make([]string, 0, len(deviceStatusList()))
 	for _, status := range deviceStatusList() {
@@ -68,7 +59,11 @@ type StatusChange struct {
 
 func ChangeDeviceStatus(ctx context.Context, database *sql.DB, root string, actor User, id string, next string, note string, file *Upload) (Device, error) {
 	fields := &FieldError{}
-	if !knownStatus(next) {
+	active, err := activeStatus(ctx, database, next)
+	if err != nil {
+		return Device{}, err
+	}
+	if !active {
 		fields.addInvalid("status")
 	}
 	note = optionalText(note, maxNoteLen, "statusNote", fields)
@@ -117,6 +112,13 @@ func ChangeDeviceStatus(ctx context.Context, database *sql.DB, root string, acto
 		return Device{}, err
 	}
 	if fresh.Status == next {
+		return Device{}, &FieldError{Invalid: []string{"status"}}
+	}
+	stillActive, err := activeStatus(ctx, tx, next)
+	if err != nil {
+		return Device{}, err
+	}
+	if !stillActive {
 		return Device{}, &FieldError{Invalid: []string{"status"}}
 	}
 	result, err := tx.ExecContext(ctx, `

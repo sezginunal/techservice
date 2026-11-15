@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ApiError, request, type DeviceService, type Identity, type Page } from "./api";
+import { ApiError, request, type DeviceService, type Identity, type Page, type ServiceState } from "./api";
 import { ModelIcon } from "./ModelIcon";
 import { formatWhen, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
@@ -9,12 +9,13 @@ import { problemText } from "./problems";
 type Props = {
   copy: Copy;
   lang: Lang;
+  states: ServiceState[];
   id: string;
   onNavigate: (path: string) => void;
   onUnauthorized: () => void;
 };
 
-export function DevicePage({ copy, lang, id, onNavigate, onUnauthorized }: Props) {
+export function DevicePage({ copy, lang, states, id, onNavigate, onUnauthorized }: Props) {
   const [device, setDevice] = useState<Identity | null>(null);
   const [error, setError] = useState<string | null>(null);
   const list = useWindow(id, (after: DeviceService | null, signal) => {
@@ -70,7 +71,7 @@ export function DevicePage({ copy, lang, id, onNavigate, onUnauthorized }: Props
           <button className="button secondary" type="button" key={item.id} onClick={() => onNavigate(`/services/${item.id}`)}>
             <strong>{formatWhen(item.createdAt, lang)}</strong>
             <span className="muted">
-              {item.customerName} · {statusLabel(item.status, copy)}
+              {item.customerName} · {statusLabel(item.status, states, lang)}
             </span>
           </button>
         ))}

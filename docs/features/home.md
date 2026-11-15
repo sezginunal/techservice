@@ -24,16 +24,28 @@ The title is "Registrations" in English and "Kayıtlar" in Turkish. The caption 
 
 ## In the shop
 
-Four figures sit under the chart.
+Two figures sit under the chart.
 
 - In the shop — Dükkanda. Every service that is not delivered. A cancelled service is included. The delivered count sits beside it: "{n} delivered" in English and "{n} teslim edildi" in Turkish.
 - Idle 7 days or more — 7 gündür aynı durumda. This is the count defined in the unchanged section.
-- Waiting for a part — Parça bekleyen. `waiting_partner_part` and `waiting_own_part` together.
-- Ready to deliver — Teslime hazır. `preparing_delivery`.
+
+## State queues
+
+A state queue is shown for each state the settings feature marks "Show on Home", in the installation's order. `registered`, `delivered`, and `cancelled` have no queue. Two states are two queues. The summary includes these rows. The screen does not download the service table to build them.
+
+The title is the state's name. Choosing the title opens the service list filtered to that state.
+
+The queue lists every service in that state, including a service that entered the state today. The longest wait is first. The list shows at most 12 services. When more than 12 qualify, the screen says "Showing the longest waits." in English and "En uzun bekleyenler gösteriliyor." in Turkish.
+
+A row shows the brand, the model, the serial number, the customer name, the number of full days, and the time that wait started. The day count is "Less than a day" / "1 günden az", "1 day" / "1 gün", or "{n} days" / "{n} gün". The time is labeled "Same status since" in English and "Bu durumda" in Turkish. Opening the row opens the service.
+
+The clock and the row color are the ones in the unchanged section. A wait under one full day stays neutral.
+
+When the state has no service, the queue stays and says "No service is in this state." in English and "Bu durumda servis yok." in Turkish.
 
 ## By status
 
-Every state from the device status feature is shown, including a state with no service. The order is the order in that feature. Each row shows the state name and the count.
+The rows are the active states, including a state with no service, and any inactive state that is still the current state of a service. The order is the installation's order from the settings feature. Each row shows the state name and the count.
 
 Choosing a state opens the service list filtered to that state. The service list address keeps the chosen state. An empty choice on the service list still means all states. The device status feature is updated to say that.
 
@@ -51,9 +63,9 @@ When nothing was opened in those 30 days, the screen says "No service was opened
 
 ## Status unchanged
 
-A service is listed when it is not delivered and its state has stayed the same for at least one full day. A cancelled service is included. A full day is 24 hours. The clock starts at the latest state change. When the state has never changed, the clock starts at registration.
+A service is listed when it is neither delivered nor cancelled and its state has stayed the same for at least one full day. A full day is 24 hours. The clock starts at the latest state change. When the state has never changed, the clock starts at registration. A state the shop added uses this same clock.
 
-Delivered services are absent.
+Delivered and cancelled services are absent.
 
 The list shows at most 12 services, the longest wait first. When more than 12 qualify, the screen says "Showing the longest waits." in English and "En uzun bekleyenler gösteriliyor." in Turkish.
 
@@ -67,11 +79,11 @@ The row color deepens as the day count grows:
 - 14 to 29 days is red.
 - 30 days or more is dark red.
 
-The title is "Status unchanged" in English and "Durumu değişmeyenler" in Turkish. The caption says "Delivered services are left out. A longer wait is a deeper red." in English and "Teslim edilen servisler yok. Bekleme uzadıkça renk kızarır." in Turkish.
+The title is "Status unchanged" in English and "Durumu değişmeyenler" in Turkish. The caption says "Delivered and cancelled services are left out. A longer wait is a deeper red." in English and "Teslim edilen ve iptal edilen servisler yok. Bekleme uzadıkça renk kızarır." in Turkish.
 
-When no open service has waited a full day, the screen says "No open service has waited a full day." in English and "Bir tam gündür bekleyen açık servis yok." in Turkish.
+When no listed service has waited a full day, the screen says "No service has waited a full day." in English and "Bir tam gündür bekleyen servis yok." in Turkish.
 
-The figure "Idle 7 days or more" counts every non-delivered service that has waited 7 full days or more, including a cancelled service. That count includes services past the 12 shown.
+The figure "Idle 7 days or more" counts every service that is neither delivered nor cancelled and has waited 7 full days or more. That count includes services past the 12 shown.
 
 ## Latest registrations
 
@@ -83,11 +95,13 @@ When the shop has no services, this section says "No services yet." in English a
 
 ## Empty shop
 
-Every count is zero. The status rows stay, each at zero. The model chart and the unchanged list use their empty sentences.
+Every count is zero. The status rows are the active states, each at zero. A state queue appears only for a state shown on Home, and that queue uses its empty sentence. The model chart and the unchanged list use their empty sentences.
 
 ## Not in this feature
 
 - Changing a service, a state, or a customer from Home.
+- Choosing which states have a queue. That is the settings feature.
+- A queue that combines two states.
 - A date range the operator picks.
-- Delivered services in the unchanged list.
+- Delivered or cancelled services in the unchanged list.
 - A service-list filter for "not delivered" or for idle services.

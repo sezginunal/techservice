@@ -91,6 +91,7 @@ npm run build
 - [Intake](docs/features/intake.md) — customers, services, parts, and photos
 - [Device](docs/features/device.md) — one machine and its visits
 - [Status](docs/features/device-status.md) — states and history
+- [Settings](docs/features/settings.md) — the installation's service states
 - [Photos](docs/features/photos.md) — open and download a photo
 - [Audit](docs/features/audit.md) — who changed a record
 - [Brand](docs/features/brand.md) — shop name and logo

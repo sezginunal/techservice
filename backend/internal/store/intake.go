@@ -238,8 +238,8 @@ func ListDevices(ctx context.Context, database *sql.DB, query DeviceQuery) (Devi
 		args = append(args, query.CustomerID)
 	}
 	if query.Status != "" {
-		if !knownStatus(query.Status) {
-			return DevicePage{}, ErrInvalidStatus
+		if err := filterableStatus(ctx, database, query.Status); err != nil {
+			return DevicePage{}, err
 		}
 		clauses = append(clauses, "services.status = ?")
 		args = append(args, query.Status)

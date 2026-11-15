@@ -4,7 +4,7 @@ import { shopName, type Copy, type Lang } from "./i18n";
 import { LanguageSwitch } from "./LanguageSwitch";
 import { appVersion } from "./version";
 
-export type NavIcon = "home" | "users" | "devices" | "customers" | "audit";
+export type NavIcon = "home" | "users" | "devices" | "customers" | "audit" | "settings";
 
 export type NavItem = {
   path: string;
@@ -193,6 +193,16 @@ function Icon({ name }: { name: NavIcon | "menu" }) {
       <svg {...props}>
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
         <circle cx="12" cy="7" r="3" />
+      </svg>
+    );
+  }
+  if (name === "settings") {
+    return (
+      <svg {...props}>
+        <path d="M4 7h16" />
+        <path d="M4 17h16" />
+        <circle cx="8" cy="7" r="2" />
+        <circle cx="16" cy="17" r="2" />
       </svg>
     );
   }

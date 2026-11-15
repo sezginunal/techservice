@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ApiError, request, type HomeSummary } from "./api";
+import { ApiError, request, type HomeSummary, type ServiceState } from "./api";
 import { formatWhen, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
 import { ModelIcon } from "./ModelIcon";
@@ -8,11 +8,12 @@ import { problemText } from "./problems";
 type Props = {
   copy: Copy;
   lang: Lang;
+  states: ServiceState[];
   onNavigate: (path: string) => void;
   onUnauthorized: () => void;
 };
 
-export function Home({ copy, lang, onNavigate, onUnauthorized }: Props) {
+export function Home({ copy, lang, states, onNavigate, onUnauthorized }: Props) {
   const [summary, setSummary] = useState<HomeSummary | null>(null);
   const [error, setError] = useState<unknown>(null);
 
@@ -48,7 +49,7 @@ export function Home({ copy, lang, onNavigate, onUnauthorized }: Props) {
       </header>
       {error ? <p className="alert">{problemText(copy, error)}</p> : null}
       {!summary && !error ? <p className="muted">{copy.loading}</p> : null}
-      {summary ? <Shop copy={copy} lang={lang} summary={summary} onNavigate={onNavigate} /> : null}
+      {summary ? <Shop copy={copy} lang={lang} states={states} summary={summary} onNavigate={onNavigate} /> : null}
     </>
   );
 }
@@ -56,11 +57,13 @@ export function Home({ copy, lang, onNavigate, onUnauthorized }: Props) {
 function Shop({
   copy,
   lang,
+  states,
   summary,
   onNavigate,
 }: {
   copy: Copy;
   lang: Lang;
+  states: ServiceState[];
   summary: HomeSummary;
   onNavigate: (path: string) => void;
 }) {
@@ -115,15 +118,51 @@ function Shop({
           <h2>{copy.idle7}</h2>
           <p className="figure-value">{summary.idle7}</p>
         </section>
-        <section className="panel figure">
-          <h2>{copy.waitingPart}</h2>
-          <p className="figure-value">{summary.waitingPart}</p>
-        </section>
-        <section className="panel figure">
-          <h2>{copy.readyToDeliver}</h2>
-          <p className="figure-value">{summary.ready}</p>
-        </section>
       </div>
+      {summary.queues.map((queue) => (
+        <section className="panel stack" key={queue.status}>
+          <header className="section-head">
+            <h2>
+              <button
+                className="button linkish"
+                type="button"
+                onClick={() => onNavigate(`/services?status=${encodeURIComponent(queue.status)}`)}
+              >
+                {statusLabel(queue.status, states, lang)}
+              </button>
+            </h2>
+          </header>
+          {queue.more ? <p className="muted">{copy.showingLongest}</p> : null}
+          {queue.items.length === 0 ? (
+            <p className="muted empty">{copy.noQueue}</p>
+          ) : (
+            <div className="home-list">
+              {queue.items.map((item) => (
+                <button
+                  key={item.id}
+                  className="home-link"
+                  type="button"
+                  data-wait={waitTone(item.days)}
+                  onClick={() => onNavigate(`/services/${item.id}`)}
+                >
+                  <span className="home-id">
+                    <strong>
+                      {item.brand} {item.model} · {item.serial}
+                    </strong>
+                    <span className="muted">{item.customerName}</span>
+                  </span>
+                  <span className="home-meta">
+                    <strong>{queueDayCount(copy, item.days)}</strong>
+                    <span className="muted">
+                      {copy.sameStatusSince} {formatWhen(item.since, lang)}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+      ))}
       <div className="home-split">
         <section className="panel stack">
           <header className="section-head">
@@ -140,7 +179,7 @@ function Shop({
                 type="button"
                 onClick={() => onNavigate(`/services?status=${encodeURIComponent(item.status)}`)}
               >
-                <span>{statusLabel(item.status, copy)}</span>
+                <span>{statusLabel(item.status, states, lang)}</span>
                 <strong>{item.count}</strong>
               </button>
             ))}
@@ -197,7 +236,7 @@ function Shop({
                   <span className="muted">{item.customerName}</span>
                 </span>
                 <span className="home-meta">
-                  <span className="badge">{statusLabel(item.status, copy)}</span>
+                  <span className="badge">{statusLabel(item.status, states, lang)}</span>
                   <strong>{dayCount(copy, item.days)}</strong>
                   <span className="muted">
                     {copy.sameStatusSince} {formatWhen(item.since, lang)}
@@ -228,7 +267,7 @@ function Shop({
                   </strong>
                 </span>
                 <span className="home-meta">
-                  <span className="badge">{statusLabel(item.status, copy)}</span>
+                  <span className="badge">{statusLabel(item.status, states, lang)}</span>
                   <span className="muted">{formatWhen(item.createdAt, lang)}</span>
                 </span>
               </button>
@@ -273,6 +312,13 @@ function chartLabel(date: string, count: number, lang: Lang) {
     month: "short",
   }).format(new Date(year, month - 1, day));
   return `${formatted}: ${count}`;
+}
+
+function queueDayCount(copy: Copy, days: number) {
+  if (days < 1) {
+    return copy.lessThanDay;
+  }
+  return dayCount(copy, days);
 }
 
 function dayCount(copy: Copy, days: number) {

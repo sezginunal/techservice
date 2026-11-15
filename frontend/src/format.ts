@@ -1,19 +1,26 @@
-import type { Copy, Lang } from "./i18n";
+import type { Lang } from "./i18n";
 
-export const deviceStatuses = [
-  "registered",
-  "inspecting",
-  "repair_warranty",
-  "repair_out_of_warranty",
-  "waiting_partner_part",
-  "waiting_own_part",
-  "final_testing",
-  "preparing_delivery",
-  "in_storage",
-  "left_storage",
-  "delivered",
-  "cancelled",
-] as const;
+export type NamedState = {
+  code: string;
+  nameEn: string;
+  nameTr: string;
+};
+
+export function statusLabel(status: string, states: NamedState[], lang: Lang) {
+  const item = states.find((state) => state.code === status);
+  if (!item) {
+    return status;
+  }
+  return lang === "tr" ? item.nameTr : item.nameEn;
+}
+
+export function choosableStates<T extends NamedState & { active: boolean }>(states: T[]) {
+  return states.filter((state) => state.active);
+}
+
+export function listedStates<T extends NamedState & { active: boolean; used: boolean }>(states: T[]) {
+  return states.filter((state) => state.active || state.used);
+}
 
 export function formatWhen(value: string, lang: Lang) {
   const date = new Date(value);
@@ -24,13 +31,6 @@ export function formatWhen(value: string, lang: Lang) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
-}
-
-export function statusLabel(status: string, copy: Copy) {
-  if (status in copy.statuses) {
-    return copy.statuses[status as keyof typeof copy.statuses];
-  }
-  return status;
 }
 
 export function dayStart(value: string) {

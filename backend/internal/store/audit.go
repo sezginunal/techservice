@@ -26,7 +26,8 @@ const (
 func knownEvent(event string) bool {
 	switch event {
 	case EventCustomerCreated, EventCustomerUpdated, EventServiceRegistered, EventServiceUpdated, EventDeviceUpdated, EventServiceStatusChanged,
-		EventUserCreated, EventUserRoleChanged, EventUserPasswordChanged, EventUserActivated, EventUserDeactivated:
+		EventUserCreated, EventUserRoleChanged, EventUserPasswordChanged, EventUserActivated, EventUserDeactivated,
+		EventStateAdded, EventStateUpdated, EventStatesReordered:
 		return true
 	default:
 		return false

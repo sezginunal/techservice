@@ -1268,6 +1268,118 @@ img.mark {
   }
 }
 
+.state-list {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+}
+
+.state-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "handle body"
+    "handle flags";
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.state-card.dragging {
+  border-color: var(--color-accent);
+  box-shadow: 0 8px 20px rgba(24, 24, 27, 0.12);
+}
+
+.state-card.off .state-title {
+  color: var(--color-muted);
+}
+
+.drag-handle {
+  grid-area: handle;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.75rem;
+  align-self: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-muted);
+  cursor: grab;
+  touch-action: none;
+}
+
+.drag-handle:hover,
+.state-card.dragging .drag-handle {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.state-card.dragging .drag-handle {
+  cursor: grabbing;
+}
+
+.state-body {
+  grid-area: body;
+  min-width: 0;
+}
+
+.state-title {
+  font-weight: 650;
+}
+
+.state-flags {
+  grid-area: flags;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.state-flags .check {
+  min-height: 0;
+}
+
+.state-note {
+  max-width: 18rem;
+}
+
+.state-names,
+.state-add {
+  display: grid;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+@media (min-width: 52rem) {
+  .state-card {
+    grid-template-columns: auto minmax(0, 1fr) 14rem;
+    grid-template-areas: "handle body flags";
+  }
+
+  .state-flags {
+    align-self: stretch;
+    justify-content: center;
+    padding-left: var(--space-4);
+    border-left: 1px solid var(--color-border);
+  }
+
+  .state-names,
+  .state-add {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+
+  .state-add {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sidebar {
     transition: none;

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import { ApiError, request, type DeviceItem, type Page } from "./api";
+import { ApiError, request, type DeviceItem, type Page, type ServiceState } from "./api";
 import { ModelIcon } from "./ModelIcon";
-import { deviceStatuses, formatWhen, statusLabel } from "./format";
+import { formatWhen, listedStates, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
 import { End, useQuery, useWindow } from "./list";
 import { problemText } from "./problems";
@@ -9,14 +9,16 @@ import { problemText } from "./problems";
 type Props = {
   copy: Copy;
   lang: Lang;
+  states: ServiceState[];
   status: string;
   onNavigate: (path: string) => void;
   onUnauthorized: () => void;
 };
 
-export function Devices({ copy, lang, status, onNavigate, onUnauthorized }: Props) {
+export function Devices({ copy, lang, states, status, onNavigate, onUnauthorized }: Props) {
   const search = useQuery();
-  const selected = (deviceStatuses as readonly string[]).includes(status) ? status : "";
+  const choices = listedStates(states);
+  const selected = choices.some((item) => item.code === status) ? status : "";
   const list = useWindow(`${search.query}|${selected}`, (after: DeviceItem | null, signal) => {
     const params = new URLSearchParams();
     if (search.query) {
@@ -70,9 +72,9 @@ export function Devices({ copy, lang, status, onNavigate, onUnauthorized }: Prop
             }}
           >
             <option value="">{copy.allStatuses}</option>
-            {deviceStatuses.map((id) => (
-              <option key={id} value={id}>
-                {statusLabel(id, copy)}
+            {choices.map((item) => (
+              <option key={item.code} value={item.code}>
+                {statusLabel(item.code, states, lang)}
               </option>
             ))}
           </select>
@@ -112,7 +114,7 @@ export function Devices({ copy, lang, status, onNavigate, onUnauthorized }: Prop
                 <td data-label={copy.serial}>{item.serial}</td>
                 <td data-label={copy.customer}>{item.customerName}</td>
                 <td data-label={copy.status}>
-                  <span className="badge">{statusLabel(item.status, copy)}</span>
+                  <span className="badge">{statusLabel(item.status, states, lang)}</span>
                 </td>
                 <td data-label={copy.registeredOn}>{formatWhen(item.createdAt, lang)}</td>
                 <td className="row-action">

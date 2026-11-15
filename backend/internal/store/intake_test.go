@@ -280,14 +280,14 @@ func TestDeviceStatus(t *testing.T) {
 	}
 
 	photo := uploadBytes(pngBytes())
-	changed, err := ChangeDeviceStatus(ctx, database, root, tech, device.ID, StatusInspecting, "looked at it", &photo)
+	changed, err := ChangeDeviceStatus(ctx, database, root, tech, device.ID, StatusRepairWarranty, "looked at it", &photo)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if changed.Status != StatusInspecting || len(changed.History) != 1 || changed.History[0].Note != "looked at it" || !changed.History[0].HasPhoto {
+	if changed.Status != StatusRepairWarranty || len(changed.History) != 1 || changed.History[0].Note != "looked at it" || !changed.History[0].HasPhoto {
 		t.Fatalf("change %+v", changed.History)
 	}
-	if changed.History[0].From != StatusRegistered || changed.History[0].To != StatusInspecting || changed.History[0].ActorUsername != tech.Username {
+	if changed.History[0].From != StatusRegistered || changed.History[0].To != StatusRepairWarranty || changed.History[0].ActorUsername != tech.Username {
 		t.Fatalf("history row %+v", changed.History[0])
 	}
 	if countRows(t, database, `SELECT COUNT(*) FROM photos WHERE service_id = ?`, device.ID) != 0 {
@@ -314,7 +314,7 @@ func TestDeviceStatus(t *testing.T) {
 	if err := json.Unmarshal([]byte(detail), &parsed); err != nil {
 		t.Fatal(err)
 	}
-	if parsed["from"] != StatusRegistered || parsed["to"] != StatusInspecting || parsed["uuid"] != device.ID {
+	if parsed["from"] != StatusRegistered || parsed["to"] != StatusRepairWarranty || parsed["uuid"] != device.ID {
 		t.Fatalf("audit detail %s", detail)
 	}
 
@@ -325,7 +325,7 @@ func TestDeviceStatus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if kept.Status != StatusInspecting {
+	if kept.Status != StatusRepairWarranty {
 		t.Fatalf("correction changed status to %s", kept.Status)
 	}
 
@@ -338,7 +338,7 @@ func TestDeviceStatus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(again.History) != 3 || again.History[0].To != StatusDelivered || again.History[1].To != StatusCancelled || again.History[2].To != StatusInspecting || again.History[0].HasPhoto {
+	if len(again.History) != 3 || again.History[0].To != StatusDelivered || again.History[1].To != StatusCancelled || again.History[2].To != StatusRepairWarranty || again.History[0].HasPhoto {
 		t.Fatalf("history order %+v", again.History)
 	}
 

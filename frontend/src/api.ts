@@ -120,6 +120,12 @@ export type HomeRecent = {
   createdAt: string;
 };
 
+export type HomeQueue = {
+  status: string;
+  more: boolean;
+  items: HomeIdle[];
+};
+
 export type HomeSummary = {
   registered7: number;
   registered30: number;
@@ -127,14 +133,25 @@ export type HomeSummary = {
   inShop: number;
   delivered: number;
   idle7: number;
-  waitingPart: number;
-  ready: number;
   byStatus: HomeStatus[];
+  queues: HomeQueue[];
   models: HomeModel[];
   other: number;
   unchanged: HomeIdle[];
   unchangedMore: boolean;
   latest: HomeRecent[];
+};
+
+export type ServiceState = {
+  code: string;
+  nameEn: string;
+  nameTr: string;
+  position: number;
+  active: boolean;
+  showOnHome: boolean;
+  fixed: boolean;
+  locked: boolean;
+  used: boolean;
 };
 
 export type DeviceItem = {
@@ -195,6 +212,15 @@ export type AuditDetail = {
   role?: Role;
   from?: string;
   to?: string;
+  nameEn?: string;
+  nameTr?: string;
+  previousNameEn?: string;
+  previousNameTr?: string;
+  active?: string;
+  previousActive?: string;
+  home?: string;
+  previousHome?: string;
+  showOnHome?: string;
 };
 
 export type AuditItem = {

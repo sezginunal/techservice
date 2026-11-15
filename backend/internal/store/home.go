@@ -13,6 +13,7 @@ const (
 	homeWeek      = 7
 	homeModels    = 8
 	homeUnchanged = 12
+	homeQueue     = 12
 	homeLatest    = 5
 	fullDay       = 24 * time.Hour
 )
@@ -35,6 +36,12 @@ type DayCount struct {
 type StatusCount struct {
 	Status string
 	Count  int
+}
+
+type StateQueue struct {
+	Status string
+	More   bool
+	Items  []IdleDevice
 }
 
 type ModelCount struct {
@@ -70,9 +77,8 @@ type Summary struct {
 	InShop        int
 	Delivered     int
 	Idle7         int
-	WaitingPart   int
-	Ready         int
 	ByStatus      []StatusCount
+	Queues        []StateQueue
 	Models        []ModelCount
 	Other         int
 	Unchanged     []IdleDevice
@@ -84,7 +90,8 @@ func LoadSummary(ctx context.Context, database *sql.DB, now time.Time) (Summary,
 	now = now.UTC().Truncate(time.Millisecond)
 	summary := Summary{
 		Days:      make([]DayCount, 0, homeDays),
-		ByStatus:  make([]StatusCount, 0, len(deviceStatusList())),
+		ByStatus:  []StatusCount{},
+		Queues:    []StateQueue{},
 		Models:    []ModelCount{},
 		Unchanged: []IdleDevice{},
 		Latest:    []RecentDevice{},
@@ -110,7 +117,7 @@ func LoadSummary(ctx context.Context, database *sql.DB, now time.Time) (Summary,
 	summary.Registered30 = total
 	summary.Days = days
 
-	if err := statusCounts(ctx, database, &summary); err != nil {
+	if err := statusCounts(ctx, database, now, &summary); err != nil {
 		return Summary{}, err
 	}
 	summary.Models, summary.Other, err = modelCounts(ctx, database, start, end)
@@ -175,7 +182,7 @@ func countValues(counts map[string]int) int {
 	return total
 }
 
-func statusCounts(ctx context.Context, database *sql.DB, summary *Summary) error {
+func statusCounts(ctx context.Context, database *sql.DB, now time.Time, summary *Summary) error {
 	rows, err := database.QueryContext(ctx, `SELECT status, COUNT(*) FROM services GROUP BY status`)
 	if err != nil {
 		return fmt.Errorf("home status: %w", err)
@@ -194,23 +201,110 @@ func statusCounts(ctx context.Context, database *sql.DB, summary *Summary) error
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("home status: %w", err)
 	}
+	rows.Close()
 
-	for _, status := range deviceStatusList() {
+	states, err := database.QueryContext(ctx, `
+		SELECT code, active FROM service_states ORDER BY position, code
+	`)
+	if err != nil {
+		return fmt.Errorf("home states: %w", err)
+	}
+	defer states.Close()
+	for states.Next() {
+		var status string
+		var active int
+		if err := states.Scan(&status, &active); err != nil {
+			return fmt.Errorf("home state: %w", err)
+		}
 		count := counts[status]
+		if active == 0 && count == 0 {
+			continue
+		}
 		summary.ByStatus = append(summary.ByStatus, StatusCount{Status: status, Count: count})
 		if status == StatusDelivered {
 			summary.Delivered = count
 			continue
 		}
 		summary.InShop += count
-		if status == StatusWaitingPartnerPart || status == StatusWaitingOwnPart {
-			summary.WaitingPart += count
-		}
-		if status == StatusPreparingDelivery {
-			summary.Ready = count
-		}
+	}
+	if err := states.Err(); err != nil {
+		return fmt.Errorf("home states: %w", err)
+	}
+	states.Close()
+	summary.Queues, err = stateQueues(ctx, database, now)
+	if err != nil {
+		return err
 	}
 	return nil
+}
+
+func stateQueues(ctx context.Context, database *sql.DB, now time.Time) ([]StateQueue, error) {
+	rows, err := database.QueryContext(ctx, `
+		SELECT code FROM service_states WHERE show_on_home = 1 ORDER BY position, code
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("home queues: %w", err)
+	}
+	defer rows.Close()
+	codes := []string{}
+	for rows.Next() {
+		var code string
+		if err := rows.Scan(&code); err != nil {
+			return nil, fmt.Errorf("home queue: %w", err)
+		}
+		codes = append(codes, code)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("home queues: %w", err)
+	}
+	queues := []StateQueue{}
+	for _, code := range codes {
+		queue, err := loadQueue(ctx, database, now, code)
+		if err != nil {
+			return nil, err
+		}
+		queues = append(queues, queue)
+	}
+	return queues, nil
+}
+
+func loadQueue(ctx context.Context, database *sql.DB, now time.Time, code string) (StateQueue, error) {
+	rows, err := database.QueryContext(ctx, `
+		SELECT services.id, devices.brand, devices.model, devices.serial, customers.name, services.status, `+sinceExpr+`
+		FROM services
+		JOIN devices ON devices.id = services.device_id
+		JOIN customers ON customers.id = services.customer_id
+		WHERE services.status = ?
+		ORDER BY `+sinceExpr+` ASC, services.id ASC
+		LIMIT ?
+	`, code, homeQueue+1)
+	if err != nil {
+		return StateQueue{}, fmt.Errorf("home queue %s: %w", code, err)
+	}
+	defer rows.Close()
+	queue := StateQueue{Status: code, Items: []IdleDevice{}}
+	for rows.Next() {
+		var item IdleDevice
+		var raw string
+		if err := rows.Scan(&item.ID, &item.Brand, &item.Model, &item.Serial, &item.CustomerName, &item.Status, &raw); err != nil {
+			return StateQueue{}, fmt.Errorf("home queue %s: %w", code, err)
+		}
+		since, err := time.Parse(timestampLayout, raw)
+		if err != nil {
+			return StateQueue{}, fmt.Errorf("home queue time: %w", err)
+		}
+		item.Since = since
+		item.Days = fullDays(now, since)
+		queue.Items = append(queue.Items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return StateQueue{}, fmt.Errorf("home queue %s: %w", code, err)
+	}
+	if len(queue.Items) > homeQueue {
+		queue.More = true
+		queue.Items = queue.Items[:homeQueue]
+	}
+	return queue, nil
 }
 
 func modelCounts(ctx context.Context, database *sql.DB, start, end time.Time) ([]ModelCount, int, error) {
@@ -258,9 +352,9 @@ func idleCounts(ctx context.Context, database *sql.DB, now time.Time, summary *S
 	if err := database.QueryRowContext(ctx, `
 		SELECT COUNT(*)
 		FROM services
-		WHERE status != ?
+		WHERE status NOT IN (?, ?)
 		  AND `+sinceExpr+` <= ?
-	`, StatusDelivered, cutoff).Scan(&summary.Idle7); err != nil {
+	`, StatusDelivered, StatusCancelled, cutoff).Scan(&summary.Idle7); err != nil {
 		return fmt.Errorf("home idle: %w", err)
 	}
 
@@ -269,11 +363,11 @@ func idleCounts(ctx context.Context, database *sql.DB, now time.Time, summary *S
 		FROM services
 		JOIN devices ON devices.id = services.device_id
 		JOIN customers ON customers.id = services.customer_id
-		WHERE services.status != ?
+		WHERE services.status NOT IN (?, ?)
 		  AND `+sinceExpr+` <= ?
 		ORDER BY `+sinceExpr+` ASC, services.id ASC
 		LIMIT ?
-	`, StatusDelivered, timestamp(now.Add(-fullDay)), homeUnchanged+1)
+	`, StatusDelivered, StatusCancelled, timestamp(now.Add(-fullDay)), homeUnchanged+1)
 	if err != nil {
 		return fmt.Errorf("home unchanged: %w", err)
 	}

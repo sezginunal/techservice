@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { logoSrc, request, type Brand, type Shop, type User } from "./api";
+import { logoSrc, request, type Brand, type ServiceState, type Shop, type User } from "./api";
 import { Audit } from "./Audit";
 import { CustomerDetail } from "./CustomerDetail";
 import { Customers } from "./Customers";
@@ -10,6 +10,7 @@ import { Devices } from "./Devices";
 import { Home } from "./Home";
 import { shopName, storedLang, text, writeLang, type Lang } from "./i18n";
 import { Login } from "./Login";
+import { Settings } from "./Settings";
 import { Shell, type NavItem } from "./Shell";
 import { Users } from "./Users";
 
@@ -17,6 +18,7 @@ export function App() {
   const [stored] = useState<Lang | null>(storedLang);
   const [lang, setLang] = useState<Lang>(stored ?? "en");
   const [user, setUser] = useState<User | null>(null);
+  const [states, setStates] = useState<ServiceState[]>([]);
   const [brand, setBrand] = useState<Brand>({ name: "", logo: false });
   const [ready, setReady] = useState(false);
   const [langReady, setLangReady] = useState(stored !== null);
@@ -58,6 +60,29 @@ export function App() {
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setStates([]);
+      return;
+    }
+    const controller = new AbortController();
+    request<ServiceState[]>("/api/states", { signal: controller.signal })
+      .then((items) => {
+        if (!controller.signal.aborted) {
+          setStates(items);
+        }
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return;
+        }
+        if (!controller.signal.aborted) {
+          setStates([]);
+        }
+      });
+    return () => controller.abort();
+  }, [user]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -133,6 +158,7 @@ export function App() {
   ];
   if (user.role === "admin" || user.role === "owner") {
     items.push({ path: "/audit", label: copy.audit, icon: "audit" });
+    items.push({ path: "/settings", label: copy.settings, icon: "settings" });
   }
   if (user.role === "admin") {
     items.push({ path: "/users", label: copy.users, icon: "users" });
@@ -144,9 +170,10 @@ export function App() {
   const device = path.match(/^\/devices\/([0-9a-f-]{36})$/);
   const customer = path.match(/^\/customers\/(\d+)$/);
   const audit = path === "/audit" && user.role !== "technician";
+  const settingsPage = path === "/settings" && user.role !== "technician";
   const usersPage = path === "/users" && user.role === "admin";
 
-  let screen = <Home copy={copy} lang={lang} onNavigate={go} onUnauthorized={unauthorized} />;
+  let screen = <Home copy={copy} lang={lang} states={states} onNavigate={go} onUnauthorized={unauthorized} />;
   if (usersPage) {
     screen = <Users copy={copy} onUnauthorized={unauthorized} />;
   } else if (path === "/services") {
@@ -154,6 +181,7 @@ export function App() {
       <Devices
         copy={copy}
         lang={lang}
+        states={states}
         status={url.searchParams.get("status") ?? ""}
         onNavigate={go}
         onUnauthorized={unauthorized}
@@ -164,6 +192,7 @@ export function App() {
       <DeviceForm
         copy={copy}
         lang={lang}
+        states={states}
         mode="create"
         customerId={url.searchParams.get("customer")}
         onNavigate={go}
@@ -175,6 +204,7 @@ export function App() {
       <DeviceForm
         copy={copy}
         lang={lang}
+        states={states}
         mode="edit"
         deviceId={serviceEdit[1]}
         onNavigate={go}
@@ -182,17 +212,37 @@ export function App() {
       />
     );
   } else if (service) {
-    screen = <DeviceDetail copy={copy} lang={lang} id={service[1]} onNavigate={go} onUnauthorized={unauthorized} />;
+    screen = (
+      <DeviceDetail
+        copy={copy}
+        lang={lang}
+        states={states}
+        id={service[1]}
+        onNavigate={go}
+        onUnauthorized={unauthorized}
+      />
+    );
   } else if (device) {
-    screen = <DevicePage copy={copy} lang={lang} id={device[1]} onNavigate={go} onUnauthorized={unauthorized} />;
+    screen = (
+      <DevicePage copy={copy} lang={lang} states={states} id={device[1]} onNavigate={go} onUnauthorized={unauthorized} />
+    );
   } else if (path === "/customers") {
     screen = <Customers copy={copy} onNavigate={go} onUnauthorized={unauthorized} />;
   } else if (customer) {
     screen = (
-      <CustomerDetail copy={copy} lang={lang} id={customer[1]} onNavigate={go} onUnauthorized={unauthorized} />
+      <CustomerDetail
+        copy={copy}
+        lang={lang}
+        states={states}
+        id={customer[1]}
+        onNavigate={go}
+        onUnauthorized={unauthorized}
+      />
     );
   } else if (audit) {
-    screen = <Audit copy={copy} lang={lang} onUnauthorized={unauthorized} />;
+    screen = <Audit copy={copy} lang={lang} states={states} onUnauthorized={unauthorized} />;
+  } else if (settingsPage) {
+    screen = <Settings copy={copy} lang={lang} states={states} onStates={setStates} onUnauthorized={unauthorized} />;
   }
 
   return (
@@ -201,7 +251,7 @@ export function App() {
       lang={lang}
       user={user}
       path={
-        audit || usersPage || path === "/" || path.startsWith("/services") || path.startsWith("/devices") || path.startsWith("/customers")
+        audit || settingsPage || usersPage || path === "/" || path.startsWith("/services") || path.startsWith("/devices") || path.startsWith("/customers")
           ? path
           : "/"
       }

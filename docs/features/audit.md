@@ -40,6 +40,9 @@ These events write a row:
 - A user's role changes. The row shows the previous role and the new role.
 - A user's password changes. The subject is that username.
 - A user is activated, or a user is deactivated. The subject is that username.
+- A service state is added. The subject is the new name in the active language. The row stores the English name and the Turkish name. When the state is shown on Home, the subject also says "Shown on Home" in English and "Ana sayfada" in Turkish. The screen calls this event "State added" in English and "Durum eklendi" in Turkish. The settings feature writes this row.
+- A service state is updated. The subject is the name in the active language. A rename shows the previous name and the new name in that language. The row stores the previous and new English names and the previous and new Turkish names. A change between active and inactive shows "Active" or "Inactive" in English and "Açık" or "Kapalı" in Turkish. A change of the Home queue shows "Shown on Home" or "Hidden on Home" in English and "Ana sayfada" or "Ana sayfada gizli" in Turkish. The screen calls this event "State updated" in English and "Durum güncellendi" in Turkish.
+- The service-state order changes. The subject is the name of the moved state in the active language. The screen calls this event "States reordered" in English and "Durum sırası değişti" in Turkish.
 
 Registering a service with a new customer writes two rows: the customer is created, then the service is registered. The names on a row stay as they were when the row was written.
 
@@ -58,6 +61,6 @@ These do not write a row:
 - The filters apply together. Either date may be empty. The date is the calendar day of the time shown on the screen.
 - The person filter matches the actor's username.
 - The event filter is the event list above. An empty choice means every event.
-- The subject filter matches the customer name, the brand, the model, the serial number, the service UUID, the device UUID, or, for a user change, that username.
+- The subject filter matches the customer name, the brand, the model, the serial number, the service UUID, the device UUID, or, for a user change, that username, or, for a change to the state list, the English name or the Turkish name.
 - The person filter and the subject filter wait until the operator pauses or submits.
 - An empty log says there are no rows. A filter that matches nothing says so.

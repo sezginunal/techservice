@@ -10,6 +10,7 @@ Status: approved.
 - A failed login says that the username or password is wrong. It does not reveal which one.
 - A successful login opens Home. The signed-in name and role stay in the sidebar.
 - An admin also gets a way to open user management. A technician or an owner does not.
+- An owner or an admin also gets a way to open Settings. A technician does not. The settings feature says what that screen does.
 
 ## Session
 

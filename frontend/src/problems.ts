@@ -31,7 +31,7 @@ export function problemText(copy: Copy, err: unknown) {
     ...err.missing.map((field) => fieldLine(copy, field, "missing")),
     ...err.invalid.map((field) => fieldLine(copy, field, "invalid")),
     ...err.tooLong.map((field) => copy.tooLong.replace("{field}", fieldLabel(copy, field))),
-    ...err.taken.map((field) => (field === "phone" ? copy.phoneTaken : field === "identity" ? copy.deviceTaken : copy.unexpected)),
+    ...err.taken.map((field) => takenLine(copy, field)),
   ];
   if (err.photo === "type") {
     lines.push(copy.photoType);
@@ -72,8 +72,23 @@ function fieldLine(copy: Copy, field: string, kind: "missing" | "invalid") {
     note: copy.noteRequired,
     status: kind === "invalid" ? copy.statusSame : copy.statusRequired,
     statusPhoto: copy.statusPhotoOne,
+    nameEn: copy.englishNameRequired,
+    nameTr: copy.turkishNameRequired,
   };
   return required[field] ?? copy.unexpected;
+}
+
+function takenLine(copy: Copy, field: string) {
+  if (field === "phone") {
+    return copy.phoneTaken;
+  }
+  if (field === "identity") {
+    return copy.deviceTaken;
+  }
+  if (field === "nameEn" || field === "nameTr") {
+    return copy.stateNameTaken;
+  }
+  return copy.unexpected;
 }
 
 function fieldLabel(copy: Copy, field: string) {
@@ -91,6 +106,8 @@ function fieldLabel(copy: Copy, field: string) {
     phone: copy.phone,
     email: copy.email,
     address: copy.address,
+    nameEn: copy.englishName,
+    nameTr: copy.turkishName,
   };
   return labels[field] ?? field;
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ApiError, photoSrc, request, statusPhotoSrc, type Device } from "./api";
+import { ApiError, photoSrc, request, statusPhotoSrc, type Device, type ServiceState } from "./api";
 import { ModelIcon } from "./ModelIcon";
-import { deviceStatuses, formatWhen, statusLabel } from "./format";
+import { choosableStates, formatWhen, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
 import { PhotoButton } from "./PhotoView";
 import { fileProblem, problemText } from "./problems";
@@ -9,12 +9,13 @@ import { fileProblem, problemText } from "./problems";
 type Props = {
   copy: Copy;
   lang: Lang;
+  states: ServiceState[];
   id: string;
   onNavigate: (path: string) => void;
   onUnauthorized: () => void;
 };
 
-export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Props) {
+export function DeviceDetail({ copy, lang, states, id, onNavigate, onUnauthorized }: Props) {
   const [device, setDevice] = useState<Device | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [next, setNext] = useState("");
@@ -95,7 +96,7 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
           <p className="muted">
             {copy.registeredOn}: {formatWhen(device.createdAt, lang)}
           </p>
-          <span className="badge">{statusLabel(device.status, copy)}</span>
+          <span className="badge">{statusLabel(device.status, states, lang)}</span>
         </div>
         <button className="button" type="button" onClick={() => onNavigate(`/services/${device.id}/edit`)}>
           {copy.correct}
@@ -130,9 +131,9 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
           {copy.status}
           <select value={next} onChange={(event) => setNext(event.target.value)}>
             <option value="">{copy.statusRequired}</option>
-            {deviceStatuses.map((id) => (
-              <option key={id} value={id}>
-                {statusLabel(id, copy)}
+            {choosableStates(states).map((item) => (
+              <option key={item.code} value={item.code}>
+                {statusLabel(item.code, states, lang)}
               </option>
             ))}
           </select>
@@ -164,7 +165,7 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
               {formatWhen(change.createdAt, lang)} · {change.actorUsername}
             </p>
             <p>
-              {statusLabel(change.from, copy)} → {statusLabel(change.to, copy)}
+              {statusLabel(change.from, states, lang)} → {statusLabel(change.to, states, lang)}
             </p>
             {change.note ? <p>{change.note}</p> : null}
             {change.hasPhoto ? (

@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ApiError, request, type Customer, type DeviceItem, type Page } from "./api";
+import { ApiError, request, type Customer, type DeviceItem, type Page, type ServiceState } from "./api";
 import { ModelIcon } from "./ModelIcon";
 import { formatWhen, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
@@ -10,12 +10,13 @@ import { problemText } from "./problems";
 type Props = {
   copy: Copy;
   lang: Lang;
+  states: ServiceState[];
   id: string;
   onNavigate: (path: string) => void;
   onUnauthorized: () => void;
 };
 
-export function CustomerDetail({ copy, lang, id, onNavigate, onUnauthorized }: Props) {
+export function CustomerDetail({ copy, lang, states, id, onNavigate, onUnauthorized }: Props) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -148,7 +149,7 @@ export function CustomerDetail({ copy, lang, id, onNavigate, onUnauthorized }: P
               {item.brand} {item.model} · {item.serial}
             </strong>
             <span className="muted">
-              {statusLabel(item.status, copy)} · {formatWhen(item.createdAt, lang)}
+              {statusLabel(item.status, states, lang)} · {formatWhen(item.createdAt, lang)}
             </span>
           </button>
         ))}

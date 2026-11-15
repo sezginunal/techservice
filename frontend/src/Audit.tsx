@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ApiError, request, type AuditItem, type Page, type Role } from "./api";
+import { ApiError, request, type AuditItem, type Page, type Role, type ServiceState } from "./api";
 import { DateField } from "./DateField";
 import { dayStart, formatWhen, nextDay, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
@@ -18,15 +18,19 @@ const eventIds = [
   "user.password_changed",
   "user.activated",
   "user.deactivated",
+  "state.added",
+  "state.updated",
+  "states.reordered",
 ] as const;
 
 type Props = {
   copy: Copy;
   lang: Lang;
+  states: ServiceState[];
   onUnauthorized: () => void;
 };
 
-export function Audit({ copy, lang, onUnauthorized }: Props) {
+export function Audit({ copy, lang, states, onUnauthorized }: Props) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [person, setPerson] = useState("");
@@ -138,7 +142,7 @@ export function Audit({ copy, lang, onUnauthorized }: Props) {
                 <td data-label={copy.person}>{item.actorUsername}</td>
                 <td data-label={copy.role}>{copy[item.actorRole]}</td>
                 <td data-label={copy.event}>{eventLabel(copy, item.event)}</td>
-                <td data-label={copy.subject}>{subjectOf(copy, item)}</td>
+                <td data-label={copy.subject}>{subjectOf(copy, lang, states, item)}</td>
               </tr>
             ))}
           </tbody>
@@ -164,11 +168,14 @@ function eventLabel(copy: Copy, event: string) {
     "user.password_changed": copy.eventUserPasswordChanged,
     "user.activated": copy.eventUserActivated,
     "user.deactivated": copy.eventUserDeactivated,
+    "state.added": copy.eventStateAdded,
+    "state.updated": copy.eventStateUpdated,
+    "states.reordered": copy.eventStatesReordered,
   };
   return labels[event] ?? event;
 }
 
-function subjectOf(copy: Copy, item: AuditItem) {
+function subjectOf(copy: Copy, lang: Lang, states: ServiceState[], item: AuditItem) {
   const detail = item.detail;
   if (item.event === "customer.updated" && detail.previousName) {
     return `${detail.previousName} → ${detail.name ?? ""}`;
@@ -188,8 +195,8 @@ function subjectOf(copy: Copy, item: AuditItem) {
     return [brand, model, serial, detail.uuid].filter(Boolean).join(" · ");
   }
   if (item.event === "service.status_changed") {
-    const from = statusLabel(detail.from ?? "", copy);
-    const to = statusLabel(detail.to ?? "", copy);
+    const from = statusLabel(detail.from ?? "", states, lang);
+    const to = statusLabel(detail.to ?? "", states, lang);
     return [detail.brand, detail.model, detail.serial, detail.uuid, `${from} → ${to}`].filter(Boolean).join(" · ");
   }
   if (item.event === "user.created") {
@@ -198,7 +205,43 @@ function subjectOf(copy: Copy, item: AuditItem) {
   if (item.event === "user.role_changed") {
     return `${detail.username ?? ""} · ${roleName(copy, detail.from)} → ${roleName(copy, detail.to)}`;
   }
+  if (item.event === "state.added" || item.event === "state.updated" || item.event === "states.reordered") {
+    return stateSubject(copy, lang, detail, item.event);
+  }
   return detail.username ?? "";
+}
+
+function stateName(lang: Lang, detail: AuditItem["detail"]) {
+  return lang === "tr" ? detail.nameTr ?? detail.nameEn ?? "" : detail.nameEn ?? detail.nameTr ?? "";
+}
+
+function stateSubject(copy: Copy, lang: Lang, detail: AuditItem["detail"], event: string) {
+  const name = stateName(lang, detail);
+  if (event === "states.reordered") {
+    return name;
+  }
+  const parts = [name];
+  if (detail.previousNameEn || detail.previousNameTr) {
+    const previous = lang === "tr" ? detail.previousNameTr ?? "" : detail.previousNameEn ?? "";
+    parts[0] = `${previous} → ${name}`;
+  }
+  if (detail.previousActive && detail.active) {
+    parts.push(`${activeWord(copy, detail.previousActive)} → ${activeWord(copy, detail.active)}`);
+  }
+  if (detail.previousHome && detail.home) {
+    parts.push(`${homeWord(copy, detail.previousHome)} → ${homeWord(copy, detail.home)}`);
+  } else if (event === "state.added" && detail.showOnHome === "shown") {
+    parts.push(copy.shownOnHome);
+  }
+  return parts.filter(Boolean).join(" · ");
+}
+
+function activeWord(copy: Copy, value: string) {
+  return value === "active" ? copy.stateActive : copy.stateInactive;
+}
+
+function homeWord(copy: Copy, value: string) {
+  return value === "shown" ? copy.shownOnHome : copy.hiddenOnHome;
 }
 
 function roleName(copy: Copy, role?: string) {

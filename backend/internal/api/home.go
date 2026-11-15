@@ -22,6 +22,31 @@ func homeSummary(database *sql.DB, images catalog.Index) http.HandlerFunc {
 	}
 }
 
+func queueJSON(queues []store.StateQueue) []map[string]any {
+	body := make([]map[string]any, 0, len(queues))
+	for _, queue := range queues {
+		items := make([]map[string]any, 0, len(queue.Items))
+		for _, item := range queue.Items {
+			items = append(items, map[string]any{
+				"id":           item.ID,
+				"brand":        item.Brand,
+				"model":        item.Model,
+				"serial":       item.Serial,
+				"customerName": item.CustomerName,
+				"status":       item.Status,
+				"days":         item.Days,
+				"since":        store.FormatTime(item.Since),
+			})
+		}
+		body = append(body, map[string]any{
+			"status": queue.Status,
+			"more":   queue.More,
+			"items":  items,
+		})
+	}
+	return body
+}
+
 func summaryJSON(summary store.Summary, images catalog.Index) map[string]any {
 	days := make([]map[string]any, 0, len(summary.Days))
 	for _, day := range summary.Days {
@@ -72,9 +97,8 @@ func summaryJSON(summary store.Summary, images catalog.Index) map[string]any {
 		"inShop":        summary.InShop,
 		"delivered":     summary.Delivered,
 		"idle7":         summary.Idle7,
-		"waitingPart":   summary.WaitingPart,
-		"ready":         summary.Ready,
 		"byStatus":      byStatus,
+		"queues":        queueJSON(summary.Queues),
 		"models":        models,
 		"other":         summary.Other,
 		"unchanged":     unchanged,

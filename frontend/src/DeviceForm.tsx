@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
-import { ApiError, photoSrc, request, type CatalogBrand, type CatalogModel, type Customer, type Device, type EarlierService, type Page } from "./api";
+import { ApiError, photoSrc, request, type CatalogBrand, type CatalogModel, type Customer, type Device, type EarlierService, type Page, type ServiceState } from "./api";
 import { ModelIcon } from "./ModelIcon";
 import { formatWhen, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
@@ -23,6 +23,7 @@ type PartDraft = {
 type Props = {
   copy: Copy;
   lang: Lang;
+  states: ServiceState[];
   mode: "create" | "edit";
   deviceId?: string;
   customerId?: string | null;
@@ -30,7 +31,7 @@ type Props = {
   onUnauthorized: () => void;
 };
 
-export function DeviceForm({ copy, lang, mode, deviceId, customerId, onNavigate, onUnauthorized }: Props) {
+export function DeviceForm({ copy, lang, states, mode, deviceId, customerId, onNavigate, onUnauthorized }: Props) {
   const editing = mode === "edit";
   const urls = useRef(new Set<string>());
   const [ready, setReady] = useState(!editing);
@@ -493,7 +494,7 @@ export function DeviceForm({ copy, lang, mode, deviceId, customerId, onNavigate,
             <h2>{copy.earlierServices}</h2>
             {earlier.items.map((item) => (
               <p key={item.id}>
-                {formatWhen(item.createdAt, lang)} · {item.customerName} · {item.phone} · {statusLabel(item.status, copy)}
+                {formatWhen(item.createdAt, lang)} · {item.customerName} · {item.phone} · {statusLabel(item.status, states, lang)}
               </p>
             ))}
             <End enabled={earlier.hasMore && !earlier.loading} onEnd={earlier.more} />
