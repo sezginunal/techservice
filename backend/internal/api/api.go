@@ -25,10 +25,10 @@ type userResponse struct {
 	Active   bool   `json:"active"`
 }
 
-func New(database *sql.DB, uploadPath string, shop brand.Brand, devices catalog.Index) http.Handler {
+func New(database *sql.DB, uploadPath string, shop brand.Brand, devices catalog.Index, defaultLang string) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", health(database))
-	mux.HandleFunc("GET /api/brand", showBrand(shop))
+	mux.HandleFunc("GET /api/brand", showBrand(shop, defaultLang))
 	mux.HandleFunc("GET /api/brand/logo", showLogo(shop))
 	mux.HandleFunc("GET /api/catalog", authenticated(database, showCatalog(devices)))
 	mux.HandleFunc("GET /api/catalog/image", authenticated(database, showModelImage(devices)))
@@ -56,9 +56,9 @@ func New(database *sql.DB, uploadPath string, shop brand.Brand, devices catalog.
 	return mux
 }
 
-func showBrand(shop brand.Brand) http.HandlerFunc {
+func showBrand(shop brand.Brand, lang string) http.HandlerFunc {
 	_, _, logo := shop.Logo()
-	body := map[string]any{"name": shop.Name, "logo": logo}
+	body := map[string]any{"name": shop.Name, "logo": logo, "lang": lang}
 	return func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, body)
 	}

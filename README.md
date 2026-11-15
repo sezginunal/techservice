@@ -2,7 +2,7 @@
 
 Bench software for a repair shop. Staff sign in, record a customer, open a service for a device, attach parts and photos, and move the job through to delivery.
 
-The interface is English and Turkish. It runs on the shop network: one machine, two containers. The browser talks only to the frontend. The frontend proxies `/api` to the backend.
+The interface is English and Turkish. English is the language until someone chooses one in that browser, unless `DEFAULT_LANG` is `tr`. A choice on the language switch stays in that browser. It runs on the shop network: one machine, two containers. The browser talks only to the frontend. The frontend proxies `/api` to the backend.
 
 ## Run
 
@@ -30,6 +30,7 @@ Settings come from `.env`. Omit a line to keep the default in [`.env.example`](.
 | `ADMIN_USERNAME` | First admin. Used only when no admin exists. |
 | `ADMIN_PASSWORD` | 8–72 characters. Stay out of the repository. |
 | `COMPANY_NAME` | Shop name on the sign-in screen, the sidebar, and the browser tab. Empty keeps Techservice / Teknik servis. |
+| `DEFAULT_LANG` | `en` or `tr`. Used when this browser has not chosen a language. Default `en`. |
 | `LOGO_PATH` | Logo file the backend reads, for example `/brand/logo.webp`. JPEG, PNG, WebP, or SVG. |
 | `DEVICE_CATALOG_PATH` | Brand and model suggestions, for example `/brand/devices.json`. |
 

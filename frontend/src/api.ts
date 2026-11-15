@@ -1,8 +1,14 @@
+import type { Lang } from "./i18n";
+
 export type Role = "technician" | "owner" | "admin";
 
 export type Brand = {
   name: string;
   logo: boolean;
+};
+
+export type Shop = Brand & {
+  lang: Lang;
 };
 
 export type CatalogModel = {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { logoSrc, request, type Brand, type User } from "./api";
+import { logoSrc, request, type Brand, type Shop, type User } from "./api";
 import { Audit } from "./Audit";
 import { CustomerDetail } from "./CustomerDetail";
 import { Customers } from "./Customers";
@@ -8,16 +8,18 @@ import { DeviceForm } from "./DeviceForm";
 import { DevicePage } from "./DevicePage";
 import { Devices } from "./Devices";
 import { Home } from "./Home";
-import { readLang, shopName, text, writeLang, type Lang } from "./i18n";
+import { shopName, storedLang, text, writeLang, type Lang } from "./i18n";
 import { Login } from "./Login";
 import { Shell, type NavItem } from "./Shell";
 import { Users } from "./Users";
 
 export function App() {
-  const [lang, setLang] = useState<Lang>(readLang);
+  const [stored] = useState<Lang | null>(storedLang);
+  const [lang, setLang] = useState<Lang>(stored ?? "en");
   const [user, setUser] = useState<User | null>(null);
   const [brand, setBrand] = useState<Brand>({ name: "", logo: false });
   const [ready, setReady] = useState(false);
+  const [langReady, setLangReady] = useState(stored !== null);
   const [location, setLocation] = useState(() => window.location.pathname + window.location.search);
 
   const copy = text(lang);
@@ -73,16 +75,26 @@ export function App() {
 
   useEffect(() => {
     const controller = new AbortController();
-    request<Brand>("/api/brand", { signal: controller.signal })
-      .then((loaded) => setBrand(loaded))
+    request<Shop>("/api/brand", { signal: controller.signal })
+      .then((loaded) => {
+        setBrand({ name: loaded.name, logo: loaded.logo });
+        if (stored === null) {
+          setLang(loaded.lang === "tr" ? "tr" : "en");
+        }
+      })
       .catch((err: unknown) => {
         if (err instanceof DOMException && err.name === "AbortError") {
           return;
         }
         setBrand({ name: "", logo: false });
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLangReady(true);
+        }
       });
     return () => controller.abort();
-  }, []);
+  }, [stored]);
 
   function go(next: string) {
     window.history.pushState({}, "", next);
@@ -96,6 +108,10 @@ export function App() {
       setUser(null);
       go("/");
     }
+  }
+
+  if (!langReady) {
+    return <main className="auth" />;
   }
 
   if (!ready) {

@@ -372,9 +372,12 @@ const dictionaries = { en, tr };
 
 const storageKey = "techservice.lang";
 
-export function readLang(): Lang {
+export function storedLang(): Lang | null {
   const value = localStorage.getItem(storageKey);
-  return value === "en" ? "en" : "tr";
+  if (value === "en" || value === "tr") {
+    return value;
+  }
+  return null;
 }
 
 export function writeLang(lang: Lang) {

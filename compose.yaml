@@ -9,6 +9,7 @@ services:
       ADMIN_USERNAME: "${ADMIN_USERNAME:-}"
       ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
       COMPANY_NAME: "${COMPANY_NAME:-}"
+      DEFAULT_LANG: "${DEFAULT_LANG:-en}"
       LOGO_PATH: "${LOGO_PATH:-}"
       DEVICE_CATALOG_PATH: "${DEVICE_CATALOG_PATH:-}"
     volumes:

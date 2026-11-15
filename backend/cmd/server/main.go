@@ -54,10 +54,12 @@ func main() {
 
 	shop := brand.Load(brand.Dir, os.Getenv("COMPANY_NAME"), os.Getenv("LOGO_PATH"))
 	devices := catalog.Index{Dir: brand.Dir, Brands: catalog.Load(brand.Dir, os.Getenv("DEVICE_CATALOG_PATH"))}
+	defaultLang := api.NormalizeLang(os.Getenv("DEFAULT_LANG"))
+	log.Printf("default language %s", defaultLang)
 
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           api.New(database, uploadPath, shop, devices),
+		Handler:           api.New(database, uploadPath, shop, devices, defaultLang),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       120 * time.Second,
 		WriteTimeout:      120 * time.Second,
