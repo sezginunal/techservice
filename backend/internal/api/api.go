@@ -57,6 +57,20 @@ func New(database *sql.DB, uploadPath string, shop brand.Brand, devices catalog.
 	mux.HandleFunc("GET /api/devices/{id}/services", authenticated(database, listDeviceServices(database)))
 	mux.HandleFunc("GET /api/devices/{id}", authenticated(database, getIdentity(database, devices)))
 	mux.HandleFunc("GET /api/audit", authenticated(database, listAudit(database)))
+	mux.HandleFunc("GET /api/spare-parts/suggestions/brands", authenticated(database, suggestSpareBrands(database)))
+	mux.HandleFunc("GET /api/spare-parts/suggestions/models", authenticated(database, suggestSpareModels(database)))
+	mux.HandleFunc("GET /api/spare-parts", authenticated(database, listSpareParts(database)))
+	mux.HandleFunc("POST /api/spare-parts", authenticated(database, createSparePart(database)))
+	mux.HandleFunc("GET /api/spare-parts/{id}/uses", authenticated(database, listSpareUses(database)))
+	mux.HandleFunc("GET /api/spare-parts/{id}/stock", authenticated(database, listSpareStock(database)))
+	mux.HandleFunc("POST /api/spare-parts/{id}/receipts", authenticated(database, addSpareStock(database)))
+	mux.HandleFunc("POST /api/spare-parts/{id}/write-offs", authenticated(database, writeOffSpareStock(database)))
+	mux.HandleFunc("GET /api/spare-parts/{id}", authenticated(database, getSparePart(database)))
+	mux.HandleFunc("PATCH /api/spare-parts/{id}", authenticated(database, updateSparePart(database)))
+	mux.HandleFunc("GET /api/services/{id}/spare-parts", authenticated(database, listServiceSpares(database)))
+	mux.HandleFunc("POST /api/services/{id}/spare-parts", authenticated(database, useSparePart(database)))
+	mux.HandleFunc("GET /api/services/{id}/spare-returns", authenticated(database, listReturnableSpares(database)))
+	mux.HandleFunc("POST /api/services/{id}/spare-returns", authenticated(database, returnSparePart(database)))
 	return mux
 }
 
@@ -323,6 +337,19 @@ func writeStoreError(w http.ResponseWriter, err error) {
 	if errors.As(err, &fields) {
 		log.Printf("validation: %v", err)
 		writeValidation(w, fields)
+		return
+	}
+	var stock *store.StockError
+	if errors.As(err, &stock) {
+		log.Printf("stock: %s", stock.Kind)
+		body := map[string]any{"error": stock.Kind}
+		if stock.Kind == store.StockShort {
+			body["onHand"] = stock.OnHand
+		}
+		if stock.Kind == store.ReturnShort {
+			body["returnable"] = stock.Returnable
+		}
+		writeJSON(w, http.StatusConflict, body)
 		return
 	}
 	switch {

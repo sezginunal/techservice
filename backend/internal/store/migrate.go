@@ -39,6 +39,7 @@ func Migrate(ctx context.Context, database *sql.DB) error {
 	}{
 		{1, false, migration1},
 		{2, true, migration2},
+		{3, false, migration3},
 	}
 	for _, step := range steps {
 		if version >= step.version {
@@ -244,6 +245,45 @@ func migration2(ctx context.Context, tx *sql.Tx) error {
 		CREATE UNIQUE INDEX services_one_open ON services (device_id) WHERE status NOT IN ('delivered', 'cancelled');
 	`); err != nil {
 		return fmt.Errorf("migrate 2: %w", err)
+	}
+	return nil
+}
+
+func migration3(ctx context.Context, tx *sql.Tx) error {
+	_, err := tx.ExecContext(ctx, `
+		CREATE TABLE spare_parts (
+			id TEXT PRIMARY KEY,
+			brand TEXT NOT NULL,
+			model TEXT NOT NULL,
+			brand_fold TEXT NOT NULL,
+			model_fold TEXT NOT NULL,
+			on_hand INTEGER NOT NULL CHECK (on_hand >= 0 AND on_hand <= 99999),
+			created_at TEXT NOT NULL
+		);
+		CREATE UNIQUE INDEX spare_parts_identity ON spare_parts (brand_fold, model_fold);
+		CREATE INDEX spare_parts_order ON spare_parts (brand COLLATE NOCASE, model COLLATE NOCASE, id);
+		CREATE TABLE spare_part_moves (
+			id INTEGER PRIMARY KEY,
+			part_id TEXT NOT NULL REFERENCES spare_parts(id),
+			kind TEXT NOT NULL CHECK (kind IN ('receipt', 'write_off', 'use', 'return')),
+			quantity INTEGER NOT NULL CHECK (quantity >= 1 AND quantity <= 99999),
+			note TEXT NOT NULL DEFAULT '',
+			service_id TEXT REFERENCES services(id),
+			state_code TEXT,
+			actor_username TEXT NOT NULL,
+			created_at TEXT NOT NULL,
+			CHECK (
+				(kind IN ('receipt', 'write_off') AND service_id IS NULL AND state_code IS NULL)
+				OR (kind IN ('use', 'return') AND service_id IS NOT NULL AND state_code IS NOT NULL AND state_code <> '')
+			)
+		);
+		CREATE INDEX spare_part_moves_stock ON spare_part_moves (part_id, created_at, id) WHERE kind IN ('receipt', 'write_off');
+		CREATE INDEX spare_part_moves_use ON spare_part_moves (part_id, created_at, id) WHERE kind IN ('use', 'return');
+		CREATE INDEX spare_part_moves_service_use ON spare_part_moves (service_id, created_at, id) WHERE kind IN ('use', 'return');
+		CREATE INDEX spare_part_moves_service_part ON spare_part_moves (service_id, part_id) WHERE kind IN ('use', 'return');
+	`)
+	if err != nil {
+		return fmt.Errorf("migrate 3: %w", err)
 	}
 	return nil
 }

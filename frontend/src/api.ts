@@ -188,6 +188,39 @@ export type DeviceService = {
   createdAt: string;
 };
 
+export type SparePart = {
+  id: string;
+  brand: string;
+  model: string;
+  onHand: number;
+  existed?: boolean;
+  added?: boolean;
+};
+
+export type SpareMove = {
+  id: number;
+  at: string;
+  actorUsername: string;
+  quantity: number;
+  kind: "receipt" | "write_off" | "use" | "return";
+  note: string;
+  status?: string;
+  serviceId?: string;
+  partId?: string;
+  brand?: string;
+  model?: string;
+  deviceBrand?: string;
+  deviceModel?: string;
+  serial?: string;
+};
+
+export type SpareReturnable = {
+  id: string;
+  brand: string;
+  model: string;
+  returnable: number;
+};
+
 export type DeviceMatch = {
   matched: boolean;
   deviceId: string;
@@ -221,6 +254,10 @@ export type AuditDetail = {
   home?: string;
   previousHome?: string;
   showOnHome?: string;
+  quantity?: number;
+  deviceBrand?: string;
+  deviceModel?: string;
+  status?: string;
 };
 
 export type AuditItem = {
@@ -245,6 +282,8 @@ export class ApiError extends Error {
   taken: string[];
   photo: string;
   serviceId: string;
+  onHand: number;
+  returnable: number;
 
   constructor(
     code: string,
@@ -255,6 +294,8 @@ export class ApiError extends Error {
       taken?: string[];
       photo?: string;
       serviceId?: string;
+      onHand?: number;
+      returnable?: number;
     },
   ) {
     super(code);
@@ -265,6 +306,8 @@ export class ApiError extends Error {
     this.taken = extra?.taken ?? [];
     this.photo = extra?.photo ?? "";
     this.serviceId = extra?.serviceId ?? "";
+    this.onHand = extra?.onHand ?? 0;
+    this.returnable = extra?.returnable ?? 0;
   }
 }
 
@@ -287,6 +330,8 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     taken?: string[];
     photo?: string;
     serviceId?: string;
+    onHand?: number;
+    returnable?: number;
   };
   if (!response.ok) {
     throw new ApiError(body.error ?? "unexpected", body);

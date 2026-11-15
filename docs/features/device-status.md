@@ -74,3 +74,4 @@ A successful state change writes the audit event already named in the audit feat
 - Changing the state from the list or from the customer detail.
 - Choosing a state on the registration screen.
 - More than one photo on one change.
+- Using spare-part stock on a service. That is the spare parts feature. A state change does not change stock.

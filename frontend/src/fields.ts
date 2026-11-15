@@ -46,6 +46,21 @@ export function usernameOk(value: string) {
   return name.length > 0 && name.length <= 64;
 }
 
+export function wholeQuantity(value: string, min: number, max: number) {
+  const text = value.trim();
+  if (!text) {
+    return "empty" as const;
+  }
+  if (!/^\d+$/.test(text)) {
+    return "range" as const;
+  }
+  const quantity = Number(text);
+  if (!Number.isSafeInteger(quantity) || quantity < min || quantity > max) {
+    return "range" as const;
+  }
+  return quantity;
+}
+
 export function passwordProblem(value: string) {
   if (value.length < 8) {
     return "short" as const;

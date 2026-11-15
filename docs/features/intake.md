@@ -37,7 +37,8 @@ A service is one visit of a device. The device, the serial number, and which cus
 
 - Parts are optional. Each part is its own row. Two cables are two rows.
 - A part name is required. That part's note is optional.
-- A part has no brand, model, or serial number.
+- A part has no brand, model, or serial number, and no quantity on hand.
+- These parts are not stock. A counted spare part is the spare parts feature.
 - The operator can add, change, and remove a part while registering or while correcting the service.
 - Removing a part removes that part's photos.
 
@@ -93,3 +94,4 @@ A service is one visit of a device. The device, the serial number, and which cus
 - A camera capture.
 - Deleting a customer or a service.
 - How the device arrived.
+- Spare-part stock, and using that stock on a service. That is the spare parts feature.

@@ -74,6 +74,7 @@ function fieldLine(copy: Copy, field: string, kind: "missing" | "invalid") {
     statusPhoto: copy.statusPhotoOne,
     nameEn: copy.englishNameRequired,
     nameTr: copy.turkishNameRequired,
+    quantity: copy.quantityRequired,
   };
   return required[field] ?? copy.unexpected;
 }
@@ -87,6 +88,9 @@ function takenLine(copy: Copy, field: string) {
   }
   if (field === "nameEn" || field === "nameTr") {
     return copy.stateNameTaken;
+  }
+  if (field === "spare") {
+    return copy.spareTaken;
   }
   return copy.unexpected;
 }
@@ -108,6 +112,8 @@ function fieldLabel(copy: Copy, field: string) {
     address: copy.address,
     nameEn: copy.englishName,
     nameTr: copy.turkishName,
+    spareNote: copy.optionalNote,
+    quantity: copy.quantity,
   };
   return labels[field] ?? field;
 }

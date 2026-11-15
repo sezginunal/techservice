@@ -5,6 +5,7 @@ import { choosableStates, formatWhen, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
 import { PhotoButton } from "./PhotoView";
 import { fileProblem, problemText } from "./problems";
+import { SpareService } from "./SpareService";
 
 type Props = {
   copy: Copy;
@@ -125,6 +126,14 @@ export function DeviceDetail({ copy, lang, states, id, onNavigate, onUnauthorize
           </div>
         ))}
       </section>
+      <SpareService
+        copy={copy}
+        lang={lang}
+        states={states}
+        serviceId={device.id}
+        onNavigate={onNavigate}
+        onUnauthorized={onUnauthorized}
+      />
       <form className="panel stack" onSubmit={(event) => void saveStatus(event)}>
         <h2>{copy.changeStatus}</h2>
         <label className="field">

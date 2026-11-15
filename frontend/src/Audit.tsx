@@ -21,6 +21,12 @@ const eventIds = [
   "state.added",
   "state.updated",
   "states.reordered",
+  "spare_part.added",
+  "spare_part.updated",
+  "stock.added",
+  "stock.written_off",
+  "spare_part.used",
+  "spare_part.returned",
 ] as const;
 
 type Props = {
@@ -171,6 +177,12 @@ function eventLabel(copy: Copy, event: string) {
     "state.added": copy.eventStateAdded,
     "state.updated": copy.eventStateUpdated,
     "states.reordered": copy.eventStatesReordered,
+    "spare_part.added": copy.eventSpareAdded,
+    "spare_part.updated": copy.eventSpareUpdated,
+    "stock.added": copy.eventStockAdded,
+    "stock.written_off": copy.eventStockWrittenOff,
+    "spare_part.used": copy.eventSpareUsed,
+    "spare_part.returned": copy.eventSpareReturned,
   };
   return labels[event] ?? event;
 }
@@ -204,6 +216,25 @@ function subjectOf(copy: Copy, lang: Lang, states: ServiceState[], item: AuditIt
   }
   if (item.event === "user.role_changed") {
     return `${detail.username ?? ""} · ${roleName(copy, detail.from)} → ${roleName(copy, detail.to)}`;
+  }
+  if (item.event === "spare_part.updated") {
+    const from = [detail.previousBrand, detail.previousModel].filter(Boolean).join(" ");
+    const to = [detail.brand, detail.model].filter(Boolean).join(" ");
+    return `${from} → ${to}`;
+  }
+  if (
+    item.event === "spare_part.added" ||
+    item.event === "stock.added" ||
+    item.event === "stock.written_off" ||
+    item.event === "spare_part.used" ||
+    item.event === "spare_part.returned"
+  ) {
+    const parts: Array<string | number | undefined> = [detail.brand, detail.model, detail.quantity];
+    if (item.event === "spare_part.used" || item.event === "spare_part.returned") {
+      const device = [detail.deviceBrand, detail.deviceModel].filter(Boolean).join(" ");
+      parts.push(device, detail.serial, detail.uuid, detail.status ? statusLabel(detail.status, states, lang) : "");
+    }
+    return parts.filter((value) => value !== undefined && value !== "").join(" · ");
   }
   if (item.event === "state.added" || item.event === "state.updated" || item.event === "states.reordered") {
     return stateSubject(copy, lang, detail, item.event);

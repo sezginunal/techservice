@@ -12,6 +12,8 @@ import { shopName, storedLang, text, writeLang, type Lang } from "./i18n";
 import { Login } from "./Login";
 import { Settings } from "./Settings";
 import { Shell, type NavItem } from "./Shell";
+import { SparePartPage } from "./SparePartPage";
+import { SpareParts } from "./SpareParts";
 import { Users } from "./Users";
 
 export function App() {
@@ -155,6 +157,7 @@ export function App() {
     { path: "/", label: copy.home, icon: "home" },
     { path: "/services", label: copy.devices, icon: "devices" },
     { path: "/customers", label: copy.customers, icon: "customers" },
+    { path: "/spare-parts", label: copy.spareParts, icon: "spare" },
   ];
   if (user.role === "admin" || user.role === "owner") {
     items.push({ path: "/audit", label: copy.audit, icon: "audit" });
@@ -169,6 +172,7 @@ export function App() {
   const service = path.match(/^\/services\/([0-9a-f-]{36})$/);
   const device = path.match(/^\/devices\/([0-9a-f-]{36})$/);
   const customer = path.match(/^\/customers\/(\d+)$/);
+  const sparePart = path.match(/^\/spare-parts\/([0-9a-f-]{36})$/);
   const audit = path === "/audit" && user.role !== "technician";
   const settingsPage = path === "/settings" && user.role !== "technician";
   const usersPage = path === "/users" && user.role === "admin";
@@ -226,6 +230,20 @@ export function App() {
     screen = (
       <DevicePage copy={copy} lang={lang} states={states} id={device[1]} onNavigate={go} onUnauthorized={unauthorized} />
     );
+  } else if (sparePart) {
+    screen = (
+      <SparePartPage
+        copy={copy}
+        lang={lang}
+        states={states}
+        id={sparePart[1]}
+        notice={url.searchParams.get("notice") ?? ""}
+        onNavigate={go}
+        onUnauthorized={unauthorized}
+      />
+    );
+  } else if (path === "/spare-parts") {
+    screen = <SpareParts copy={copy} onNavigate={go} onUnauthorized={unauthorized} />;
   } else if (path === "/customers") {
     screen = <Customers copy={copy} onNavigate={go} onUnauthorized={unauthorized} />;
   } else if (customer) {
@@ -251,7 +269,14 @@ export function App() {
       lang={lang}
       user={user}
       path={
-        audit || settingsPage || usersPage || path === "/" || path.startsWith("/services") || path.startsWith("/devices") || path.startsWith("/customers")
+        audit ||
+        settingsPage ||
+        usersPage ||
+        path === "/" ||
+        path.startsWith("/services") ||
+        path.startsWith("/devices") ||
+        path.startsWith("/customers") ||
+        path.startsWith("/spare-parts")
           ? path
           : "/"
       }

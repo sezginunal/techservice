@@ -27,7 +27,8 @@ func knownEvent(event string) bool {
 	switch event {
 	case EventCustomerCreated, EventCustomerUpdated, EventServiceRegistered, EventServiceUpdated, EventDeviceUpdated, EventServiceStatusChanged,
 		EventUserCreated, EventUserRoleChanged, EventUserPasswordChanged, EventUserActivated, EventUserDeactivated,
-		EventStateAdded, EventStateUpdated, EventStatesReordered:
+		EventStateAdded, EventStateUpdated, EventStatesReordered,
+		EventSparePartAdded, EventSparePartUpdated, EventStockAdded, EventStockWrittenOff, EventSparePartUsed, EventSparePartReturned:
 		return true
 	default:
 		return false

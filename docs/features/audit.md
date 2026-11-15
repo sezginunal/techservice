@@ -24,9 +24,9 @@ The stored roles stay `admin`, `owner`, and `technician`. The visible names chan
 
 ## What writes a row
 
-A successful change to a record writes one row. A save that changes nothing writes nothing. Parts and photos are part of the service. They do not write their own rows. A save that changes the device and the service writes one row for each.
+A successful change to a record writes one row. A save that changes nothing writes nothing. The parts and photos on a service are part of that service. They do not write their own rows. A spare part writes the rows named in the spare parts feature. A save that changes the device and the service writes one row for each.
 
-The row does not contain a password, device notes, or a photo file.
+The row does not contain a password, device notes, a spare-part note, or a photo file.
 
 These events write a row:
 
@@ -43,6 +43,12 @@ These events write a row:
 - A service state is added. The subject is the new name in the active language. The row stores the English name and the Turkish name. When the state is shown on Home, the subject also says "Shown on Home" in English and "Ana sayfada" in Turkish. The screen calls this event "State added" in English and "Durum eklendi" in Turkish. The settings feature writes this row.
 - A service state is updated. The subject is the name in the active language. A rename shows the previous name and the new name in that language. The row stores the previous and new English names and the previous and new Turkish names. A change between active and inactive shows "Active" or "Inactive" in English and "Açık" or "Kapalı" in Turkish. A change of the Home queue shows "Shown on Home" or "Hidden on Home" in English and "Ana sayfada" or "Ana sayfada gizli" in Turkish. The screen calls this event "State updated" in English and "Durum güncellendi" in Turkish.
 - The service-state order changes. The subject is the name of the moved state in the active language. The screen calls this event "States reordered" in English and "Durum sırası değişti" in Turkish.
+- A spare part is created. The subject is the brand, the model, and the quantity, including 0. The screen calls this event "Spare part added" in English and "Yedek parça eklendi" in Turkish. The spare parts feature writes this row.
+- A spare part is corrected. The subject is the brand and the model. The row shows the previous brand and model and the new brand and model. The screen calls this event "Spare part updated" in English and "Yedek parça düzeltildi" in Turkish. The spare parts feature writes this row.
+- Stock is added to a spare part, including the quantity added when a create matches a part that already exists. The subject is the brand, the model, and the quantity. The screen calls this event "Stock added" in English and "Stok eklendi" in Turkish. The spare parts feature writes this row.
+- Spare-part stock is written off. The subject is the brand, the model, and the quantity. The screen calls this event "Stock written off" in English and "Fire kaydedildi" in Turkish. The spare parts feature writes this row.
+- A spare part is used on a service. The subject is the spare part's brand and model, the quantity, the service UUID, the device's brand, model, and serial number, and the state. The screen calls this event "Spare part used" in English and "Yedek parça kullanıldı" in Turkish. The spare parts feature writes this row.
+- A spare part is returned from a service. The subject is the spare part's brand and model, the quantity, the service UUID, the device's brand, model, and serial number, and the state. The screen calls this event "Spare part returned" in English and "Yedek parça iade edildi" in Turkish. The spare parts feature writes this row.
 
 Registering a service with a new customer writes two rows: the customer is created, then the service is registered. The names on a row stay as they were when the row was written.
 

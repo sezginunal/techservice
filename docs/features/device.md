@@ -55,3 +55,4 @@ Intake owns the customer, the parts, the photos, and the registration screen. Th
 - Moving a service onto a different device.
 - Deleting a device or a service.
 - A device page in the navigation. The service list is the navigation entry, as in intake.
+- Spare-part stock. A use is recorded on the service detail. That is the spare parts feature.
