@@ -1,14 +1,58 @@
+# Secrets. .env.example stays in the repository.
 .env
+.env.*
+!.env.example
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.html
+coverage.txt
+/vendor/
+go.work
+go.work.sum
+/backend/server
+
+# Node, TypeScript, Vite
 node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# SQLite and a local run outside Docker
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+/data/
+/uploads/
 
 # Local scratchpad. Work is not taken from here.
 /docs/todo.md
-dist/
-*.db
-*.db-wal
-*.db-shm
 
 # Local shop catalog, logo, and model images.
 /brand/devices.json
 /brand/logo.webp
 /brand/devices/
+
+# OS and editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
