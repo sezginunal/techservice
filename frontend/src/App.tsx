@@ -5,6 +5,7 @@ import { CustomerDetail } from "./CustomerDetail";
 import { Customers } from "./Customers";
 import { DeviceDetail } from "./DeviceDetail";
 import { DeviceForm } from "./DeviceForm";
+import { DevicePage } from "./DevicePage";
 import { Devices } from "./Devices";
 import { Home } from "./Home";
 import { readLang, shopName, text, writeLang, type Lang } from "./i18n";
@@ -111,7 +112,7 @@ export function App() {
 
   const items: NavItem[] = [
     { path: "/", label: copy.home, icon: "home" },
-    { path: "/devices", label: copy.devices, icon: "devices" },
+    { path: "/services", label: copy.devices, icon: "devices" },
     { path: "/customers", label: copy.customers, icon: "customers" },
   ];
   if (user.role === "admin" || user.role === "owner") {
@@ -122,7 +123,8 @@ export function App() {
   }
 
   const unauthorized = () => setUser(null);
-  const deviceEdit = path.match(/^\/devices\/([0-9a-f-]{36})\/edit$/);
+  const serviceEdit = path.match(/^\/services\/([0-9a-f-]{36})\/edit$/);
+  const service = path.match(/^\/services\/([0-9a-f-]{36})$/);
   const device = path.match(/^\/devices\/([0-9a-f-]{36})$/);
   const customer = path.match(/^\/customers\/(\d+)$/);
   const audit = path === "/audit" && user.role !== "technician";
@@ -131,7 +133,7 @@ export function App() {
   let screen = <Home copy={copy} lang={lang} onNavigate={go} onUnauthorized={unauthorized} />;
   if (usersPage) {
     screen = <Users copy={copy} onUnauthorized={unauthorized} />;
-  } else if (path === "/devices") {
+  } else if (path === "/services") {
     screen = (
       <Devices
         copy={copy}
@@ -141,28 +143,32 @@ export function App() {
         onUnauthorized={unauthorized}
       />
     );
-  } else if (path === "/devices/new") {
+  } else if (path === "/services/new") {
     screen = (
       <DeviceForm
         copy={copy}
+        lang={lang}
         mode="create"
         customerId={url.searchParams.get("customer")}
         onNavigate={go}
         onUnauthorized={unauthorized}
       />
     );
-  } else if (deviceEdit) {
+  } else if (serviceEdit) {
     screen = (
       <DeviceForm
         copy={copy}
+        lang={lang}
         mode="edit"
-        deviceId={deviceEdit[1]}
+        deviceId={serviceEdit[1]}
         onNavigate={go}
         onUnauthorized={unauthorized}
       />
     );
+  } else if (service) {
+    screen = <DeviceDetail copy={copy} lang={lang} id={service[1]} onNavigate={go} onUnauthorized={unauthorized} />;
   } else if (device) {
-    screen = <DeviceDetail copy={copy} lang={lang} id={device[1]} onNavigate={go} onUnauthorized={unauthorized} />;
+    screen = <DevicePage copy={copy} lang={lang} id={device[1]} onNavigate={go} onUnauthorized={unauthorized} />;
   } else if (path === "/customers") {
     screen = <Customers copy={copy} onNavigate={go} onUnauthorized={unauthorized} />;
   } else if (customer) {
@@ -178,7 +184,11 @@ export function App() {
       copy={copy}
       lang={lang}
       user={user}
-      path={audit || usersPage || path === "/" || path.startsWith("/devices") || path.startsWith("/customers") ? path : "/"}
+      path={
+        audit || usersPage || path === "/" || path.startsWith("/services") || path.startsWith("/devices") || path.startsWith("/customers")
+          ? path
+          : "/"
+      }
       items={items}
       brand={brand}
       onLang={changeLang}

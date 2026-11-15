@@ -35,6 +35,7 @@ type Part struct {
 
 type Device struct {
 	ID        string
+	DeviceID  string
 	Customer  Customer
 	Brand     string
 	Model     string
@@ -51,6 +52,7 @@ type DeviceListItem struct {
 	ID           string
 	Brand        string
 	Model        string
+	Serial       string
 	CustomerName string
 	Status       string
 	CreatedAt    time.Time
@@ -94,6 +96,8 @@ type DeviceChange struct {
 	Model           string
 	Serial          string
 	Note            string
+	NewCustomer     bool
+	CustomerID      *int64
 	CustomerName    string
 	CustomerPhone   string
 	CustomerEmail   string
@@ -230,28 +234,28 @@ func ListDevices(ctx context.Context, database *sql.DB, query DeviceQuery) (Devi
 	clauses := []string{}
 	args := []any{}
 	if query.HasCustomer {
-		clauses = append(clauses, "devices.customer_id = ?")
+		clauses = append(clauses, "services.customer_id = ?")
 		args = append(args, query.CustomerID)
 	}
 	if query.Status != "" {
 		if !knownStatus(query.Status) {
 			return DevicePage{}, ErrInvalidStatus
 		}
-		clauses = append(clauses, "devices.status = ?")
+		clauses = append(clauses, "services.status = ?")
 		args = append(args, query.Status)
 	}
 	if strings.TrimSpace(query.Text) != "" {
 		pattern := likePattern(query.Text)
 		clauses = append(clauses, `(
 			devices.brand_fold LIKE ? ESCAPE '\' OR devices.model_fold LIKE ? ESCAPE '\'
-			OR devices.serial_fold LIKE ? ESCAPE '\' OR devices.id LIKE ? ESCAPE '\'
+			OR devices.serial_fold LIKE ? ESCAPE '\' OR services.id LIKE ? ESCAPE '\'
 			OR customers.name_fold LIKE ? ESCAPE '\' OR customers.phone_fold LIKE ? ESCAPE '\'
 			OR customers.address_fold LIKE ? ESCAPE '\'
 		)`)
 		args = append(args, pattern, pattern, pattern, pattern, pattern, phoneSearchPattern(query.Text), pattern)
 	}
 	if query.HasAfter {
-		clauses = append(clauses, "(devices.created_at < ? OR (devices.created_at = ? AND devices.id < ?))")
+		clauses = append(clauses, "(services.created_at < ? OR (services.created_at = ? AND services.id < ?))")
 		args = append(args, query.AfterTime, query.AfterTime, query.AfterID)
 	}
 	where := ""
@@ -260,11 +264,12 @@ func ListDevices(ctx context.Context, database *sql.DB, query DeviceQuery) (Devi
 	}
 	args = append(args, limit+1)
 	rows, err := database.QueryContext(ctx, `
-		SELECT devices.id, devices.brand, devices.model, customers.name, devices.status, devices.created_at
-		FROM devices
-		JOIN customers ON customers.id = devices.customer_id
+		SELECT services.id, devices.brand, devices.model, devices.serial, customers.name, services.status, services.created_at
+		FROM services
+		JOIN devices ON devices.id = services.device_id
+		JOIN customers ON customers.id = services.customer_id
 		`+where+`
-		ORDER BY devices.created_at DESC, devices.id DESC
+		ORDER BY services.created_at DESC, services.id DESC
 		LIMIT ?
 	`, args...)
 	if err != nil {
@@ -276,7 +281,7 @@ func ListDevices(ctx context.Context, database *sql.DB, query DeviceQuery) (Devi
 	for rows.Next() {
 		var item DeviceListItem
 		var created string
-		if err := rows.Scan(&item.ID, &item.Brand, &item.Model, &item.CustomerName, &item.Status, &created); err != nil {
+		if err := rows.Scan(&item.ID, &item.Brand, &item.Model, &item.Serial, &item.CustomerName, &item.Status, &created); err != nil {
 			return DevicePage{}, fmt.Errorf("scan device: %w", err)
 		}
 		parsed, err := time.Parse(timestampLayout, created)
@@ -317,7 +322,7 @@ func RegisterDevice(ctx context.Context, database *sql.DB, root string, actor Us
 	}
 	brand := requiredText(input.Brand, maxNameLen, "brand", fields)
 	model := requiredText(input.Model, maxNameLen, "model", fields)
-	serial := optionalText(input.Serial, maxSerialLen, "serial", fields)
+	serial := requiredText(input.Serial, maxSerialLen, "serial", fields)
 	note := optionalText(input.Note, maxNoteLen, "note", fields)
 	parts := make([]NewPart, len(input.Parts))
 	groups := [][]int{input.DevicePhotos}
@@ -382,15 +387,31 @@ func RegisterDevice(ctx context.Context, database *sql.DB, root string, actor Us
 		}
 	}
 
-	_, err = tx.ExecContext(ctx, `
-		INSERT INTO devices (
-			id, customer_id, brand, model, serial, note, status,
-			brand_fold, model_fold, serial_fold, created_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, deviceID, customer.ID, brand, model, serial, note, StatusRegistered,
-		fold(brand), fold(model), fold(serial), now)
+	deviceRowID, err := ensureDevice(ctx, tx, brand, model, serial, now)
 	if err != nil {
-		return Device{}, fmt.Errorf("insert device: %w", err)
+		return Device{}, err
+	}
+	if openID, err := openServiceID(ctx, tx, deviceRowID); err != nil {
+		return Device{}, err
+	} else if openID != "" {
+		return Device{}, &InShopError{ServiceID: openID}
+	}
+	_, err = tx.ExecContext(ctx, `
+		INSERT INTO services (id, device_id, customer_id, note, status, created_at)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`, deviceID, deviceRowID, customer.ID, note, StatusRegistered, now)
+	if openConflict(err) {
+		openID, lookErr := openServiceID(ctx, tx, deviceRowID)
+		if lookErr != nil {
+			return Device{}, lookErr
+		}
+		if openID == "" {
+			return Device{}, fmt.Errorf("insert service: %w", err)
+		}
+		return Device{}, &InShopError{ServiceID: openID}
+	}
+	if err != nil {
+		return Device{}, fmt.Errorf("insert service: %w", err)
 	}
 
 	partIDs := make([]string, len(parts))
@@ -401,7 +422,7 @@ func RegisterDevice(ctx context.Context, database *sql.DB, root string, actor Us
 		}
 		partIDs[i] = partID
 		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO parts (id, device_id, name, note, position) VALUES (?, ?, ?, ?, ?)
+			INSERT INTO parts (id, service_id, name, note, position) VALUES (?, ?, ?, ?, ?)
 		`, partID, deviceID, part.Name, part.Note, i); err != nil {
 			return Device{}, fmt.Errorf("insert part: %w", err)
 		}
@@ -415,9 +436,10 @@ func RegisterDevice(ctx context.Context, database *sql.DB, root string, actor Us
 			return Device{}, err
 		}
 	}
-	if err := insertAudit(ctx, tx, actor, EventDeviceRegistered, brand+" "+model+" "+deviceID+" "+customer.Name, map[string]string{
+	if err := insertAudit(ctx, tx, actor, EventServiceRegistered, brand+" "+model+" "+serial+" "+deviceID+" "+customer.Name, map[string]string{
 		"brand":    brand,
 		"model":    model,
+		"serial":   serial,
 		"uuid":     deviceID,
 		"customer": customer.Name,
 	}); err != nil {
@@ -439,7 +461,7 @@ func UpdateDevice(ctx context.Context, database *sql.DB, root string, actor User
 	fields := &FieldError{}
 	brand := requiredText(input.Brand, maxNameLen, "brand", fields)
 	model := requiredText(input.Model, maxNameLen, "model", fields)
-	serial := optionalText(input.Serial, maxSerialLen, "serial", fields)
+	serial := requiredText(input.Serial, maxSerialLen, "serial", fields)
 	note := optionalText(input.Note, maxNoteLen, "note", fields)
 	customerName := requiredText(input.CustomerName, maxNameLen, "customerName", fields)
 	phone := requiredPhone(input.CustomerPhone, fields)
@@ -493,10 +515,11 @@ func UpdateDevice(ctx context.Context, database *sql.DB, root string, actor User
 	if err != nil {
 		return Device{}, err
 	}
-	if _, err := writeCustomer(ctx, tx, actor, current.Customer, customerName, phone, email, address); err != nil {
+	customer, err := resolveServiceCustomer(ctx, tx, actor, current.Customer, input)
+	if err != nil {
 		return Device{}, err
 	}
-	removed, err := applyDevice(ctx, tx, actor, root, current, input, photos)
+	removed, err := applyDevice(ctx, tx, actor, root, current, customer, input, photos)
 	if err != nil {
 		return Device{}, err
 	}
@@ -512,7 +535,7 @@ func OpenPhoto(ctx context.Context, database *sql.DB, root string, deviceID stri
 	var rel string
 	var media string
 	err := database.QueryRowContext(ctx, `
-		SELECT path, media_type FROM photos WHERE id = ? AND device_id = ?
+		SELECT path, media_type FROM photos WHERE id = ? AND service_id = ?
 	`, photoID, deviceID).Scan(&rel, &media)
 	if err == sql.ErrNoRows {
 		return "", "", ErrNotFound
@@ -557,7 +580,7 @@ func writeCustomer(ctx context.Context, tx *sql.Tx, actor User, current Customer
 	return current, nil
 }
 
-func applyDevice(ctx context.Context, tx *sql.Tx, actor User, root string, current Device, input DeviceChange, photos []storedPhoto) ([]string, error) {
+func applyDevice(ctx context.Context, tx *sql.Tx, actor User, root string, current Device, customer Customer, input DeviceChange, photos []storedPhoto) ([]string, error) {
 	kept := map[string]bool{}
 	for _, id := range input.DeviceKeep {
 		kept[id] = true
@@ -633,7 +656,7 @@ func applyDevice(ctx context.Context, tx *sql.Tx, actor User, root string, curre
 			continue
 		}
 		var rel string
-		err := tx.QueryRowContext(ctx, `SELECT path FROM photos WHERE id = ? AND device_id = ?`, id, current.ID).Scan(&rel)
+		err := tx.QueryRowContext(ctx, `SELECT path FROM photos WHERE id = ? AND service_id = ?`, id, current.ID).Scan(&rel)
 		if err != nil {
 			return nil, fmt.Errorf("read removed photo: %w", err)
 		}
@@ -642,7 +665,7 @@ func applyDevice(ctx context.Context, tx *sql.Tx, actor User, root string, curre
 			return nil, err
 		}
 		removed = append(removed, full)
-		if _, err := tx.ExecContext(ctx, `DELETE FROM photos WHERE id = ? AND device_id = ?`, id, current.ID); err != nil {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM photos WHERE id = ? AND service_id = ?`, id, current.ID); err != nil {
 			return nil, fmt.Errorf("delete photo: %w", err)
 		}
 	}
@@ -650,19 +673,19 @@ func applyDevice(ctx context.Context, tx *sql.Tx, actor User, root string, curre
 		if seenPart[part.ID] {
 			continue
 		}
-		if _, err := tx.ExecContext(ctx, `DELETE FROM parts WHERE id = ? AND device_id = ?`, part.ID, current.ID); err != nil {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM parts WHERE id = ? AND service_id = ?`, part.ID, current.ID); err != nil {
 			return nil, fmt.Errorf("delete part: %w", err)
 		}
 	}
 
-	changed := current.Brand != input.Brand || current.Model != input.Model ||
-		current.Serial != input.Serial || current.Note != input.Note || len(removed) > 0 || len(photos) > 0 ||
+	identityChanged := current.Brand != input.Brand || current.Model != input.Model || current.Serial != input.Serial
+	serviceChanged := current.Note != input.Note || current.Customer.ID != customer.ID || len(removed) > 0 || len(photos) > 0 ||
 		len(current.Parts) != len(input.Parts)
-	if !changed {
+	if !serviceChanged {
 		for i, part := range current.Parts {
 			next := input.Parts[i]
 			if part.ID != next.ID || part.Name != next.Name || part.Note != next.Note {
-				changed = true
+				serviceChanged = true
 				break
 			}
 		}
@@ -670,12 +693,18 @@ func applyDevice(ctx context.Context, tx *sql.Tx, actor User, root string, curre
 
 	if _, err := tx.ExecContext(ctx, `
 		UPDATE devices
-		SET brand = ?, model = ?, serial = ?, note = ?,
-			brand_fold = ?, model_fold = ?, serial_fold = ?
+		SET brand = ?, model = ?, serial = ?, brand_fold = ?, model_fold = ?, serial_fold = ?
 		WHERE id = ?
-	`, input.Brand, input.Model, input.Serial, input.Note,
-		fold(input.Brand), fold(input.Model), fold(input.Serial), current.ID); err != nil {
+	`, input.Brand, input.Model, input.Serial, fold(input.Brand), fold(input.Model), fold(input.Serial), current.DeviceID); err != nil {
+		if identityConflict(err) {
+			return nil, &FieldError{Taken: []string{"identity"}}
+		}
 		return nil, fmt.Errorf("update device: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE services SET note = ?, customer_id = ? WHERE id = ?
+	`, input.Note, customer.ID, current.ID); err != nil {
+		return nil, fmt.Errorf("update service: %w", err)
 	}
 
 	now := timestamp(time.Now())
@@ -687,14 +716,14 @@ func applyDevice(ctx context.Context, tx *sql.Tx, actor User, root string, curre
 				return nil, err
 			}
 			partID = nextID
-			changed = true
+			serviceChanged = true
 			if _, err := tx.ExecContext(ctx, `
-				INSERT INTO parts (id, device_id, name, note, position) VALUES (?, ?, ?, ?, ?)
+				INSERT INTO parts (id, service_id, name, note, position) VALUES (?, ?, ?, ?, ?)
 			`, partID, current.ID, part.Name, part.Note, i); err != nil {
 				return nil, fmt.Errorf("insert part: %w", err)
 			}
 		} else if _, err := tx.ExecContext(ctx, `
-			UPDATE parts SET name = ?, note = ?, position = ? WHERE id = ? AND device_id = ?
+			UPDATE parts SET name = ?, note = ?, position = ? WHERE id = ? AND service_id = ?
 		`, part.Name, part.Note, i, partID, current.ID); err != nil {
 			return nil, fmt.Errorf("update part: %w", err)
 		}
@@ -705,22 +734,80 @@ func applyDevice(ctx context.Context, tx *sql.Tx, actor User, root string, curre
 	if err := insertPhotoRows(ctx, tx, current.ID, now, photos, input.DevicePhotos, nil); err != nil {
 		return nil, err
 	}
-	if changed {
-		if err := insertAudit(ctx, tx, actor, EventDeviceUpdated, input.Brand+" "+input.Model+" "+current.ID+" "+input.CustomerName, map[string]string{
+	if identityChanged {
+		detail := map[string]string{
+			"brand":  input.Brand,
+			"model":  input.Model,
+			"serial": input.Serial,
+			"uuid":   current.DeviceID,
+		}
+		subject := input.Brand + " " + input.Model + " " + input.Serial + " " + current.DeviceID
+		if current.Brand != input.Brand {
+			detail["previousBrand"] = current.Brand
+			subject = current.Brand + " " + subject
+		}
+		if current.Model != input.Model {
+			detail["previousModel"] = current.Model
+			subject = current.Model + " " + subject
+		}
+		if current.Serial != input.Serial {
+			detail["previousSerial"] = current.Serial
+			subject = current.Serial + " " + subject
+		}
+		if err := insertAudit(ctx, tx, actor, EventDeviceUpdated, subject, detail); err != nil {
+			return nil, err
+		}
+	}
+	if serviceChanged {
+		detail := map[string]string{
 			"brand":    input.Brand,
 			"model":    input.Model,
+			"serial":   input.Serial,
 			"uuid":     current.ID,
-			"customer": input.CustomerName,
-		}); err != nil {
+			"customer": customer.Name,
+		}
+		subject := input.Brand + " " + input.Model + " " + input.Serial + " " + current.ID + " " + customer.Name
+		if current.Customer.ID != customer.ID {
+			detail["previousCustomer"] = current.Customer.Name
+			subject = current.Customer.Name + " " + subject
+		}
+		if err := insertAudit(ctx, tx, actor, EventServiceUpdated, subject, detail); err != nil {
 			return nil, err
 		}
 	}
 	return removed, nil
 }
 
+func resolveServiceCustomer(ctx context.Context, tx *sql.Tx, actor User, current Customer, input DeviceChange) (Customer, error) {
+	if input.NewCustomer {
+		customer, err := insertCustomer(ctx, tx, input.CustomerName, input.CustomerPhone, input.CustomerEmail, input.CustomerAddress, timestamp(time.Now()))
+		if err != nil {
+			return Customer{}, err
+		}
+		if err := insertAudit(ctx, tx, actor, EventCustomerCreated, customer.Name, map[string]string{
+			"name": customer.Name,
+		}); err != nil {
+			return Customer{}, err
+		}
+		return customer, nil
+	}
+	target := current
+	if input.CustomerID != nil {
+		loaded, err := loadCustomer(ctx, tx, *input.CustomerID)
+		if err != nil {
+			return Customer{}, err
+		}
+		target = loaded
+	}
+	return writeCustomer(ctx, tx, actor, target, input.CustomerName, input.CustomerPhone, input.CustomerEmail, input.CustomerAddress)
+}
+
 func deviceUnchanged(current Device, input DeviceChange) bool {
 	if current.Brand != input.Brand || current.Model != input.Model ||
 		current.Serial != input.Serial || current.Note != input.Note {
+		return false
+	}
+	if input.NewCustomer || (input.CustomerID != nil && *input.CustomerID != current.Customer.ID) {
 		return false
 	}
 	if current.Customer.Name != input.CustomerName || current.Customer.Phone != input.CustomerPhone || current.Customer.Email != input.CustomerEmail || current.Customer.Address != input.CustomerAddress {
@@ -803,14 +890,15 @@ func loadDevice(ctx context.Context, q queryer, id string) (Device, error) {
 	var created string
 	var customerCreated string
 	err := q.QueryRowContext(ctx, `
-		SELECT devices.id, devices.brand, devices.model, devices.serial, devices.note,
-			devices.status, devices.created_at, customers.id, customers.name, customers.phone, customers.email,
+		SELECT services.id, services.device_id, devices.brand, devices.model, devices.serial, services.note,
+			services.status, services.created_at, customers.id, customers.name, customers.phone, customers.email,
 			customers.address, customers.created_at
-		FROM devices
-		JOIN customers ON customers.id = devices.customer_id
-		WHERE devices.id = ?
+		FROM services
+		JOIN devices ON devices.id = services.device_id
+		JOIN customers ON customers.id = services.customer_id
+		WHERE services.id = ?
 	`, id).Scan(
-		&device.ID, &device.Brand, &device.Model, &device.Serial, &device.Note,
+		&device.ID, &device.DeviceID, &device.Brand, &device.Model, &device.Serial, &device.Note,
 		&device.Status, &created, &device.Customer.ID, &device.Customer.Name, &device.Customer.Phone,
 		&device.Customer.Email, &device.Customer.Address, &customerCreated,
 	)
@@ -833,7 +921,7 @@ func loadDevice(ctx context.Context, q queryer, id string) (Device, error) {
 	device.Photos = []Photo{}
 	device.History = []StatusChange{}
 	partRows, err := q.QueryContext(ctx, `
-		SELECT id, name, note FROM parts WHERE device_id = ? ORDER BY position, id
+		SELECT id, name, note FROM parts WHERE service_id = ? ORDER BY position, id
 	`, id)
 	if err != nil {
 		return Device{}, fmt.Errorf("list parts: %w", err)
@@ -858,7 +946,7 @@ func loadDevice(ctx context.Context, q queryer, id string) (Device, error) {
 	photoRows, err := q.QueryContext(ctx, `
 		SELECT id, part_id, path, size, media_type
 		FROM photos
-		WHERE device_id = ?
+		WHERE service_id = ?
 		ORDER BY created_at, id
 	`, id)
 	if err != nil {
@@ -918,7 +1006,7 @@ func insertPhotoRows(ctx context.Context, tx *sql.Tx, deviceID string, now strin
 			part = *partID
 		}
 		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO photos (id, device_id, part_id, path, size, media_type, created_at)
+			INSERT INTO photos (id, service_id, part_id, path, size, media_type, created_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?)
 		`, photo.id, deviceID, part, photo.rel, photo.size, photo.media, now); err != nil {
 			return fmt.Errorf("insert photo: %w", err)
@@ -966,7 +1054,7 @@ func removeUploaded(root string, deviceID string, rels []string) {
 	if deviceID == "" {
 		return
 	}
-	dir, err := photoFull(root, "devices/"+deviceID)
+	dir, err := photoFull(root, "services/"+deviceID)
 	if err == nil {
 		_ = os.Remove(dir)
 	}

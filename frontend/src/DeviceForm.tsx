@@ -1,9 +1,10 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
-import { ApiError, photoSrc, request, type CatalogBrand, type CatalogModel, type Customer, type Device, type Page } from "./api";
+import { ApiError, photoSrc, request, type CatalogBrand, type CatalogModel, type Customer, type Device, type EarlierService, type Page } from "./api";
 import { ModelIcon } from "./ModelIcon";
-import type { Copy } from "./i18n";
-import { usePaused } from "./list";
+import { formatWhen, statusLabel } from "./format";
+import type { Copy, Lang } from "./i18n";
+import { End, usePaused, useWindow } from "./list";
 import { PhotoButton } from "./PhotoView";
 import { emailOk, phoneOk } from "./fields";
 import { fileProblem, maxPhotos, problemText } from "./problems";
@@ -21,6 +22,7 @@ type PartDraft = {
 
 type Props = {
   copy: Copy;
+  lang: Lang;
   mode: "create" | "edit";
   deviceId?: string;
   customerId?: string | null;
@@ -28,13 +30,15 @@ type Props = {
   onUnauthorized: () => void;
 };
 
-export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUnauthorized }: Props) {
+export function DeviceForm({ copy, lang, mode, deviceId, customerId, onNavigate, onUnauthorized }: Props) {
   const editing = mode === "edit";
   const urls = useRef(new Set<string>());
   const [ready, setReady] = useState(!editing);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Customer | null>(null);
+  const [customerLink, setCustomerLink] = useState<number | null>(null);
+  const [shopServiceId, setShopServiceId] = useState("");
   const [customerDraft, setCustomerDraft] = useState("");
   const [customerQuery] = usePaused(customerDraft);
   const [results, setResults] = useState<Customer[]>([]);
@@ -77,12 +81,13 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
       return;
     }
     const controller = new AbortController();
-    request<Device>(`/api/devices/${deviceId}`, { signal: controller.signal })
+    request<Device>(`/api/services/${deviceId}`, { signal: controller.signal })
       .then((device) => {
         setBrand(device.brand);
         setModel(device.model);
         setSerial(device.serial);
         setNote(device.note);
+        setCustomerLink(device.customer.id);
         setCustomerName(device.customer.name);
         setPhone(device.customer.phone);
         setEmail(device.customer.email);
@@ -134,7 +139,7 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
   }, [copy, customerId, editing, onUnauthorized]);
 
   useEffect(() => {
-    if (editing || selected || !customerQuery) {
+    if (selected || !customerQuery) {
       return;
     }
     const controller = new AbortController();
@@ -153,7 +158,32 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
         }
       });
     return () => controller.abort();
-  }, [customerQuery, editing, onUnauthorized, selected]);
+  }, [customerQuery, onUnauthorized, selected]);
+
+  const [pausedIdentity] = usePaused(`${brand}\n${model}\n${serial}`);
+  const lookupKey = pausedIdentity.split("\n").every((part) => part.trim()) ? pausedIdentity : "";
+  const earlier = useWindow(editing ? "edit" : lookupKey, (after: EarlierService | null, signal) => {
+    const [brandValue, modelValue, serialValue] = lookupKey.split("\n");
+    if (editing || !brandValue?.trim() || !modelValue?.trim() || !serialValue?.trim()) {
+      if (!editing) {
+        setShopServiceId("");
+      }
+      return Promise.resolve({ items: [] as EarlierService[], hasMore: false, matched: false, openServiceId: "" });
+    }
+    const params = new URLSearchParams({ brand: brandValue, model: modelValue, serial: serialValue });
+    if (after) {
+      params.set("after", after.createdAt);
+      params.set("afterId", after.id);
+    }
+    return request<Page<EarlierService> & { matched: boolean; openServiceId: string }>(`/api/devices/match?${params}`, { signal }).then(
+      (page) => {
+        if (!after) {
+          setShopServiceId(page.matched ? page.openServiceId : "");
+        }
+        return page;
+      },
+    );
+  });
 
   function takeFiles(files: File[]) {
     return files.map((file) => {
@@ -180,10 +210,8 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
     event.preventDefault();
     const missing: string[] = [];
     const invalid: string[] = [];
-    if (!editing && !selected && !customerName.trim()) {
-      missing.push("customerName");
-    }
-    if (editing && !customerName.trim()) {
+    const linked = editing ? customerLink : (selected?.id ?? null);
+    if (!linked && !customerName.trim()) {
       missing.push("customerName");
     }
     if (!brand.trim()) {
@@ -191,6 +219,9 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
     }
     if (!model.trim()) {
       missing.push("model");
+    }
+    if (!serial.trim()) {
+      missing.push("serial");
     }
     if (editing || !selected) {
       if (!phone.trim()) {
@@ -237,6 +268,8 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
           model,
           serial,
           note,
+          newCustomer: linked == null,
+          ...(linked != null ? { customerId: linked } : {}),
           customerName,
           customerPhone: phone,
           customerEmail: email,
@@ -273,17 +306,22 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
     setSaving(true);
     setError(null);
     try {
-      const saved = await request<Device>(editing ? `/api/devices/${deviceId}` : "/api/devices", {
+      const saved = await request<Device>(editing ? `/api/services/${deviceId}` : "/api/services", {
         method: editing ? "PUT" : "POST",
         body,
       });
-      onNavigate(`/devices/${saved.id}`);
+      onNavigate(`/services/${saved.id}`);
     } catch (err) {
       if (err instanceof ApiError && err.code === "unauthorized") {
         onUnauthorized();
         return;
       }
-      setError(problemText(copy, err));
+      if (err instanceof ApiError && err.code === "device_in_shop") {
+        setShopServiceId(err.serviceId);
+        setError(null);
+      } else {
+        setError(problemText(copy, err));
+      }
       setSaving(false);
     }
   }
@@ -301,7 +339,7 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
         <button
           className="button secondary"
           type="button"
-          onClick={() => onNavigate(editing && deviceId ? `/devices/${deviceId}` : "/devices")}
+          onClick={() => onNavigate(editing && deviceId ? `/services/${deviceId}` : "/services")}
         >
           {copy.back}
         </button>
@@ -309,7 +347,7 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
 
       <section className="panel stack">
         <h2>{copy.customer}</h2>
-        {editing || selected ? (
+        {!editing && selected ? (
           <>
             {selected ? (
               <div className="stack">
@@ -361,7 +399,15 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
                     type="button"
                     key={customer.id}
                     onClick={() => {
-                      setSelected(customer);
+                      if (editing) {
+                        setCustomerLink(customer.id);
+                        setCustomerName(customer.name);
+                        setPhone(customer.phone);
+                        setEmail(customer.email);
+                        setAddress(customer.address);
+                      } else {
+                        setSelected(customer);
+                      }
                       setResults([]);
                       setCustomerDraft("");
                     }}
@@ -393,12 +439,27 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
                 <input value={address} autoComplete="street-address" onChange={(event) => setAddress(event.target.value)} />
               </label>
             </div>
+            {editing ? (
+              <button
+                className="button secondary"
+                type="button"
+                onClick={() => {
+                  setCustomerLink(null);
+                  setCustomerName("");
+                  setPhone("");
+                  setEmail("");
+                  setAddress("");
+                }}
+              >
+                {copy.clearCustomer}
+              </button>
+            ) : null}
           </>
         )}
       </section>
 
       <section className="panel stack">
-        <h2>{copy.devices}</h2>
+        <h2>{copy.device}</h2>
         <div className="split">
           <Suggest
             label={copy.brand}
@@ -419,6 +480,25 @@ export function DeviceForm({ copy, mode, deviceId, customerId, onNavigate, onUna
           {copy.serial}
           <input value={serial} onChange={(event) => setSerial(event.target.value)} />
         </label>
+        {!editing && shopServiceId ? (
+          <p className="alert">
+            {copy.deviceInShop}{" "}
+            <button className="button linkish" type="button" onClick={() => onNavigate(`/services/${shopServiceId}`)}>
+              {copy.openService}
+            </button>
+          </p>
+        ) : null}
+        {!editing && earlier.items.length > 0 ? (
+          <div className="stack">
+            <h2>{copy.earlierServices}</h2>
+            {earlier.items.map((item) => (
+              <p key={item.id}>
+                {formatWhen(item.createdAt, lang)} · {item.customerName} · {item.phone} · {statusLabel(item.status, copy)}
+              </p>
+            ))}
+            <End enabled={earlier.hasMore && !earlier.loading} onEnd={earlier.more} />
+          </div>
+        ) : null}
         <label className="field">
           {copy.conditionNote}
           <textarea value={note} onChange={(event) => setNote(event.target.value)} />

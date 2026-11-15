@@ -11,8 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"techservice/internal/db"
 )
 
 func TestIntakeAndAudit(t *testing.T) {
@@ -69,6 +67,7 @@ func TestIntakeAndAudit(t *testing.T) {
 		CustomerPhone: "555 111 22 33",
 		Brand:         "HP",
 		Model:         "Laser",
+		Serial:        "SN-1",
 		Note:          "works",
 		Parts:         []NewPart{{Name: "Cable", Note: "ok", Photos: []int{0}}},
 		Files:         []Upload{uploadBytes(pngBytes())},
@@ -85,7 +84,7 @@ func TestIntakeAndAudit(t *testing.T) {
 	if countRows(t, database, `SELECT COUNT(*) FROM audit_events WHERE event = ?`, EventCustomerCreated) != 1 {
 		t.Fatal("customer audit")
 	}
-	if countRows(t, database, `SELECT COUNT(*) FROM audit_events WHERE event = ?`, EventDeviceRegistered) != 1 {
+	if countRows(t, database, `SELECT COUNT(*) FROM audit_events WHERE event = ?`, EventServiceRegistered) != 1 {
 		t.Fatal("device audit")
 	}
 
@@ -116,7 +115,7 @@ func TestIntakeAndAudit(t *testing.T) {
 	}
 
 	renamed, err := UpdateDevice(ctx, database, root, tech, device.ID, DeviceChange{
-		Brand: device.Brand, Model: device.Model, Note: device.Note,
+		Brand: device.Brand, Model: device.Model, Serial: device.Serial, Note: device.Note,
 		CustomerName: "Ada King", CustomerPhone: "555 111 22 33",
 		Parts: []PartChange{{
 			ID: device.Parts[0].ID, Name: "Cable", Note: "ok", Keep: []string{device.Parts[0].Photos[0].ID},
@@ -137,7 +136,7 @@ func TestIntakeAndAudit(t *testing.T) {
 	}
 
 	same, err := UpdateDevice(ctx, database, root, tech, device.ID, DeviceChange{
-		Brand: renamed.Brand, Model: renamed.Model, Note: renamed.Note,
+		Brand: renamed.Brand, Model: renamed.Model, Serial: renamed.Serial, Note: renamed.Note,
 		CustomerName: renamed.Customer.Name, CustomerPhone: renamed.Customer.Phone,
 		Parts: []PartChange{{
 			ID: renamed.Parts[0].ID, Name: renamed.Parts[0].Name, Note: renamed.Parts[0].Note,
@@ -152,7 +151,7 @@ func TestIntakeAndAudit(t *testing.T) {
 	}
 
 	_, err = UpdateDevice(ctx, database, root, tech, device.ID, DeviceChange{
-		Brand: renamed.Brand, Model: renamed.Model, Note: "changed",
+		Brand: renamed.Brand, Model: renamed.Model, Serial: renamed.Serial, Note: "changed",
 		CustomerName: renamed.Customer.Name, CustomerPhone: renamed.Customer.Phone,
 		Parts: []PartChange{{
 			ID: renamed.Parts[0].ID, Name: renamed.Parts[0].Name, Note: renamed.Parts[0].Note,
@@ -170,7 +169,7 @@ func TestIntakeAndAudit(t *testing.T) {
 	}
 
 	cleared, err := UpdateDevice(ctx, database, root, tech, device.ID, DeviceChange{
-		Brand: kept.Brand, Model: kept.Model, Note: kept.Note,
+		Brand: kept.Brand, Model: kept.Model, Serial: kept.Serial, Note: kept.Note,
 		CustomerName: kept.Customer.Name, CustomerPhone: kept.Customer.Phone,
 	})
 	if err != nil {
@@ -186,7 +185,7 @@ func TestIntakeAndAudit(t *testing.T) {
 	big := make([]byte, maxPhotoBytes+1)
 	copy(big, pngBytes())
 	_, err = RegisterDevice(ctx, database, root, tech, NewDevice{
-		CustomerName: "Big", CustomerPhone: "5550000001", Brand: "Big", Model: "Big", Note: "big",
+		CustomerName: "Big", CustomerPhone: "5550000001", Brand: "Big", Model: "Big", Serial: "SN-BIG", Note: "big",
 		Files: []Upload{uploadBytes(big)}, DevicePhotos: []int{0},
 	})
 	if !errors.As(err, &fields) || fields.Photo != "size" {
@@ -200,7 +199,7 @@ func TestIntakeAndAudit(t *testing.T) {
 		indexes[i] = i
 	}
 	_, err = RegisterDevice(ctx, database, root, tech, NewDevice{
-		CustomerName: "Many", CustomerPhone: "5550000002", Brand: "Many", Model: "Many", Note: "many",
+		CustomerName: "Many", CustomerPhone: "5550000002", Brand: "Many", Model: "Many", Serial: "SN-MANY", Note: "many",
 		Files: files, DevicePhotos: indexes,
 	})
 	if !errors.As(err, &fields) || fields.Photo != "limit" {
@@ -209,7 +208,7 @@ func TestIntakeAndAudit(t *testing.T) {
 
 	for _, model := range []string{"First", "Second", "Third"} {
 		if _, err := RegisterDevice(ctx, database, root, owner, NewDevice{
-			CustomerID: &kept.Customer.ID, Brand: "HP", Model: model, Note: "n",
+			CustomerID: &kept.Customer.ID, Brand: "HP", Model: model, Serial: "SN-N", Note: "n",
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -261,7 +260,7 @@ func TestDeviceStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 	device, err := RegisterDevice(ctx, database, root, tech, NewDevice{
-		CustomerName: "Ada", CustomerPhone: "5552223344", Brand: "HP", Model: "Laser", Note: "works",
+		CustomerName: "Ada", CustomerPhone: "5552223344", Brand: "HP", Model: "Laser", Serial: "SN-STATUS", Note: "works",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -273,10 +272,10 @@ func TestDeviceStatus(t *testing.T) {
 	if !errors.As(err, &fields) || !contains(fields.Invalid, "status") {
 		t.Fatalf("same status: %v", err)
 	}
-	if countRows(t, database, `SELECT COUNT(*) FROM device_status_changes`) != 0 {
+	if countRows(t, database, `SELECT COUNT(*) FROM service_status_changes`) != 0 {
 		t.Fatal("same status wrote history")
 	}
-	if countRows(t, database, `SELECT COUNT(*) FROM audit_events WHERE event = ?`, EventDeviceStatusChanged) != 0 {
+	if countRows(t, database, `SELECT COUNT(*) FROM audit_events WHERE event = ?`, EventServiceStatusChanged) != 0 {
 		t.Fatal("same status wrote audit")
 	}
 
@@ -291,7 +290,7 @@ func TestDeviceStatus(t *testing.T) {
 	if changed.History[0].From != StatusRegistered || changed.History[0].To != StatusInspecting || changed.History[0].ActorUsername != tech.Username {
 		t.Fatalf("history row %+v", changed.History[0])
 	}
-	if countRows(t, database, `SELECT COUNT(*) FROM photos WHERE device_id = ?`, device.ID) != 0 {
+	if countRows(t, database, `SELECT COUNT(*) FROM photos WHERE service_id = ?`, device.ID) != 0 {
 		t.Fatal("status photo counted as a device photo")
 	}
 	full, media, err := OpenStatusPhoto(ctx, database, root, device.ID, changed.History[0].ID)
@@ -305,7 +304,7 @@ func TestDeviceStatus(t *testing.T) {
 	var detail string
 	if err := database.QueryRowContext(ctx, `
 		SELECT detail FROM audit_events WHERE event = ? ORDER BY id DESC LIMIT 1
-	`, EventDeviceStatusChanged).Scan(&detail); err != nil {
+	`, EventServiceStatusChanged).Scan(&detail); err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(detail, "looked") || strings.Contains(detail, "devices") {
@@ -320,7 +319,7 @@ func TestDeviceStatus(t *testing.T) {
 	}
 
 	kept, err := UpdateDevice(ctx, database, root, tech, device.ID, DeviceChange{
-		Brand: "HP", Model: "Laser", Note: "works",
+		Brand: "HP", Model: "Laser", Serial: "SN-STATUS", Note: "works",
 		CustomerName: "Ada", CustomerPhone: "5552223344", Parts: []PartChange{},
 	})
 	if err != nil {
@@ -369,14 +368,14 @@ func TestPhoneIdentifiesCustomer(t *testing.T) {
 	}
 
 	first, err := RegisterDevice(ctx, database, root, admin.User, NewDevice{
-		CustomerName: "Ada", CustomerPhone: "555 555 55 55", Brand: "HP", Model: "Laser",
+		CustomerName: "Ada", CustomerPhone: "555 555 55 55", Brand: "HP", Model: "Laser", Serial: "SN-PHONE",
 	})
 	if err != nil || first.Customer.Phone != "5555555555" {
 		t.Fatalf("stored phone %+v %v", first.Customer, err)
 	}
 	for _, phone := range []string{"5555555555", "05555555555", "0555555 55 55", "+90 555 555 55 55", "0090 555 555 55 55", "(0555) 555-55-55"} {
 		_, err := RegisterDevice(ctx, database, root, admin.User, NewDevice{
-			CustomerName: "Ada Other", CustomerPhone: phone, Brand: "HP", Model: "Other",
+			CustomerName: "Ada Other", CustomerPhone: phone, Brand: "HP", Model: "Other", Serial: "SN-OTHER",
 		})
 		var fields *FieldError
 		if !errors.As(err, &fields) || !contains(fields.Taken, "phone") {
@@ -388,7 +387,7 @@ func TestPhoneIdentifiesCustomer(t *testing.T) {
 	}
 
 	second, err := RegisterDevice(ctx, database, root, admin.User, NewDevice{
-		CustomerName: "Ada", CustomerPhone: "555 111 22 33", Brand: "HP", Model: "Desk",
+		CustomerName: "Ada", CustomerPhone: "555 111 22 33", Brand: "HP", Model: "Desk", Serial: "SN-DESK",
 	})
 	if err != nil || second.Customer.Phone != "5551112233" {
 		t.Fatalf("second %+v %v", second.Customer, err)
@@ -464,6 +463,7 @@ func TestOptionalNotesAndAddress(t *testing.T) {
 		CustomerAddress: "Atatürk Cad. 1",
 		Brand:           "HP",
 		Model:           "Laser",
+		Serial:          "SN-NOTE",
 		Parts:           []NewPart{{Name: "Cable"}},
 	})
 	if err != nil {
@@ -493,7 +493,7 @@ func TestOptionalNotesAndAddress(t *testing.T) {
 	}
 
 	cleared, err := UpdateDevice(ctx, database, root, admin.User, device.ID, DeviceChange{
-		Brand: "HP", Model: "Laser", CustomerName: "Ada", CustomerPhone: "5553334455", CustomerAddress: "Yeni sokak",
+		Brand: "HP", Model: "Laser", Serial: "SN-NOTE", CustomerName: "Ada", CustomerPhone: "5553334455", CustomerAddress: "Yeni sokak",
 		Parts: []PartChange{{ID: device.Parts[0].ID, Name: "Cable"}},
 	})
 	if err != nil || cleared.Note != "" || cleared.Parts[0].Note != "" {
@@ -501,133 +501,97 @@ func TestOptionalNotesAndAddress(t *testing.T) {
 	}
 }
 
-func TestWidenDeviceStatus(t *testing.T) {
+func TestDeviceIdentity(t *testing.T) {
 	ctx := context.Background()
-	database, err := db.Open(ctx, filepath.Join(t.TempDir(), "old.db"))
+	database := openTestDB(t)
+	root := t.TempDir()
+	if err := EnsureAdmin(ctx, database, "admin", "admin1234"); err != nil {
+		t.Fatal(err)
+	}
+	admin, err := Login(ctx, database, "admin", "admin1234")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { database.Close() })
-	if _, err := database.ExecContext(ctx, `
-		CREATE TABLE customers (
-			id INTEGER PRIMARY KEY,
-			name TEXT NOT NULL,
-			phone TEXT NOT NULL DEFAULT '',
-			email TEXT NOT NULL DEFAULT '',
-			name_fold TEXT NOT NULL,
-			phone_fold TEXT NOT NULL,
-			email_fold TEXT NOT NULL,
-			created_at TEXT NOT NULL
-		);
-		CREATE TABLE devices (
-			id TEXT PRIMARY KEY,
-			customer_id INTEGER NOT NULL REFERENCES customers(id),
-			name TEXT NOT NULL,
-			brand TEXT NOT NULL,
-			model TEXT NOT NULL,
-			serial TEXT NOT NULL DEFAULT '',
-			note TEXT NOT NULL,
-			status TEXT NOT NULL DEFAULT 'registered' CHECK (status = 'registered'),
-			name_fold TEXT NOT NULL,
-			brand_fold TEXT NOT NULL,
-			model_fold TEXT NOT NULL,
-			serial_fold TEXT NOT NULL,
-			created_at TEXT NOT NULL
-		);
-		INSERT INTO customers (id, name, phone, email, name_fold, phone_fold, email_fold, created_at)
-		VALUES (1, 'Ada', '', '', 'ada', '', '', '2026-01-01T00:00:00.000Z');
-		INSERT INTO devices (
-			id, customer_id, name, brand, model, serial, note, status,
-			name_fold, brand_fold, model_fold, serial_fold, created_at
-		) VALUES ('dev', 1, 'Printer', 'HP', 'Laser', '', 'works', 'registered', 'printer', 'hp', 'laser', '', '2026-01-01T00:00:00.000Z');
-		CREATE TABLE parts (
-			id TEXT PRIMARY KEY,
-			device_id TEXT NOT NULL REFERENCES devices(id),
-			name TEXT NOT NULL,
-			note TEXT NOT NULL,
-			position INTEGER NOT NULL
-		);
-		INSERT INTO parts (id, device_id, name, note, position) VALUES ('part', 'dev', 'Cable', 'ok', 0);
-	`); err != nil {
-		t.Fatal(err)
-	}
-	if err := Migrate(ctx, database); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := database.ExecContext(ctx, `UPDATE devices SET status = ? WHERE id = 'dev'`, StatusInStorage); err != nil {
-		t.Fatal(err)
-	}
-	var ddl string
-	if err := database.QueryRowContext(ctx, `SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'devices'`).Scan(&ddl); err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(ddl, "name_fold") || strings.Contains(ddl, "name TEXT") {
-		t.Fatalf("device name column remained: %s", ddl)
-	}
-	var brand, model string
-	if err := database.QueryRowContext(ctx, `SELECT brand, model FROM devices WHERE id = 'dev'`).Scan(&brand, &model); err != nil || brand != "HP" || model != "Laser" {
-		t.Fatalf("device after migrate: %s %s %v", brand, model, err)
-	}
-	var name string
-	if err := database.QueryRowContext(ctx, `SELECT name FROM parts WHERE device_id = 'dev'`).Scan(&name); err != nil || name != "Cable" {
-		t.Fatalf("part after migrate: %s %v", name, err)
-	}
-	var address string
-	if err := database.QueryRowContext(ctx, `SELECT address FROM customers WHERE id = 1`).Scan(&address); err != nil || address != "" {
-		t.Fatalf("address after migrate: %q %v", address, err)
-	}
-}
-
-func TestWidenCancelledStatus(t *testing.T) {
-	ctx := context.Background()
-	database, err := db.Open(ctx, filepath.Join(t.TempDir(), "prior.db"))
+	first, err := RegisterDevice(ctx, database, root, admin.User, NewDevice{
+		CustomerName: "Ada", CustomerPhone: "5554445566", Brand: "Acme", Model: "S1", Serial: " sn-9 ",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { database.Close() })
-	if _, err := database.ExecContext(ctx, `
-		CREATE TABLE customers (
-			id INTEGER PRIMARY KEY,
-			name TEXT NOT NULL,
-			phone TEXT NOT NULL DEFAULT '',
-			email TEXT NOT NULL DEFAULT '',
-			address TEXT NOT NULL DEFAULT '',
-			name_fold TEXT NOT NULL,
-			phone_fold TEXT NOT NULL,
-			email_fold TEXT NOT NULL,
-			address_fold TEXT NOT NULL DEFAULT '',
-			created_at TEXT NOT NULL
-		);
-		CREATE TABLE devices (
-			id TEXT PRIMARY KEY,
-			customer_id INTEGER NOT NULL REFERENCES customers(id),
-			brand TEXT NOT NULL,
-			model TEXT NOT NULL,
-			serial TEXT NOT NULL DEFAULT '',
-			note TEXT NOT NULL,
-			status TEXT NOT NULL DEFAULT 'registered' CHECK (status IN ('registered', 'inspecting', 'repair_warranty', 'repair_out_of_warranty', 'waiting_partner_part', 'waiting_own_part', 'final_testing', 'preparing_delivery', 'in_storage', 'left_storage', 'delivered')),
-			brand_fold TEXT NOT NULL,
-			model_fold TEXT NOT NULL,
-			serial_fold TEXT NOT NULL,
-			created_at TEXT NOT NULL
-		);
-		INSERT INTO customers (id, name, phone, email, address, name_fold, phone_fold, email_fold, address_fold, created_at)
-		VALUES (1, 'Ada', '', '', '', 'ada', '', '', '', '2026-01-01T00:00:00.000Z');
-		INSERT INTO devices (
-			id, customer_id, brand, model, serial, note, status,
-			brand_fold, model_fold, serial_fold, created_at
-		) VALUES ('dev', 1, 'HP', 'Laser', '', 'works', 'delivered', 'hp', 'laser', '', '2026-01-01T00:00:00.000Z');
-	`); err != nil {
+	if first.Serial != "sn-9" || first.DeviceID == "" || first.DeviceID == first.ID {
+		t.Fatalf("identity %+v", first)
+	}
+	_, err = RegisterDevice(ctx, database, root, admin.User, NewDevice{
+		CustomerName: "Bea", CustomerPhone: "5554445567", Brand: "acme", Model: "s1", Serial: "SN-9",
+	})
+	var shop *InShopError
+	if !errors.As(err, &shop) || shop.ServiceID != first.ID {
+		t.Fatalf("open service: %v", err)
+	}
+	if countRows(t, database, `SELECT COUNT(*) FROM devices`) != 1 {
+		t.Fatal("second device")
+	}
+	if _, err := ChangeDeviceStatus(ctx, database, root, admin.User, first.ID, StatusDelivered, "", nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := database.ExecContext(ctx, `UPDATE devices SET status = 'cancelled' WHERE id = 'dev'`); err == nil {
-		t.Fatal("old check accepted cancelled")
-	}
-	if err := Migrate(ctx, database); err != nil {
+	second, err := RegisterDevice(ctx, database, root, admin.User, NewDevice{
+		CustomerName: "Bea", CustomerPhone: "5554445567", Brand: "ACME", Model: "S1", Serial: "sn-9",
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := database.ExecContext(ctx, `UPDATE devices SET status = ? WHERE id = 'dev'`, StatusCancelled); err != nil {
+	if second.DeviceID != first.DeviceID || second.Customer.Name != "Bea" || second.ID == first.ID {
+		t.Fatalf("return %+v", second)
+	}
+	reloaded, err := GetDevice(ctx, database, first.ID)
+	if err != nil || reloaded.Customer.Name != "Ada" {
+		t.Fatalf("first customer %+v %v", reloaded.Customer, err)
+	}
+	_, err = RegisterDevice(ctx, database, root, admin.User, NewDevice{
+		CustomerName: "Cara", CustomerPhone: "5554445568", Brand: "Northwind", Model: "S1", Serial: "sn-9",
+	})
+	if err != nil {
 		t.Fatal(err)
+	}
+	if countRows(t, database, `SELECT COUNT(*) FROM devices`) != 2 {
+		t.Fatal("other brand")
+	}
+	_, err = UpdateDevice(ctx, database, root, admin.User, second.ID, DeviceChange{
+		Brand: "Acme", Model: "S1", Serial: "sn-9",
+		CustomerName: "Bea", CustomerPhone: "5554445567",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	moved, err := UpdateDevice(ctx, database, root, admin.User, second.ID, DeviceChange{
+		Brand: "Northwind", Model: "S1", Serial: "sn-9",
+		CustomerName: "Bea", CustomerPhone: "5554445567",
+	})
+	var fields *FieldError
+	if !errors.As(err, &fields) || !contains(fields.Taken, "identity") || moved.ID != "" {
+		t.Fatalf("collision %+v %v", moved, err)
+	}
+	stayed, err := GetDevice(ctx, database, second.ID)
+	if err != nil || stayed.Brand != "Acme" || stayed.DeviceID != first.DeviceID {
+		t.Fatalf("service moved %+v %v", stayed, err)
+	}
+	renamed, err := UpdateDevice(ctx, database, root, admin.User, first.ID, DeviceChange{
+		Brand: "Acme", Model: "S1", Serial: "SN-10",
+		CustomerName: "Ada", CustomerPhone: "5554445566",
+	})
+	if err != nil || renamed.Serial != "SN-10" || renamed.DeviceID != first.DeviceID {
+		t.Fatalf("rename %+v %v", renamed, err)
+	}
+	other, err := GetDevice(ctx, database, second.ID)
+	if err != nil || other.Serial != "SN-10" {
+		t.Fatalf("shared identity %+v %v", other, err)
+	}
+	match, err := MatchDevice(ctx, database, "acme", "s1", "sn-10", VisitQuery{Limit: 10})
+	if err != nil || !match.Matched || match.DeviceID != first.DeviceID || len(match.Items) != 2 || match.OpenServiceID != second.ID {
+		t.Fatalf("match %+v %v", match, err)
+	}
+	if match.Items[0].ID != second.ID || match.Items[1].ID != first.ID {
+		t.Fatalf("match order %+v", match.Items)
 	}
 }
 

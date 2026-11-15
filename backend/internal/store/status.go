@@ -56,67 +56,6 @@ func deviceStatusCheck() string {
 	return "CHECK (status IN (" + strings.Join(quoted, ", ") + "))"
 }
 
-func widenDeviceStatus(ctx context.Context, database *sql.DB) error {
-	var ddl string
-	err := database.QueryRowContext(ctx, `SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'devices'`).Scan(&ddl)
-	if err != nil {
-		return fmt.Errorf("devices ddl: %w", err)
-	}
-	if strings.Contains(ddl, "'"+StatusCancelled+"'") {
-		return nil
-	}
-
-	conn, err := database.Conn(ctx)
-	if err != nil {
-		return fmt.Errorf("devices conn: %w", err)
-	}
-	defer conn.Close()
-	if _, err := conn.ExecContext(ctx, `PRAGMA foreign_keys = OFF`); err != nil {
-		return fmt.Errorf("devices fk off: %w", err)
-	}
-	defer conn.ExecContext(context.Background(), `PRAGMA foreign_keys = ON`)
-
-	tx, err := conn.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("devices migrate begin: %w", err)
-	}
-	defer tx.Rollback()
-	script := fmt.Sprintf(`
-		CREATE TABLE devices_next (
-			id TEXT PRIMARY KEY,
-			customer_id INTEGER NOT NULL REFERENCES customers(id),
-			brand TEXT NOT NULL,
-			model TEXT NOT NULL,
-			serial TEXT NOT NULL DEFAULT '',
-			note TEXT NOT NULL,
-			status TEXT NOT NULL DEFAULT 'registered' %s,
-			brand_fold TEXT NOT NULL,
-			model_fold TEXT NOT NULL,
-			serial_fold TEXT NOT NULL,
-			created_at TEXT NOT NULL
-		);
-		INSERT INTO devices_next (
-			id, customer_id, brand, model, serial, note, status,
-			brand_fold, model_fold, serial_fold, created_at
-		)
-		SELECT id, customer_id, brand, model, serial, note, status,
-			brand_fold, model_fold, serial_fold, created_at
-		FROM devices;
-		DROP TABLE devices;
-		ALTER TABLE devices_next RENAME TO devices;
-		CREATE INDEX devices_created ON devices (created_at, id);
-		CREATE INDEX devices_customer ON devices (customer_id, created_at, id);
-		CREATE INDEX devices_status ON devices (status, created_at, id);
-	`, deviceStatusCheck())
-	if _, err := tx.ExecContext(ctx, script); err != nil {
-		return fmt.Errorf("devices migrate: %w", err)
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("devices migrate commit: %w", err)
-	}
-	return nil
-}
-
 type StatusChange struct {
 	ID            int64
 	ActorUsername string
@@ -181,7 +120,7 @@ func ChangeDeviceStatus(ctx context.Context, database *sql.DB, root string, acto
 		return Device{}, &FieldError{Invalid: []string{"status"}}
 	}
 	result, err := tx.ExecContext(ctx, `
-		UPDATE devices SET status = ? WHERE id = ? AND status = ?
+		UPDATE services SET status = ? WHERE id = ? AND status = ?
 	`, next, id, fresh.Status)
 	if err != nil {
 		return Device{}, fmt.Errorf("update status: %w", err)
@@ -203,15 +142,16 @@ func ChangeDeviceStatus(ctx context.Context, database *sql.DB, root string, acto
 		photoType = stored.media
 	}
 	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO device_status_changes (
-			device_id, actor_username, from_status, to_status, note, photo_path, photo_size, photo_type, created_at
+		INSERT INTO service_status_changes (
+			service_id, actor_username, from_status, to_status, note, photo_path, photo_size, photo_type, created_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`, id, actor.Username, fresh.Status, next, note, photoPathValue, photoSize, photoType, timestamp(time.Now())); err != nil {
 		return Device{}, fmt.Errorf("insert status change: %w", err)
 	}
-	if err := insertAudit(ctx, tx, actor, EventDeviceStatusChanged, fresh.Brand+" "+fresh.Model+" "+id+" "+fresh.Customer.Name, map[string]string{
+	if err := insertAudit(ctx, tx, actor, EventServiceStatusChanged, fresh.Brand+" "+fresh.Model+" "+fresh.Serial+" "+id+" "+fresh.Customer.Name, map[string]string{
 		"brand":    fresh.Brand,
 		"model":    fresh.Model,
+		"serial":   fresh.Serial,
 		"uuid":     id,
 		"customer": fresh.Customer.Name,
 		"from":     fresh.Status,
@@ -231,8 +171,8 @@ func OpenStatusPhoto(ctx context.Context, database *sql.DB, root string, deviceI
 	var media string
 	err := database.QueryRowContext(ctx, `
 		SELECT photo_path, photo_type
-		FROM device_status_changes
-		WHERE id = ? AND device_id = ? AND photo_path != ''
+		FROM service_status_changes
+		WHERE id = ? AND service_id = ? AND photo_path != ''
 	`, changeID, deviceID).Scan(&rel, &media)
 	if err == sql.ErrNoRows {
 		return "", "", ErrNotFound
@@ -250,8 +190,8 @@ func OpenStatusPhoto(ctx context.Context, database *sql.DB, root string, deviceI
 func loadStatusHistory(ctx context.Context, q queryer, deviceID string) ([]StatusChange, error) {
 	rows, err := q.QueryContext(ctx, `
 		SELECT id, actor_username, from_status, to_status, note, photo_path, created_at
-		FROM device_status_changes
-		WHERE device_id = ?
+		FROM service_status_changes
+		WHERE service_id = ?
 		ORDER BY created_at DESC, id DESC
 	`, deviceID)
 	if err != nil {

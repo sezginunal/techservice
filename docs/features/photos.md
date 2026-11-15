@@ -2,13 +2,13 @@
 
 Status: approved.
 
-A signed-in technician, owner, or admin opens a photo they already see and downloads that file. The three roles see and do the same work. A signed-out request is unauthorized. A person who cannot open the device cannot open or download its photo.
+A signed-in technician, owner, or admin opens a photo they already see and downloads that file. The three roles see and do the same work. A signed-out request is unauthorized. A person who cannot open the service cannot open or download its photo.
 
 ## Which photos
 
 The control applies to every photo an operator added:
 
-- A device photo.
+- A service photo.
 - A part photo.
 - A status-change photo.
 - A photo chosen on the registration or correction screen that is not saved yet.

@@ -24,7 +24,7 @@ The stored roles stay `admin`, `owner`, and `technician`. The visible names chan
 
 ## What writes a row
 
-A successful change to a record writes one row. A save that changes nothing writes nothing. Parts and photos are part of the device row. They do not write their own rows.
+A successful change to a record writes one row. A save that changes nothing writes nothing. Parts and photos are part of the service. They do not write their own rows. A save that changes the device and the service writes one row for each.
 
 The row does not contain a password, device notes, or a photo file.
 
@@ -32,15 +32,16 @@ These events write a row:
 
 - A customer is created. The subject is the customer name.
 - A customer is corrected. The subject is the customer name. A rename shows the previous name and the new name.
-- A device is registered. The subject is the brand, the model, the device UUID, and the customer name. The screen calls this event "Device registered" in English and "Kayıt açıldı" in Turkish.
-- A device is corrected. The subject is the brand, the model, the device UUID, and the customer name. The screen calls this event "Device updated" in English and "Cihaz düzeltildi" in Turkish.
-- A device status changes. The row shows the previous status and the new status. The screen calls this event "Status changed" in English and "Durum değiştirildi" in Turkish. Intake does not change status. A later feature writes this row when it changes one.
+- A service is registered. The subject is the brand, the model, the serial number, the service UUID, and the customer name. The screen calls this event "Service registered" in English and "Servis açıldı" in Turkish. The first service on a new device does not write a separate device row.
+- A service is corrected. The subject is the brand, the model, the serial number, the service UUID, and the customer name. A change of customer shows the previous customer name and the new customer name. The screen calls this event "Service updated" in English and "Servis düzeltildi" in Turkish.
+- A device is corrected. The subject is the brand, the model, the serial number, and the device UUID. The row shows the previous brand, model, and serial number, and the new brand, model, and serial number. The screen calls this event "Device updated" in English and "Cihaz düzeltildi" in Turkish.
+- A service status changes. The row shows the previous status and the new status. The screen calls this event "Status changed" in English and "Durum değiştirildi" in Turkish. Intake does not change status. The device status feature writes this row.
 - A user is created. The subject is the new username and the new role.
 - A user's role changes. The row shows the previous role and the new role.
 - A user's password changes. The subject is that username.
 - A user is activated, or a user is deactivated. The subject is that username.
 
-Registering a device with a new customer writes two rows: the customer is created, then the device is registered. The names on a row stay as they were when the row was written.
+Registering a service with a new customer writes two rows: the customer is created, then the service is registered. The names on a row stay as they were when the row was written.
 
 These do not write a row:
 
@@ -57,6 +58,6 @@ These do not write a row:
 - The filters apply together. Either date may be empty. The date is the calendar day of the time shown on the screen.
 - The person filter matches the actor's username.
 - The event filter is the event list above. An empty choice means every event.
-- The subject filter matches the customer name, the brand, the model, the device UUID, or, for a user change, that username.
+- The subject filter matches the customer name, the brand, the model, the serial number, the service UUID, the device UUID, or, for a user change, that username.
 - The person filter and the subject filter wait until the operator pauses or submits.
 - An empty log says there are no rows. A filter that matches nothing says so.

@@ -102,23 +102,31 @@ func Migrate(ctx context.Context, database *sql.DB) error {
 		CREATE UNIQUE INDEX customers_phone ON customers (phone);
 		CREATE TABLE IF NOT EXISTS devices (
 			id TEXT PRIMARY KEY,
-			customer_id INTEGER NOT NULL REFERENCES customers(id),
 			brand TEXT NOT NULL,
 			model TEXT NOT NULL,
-			serial TEXT NOT NULL DEFAULT '',
-			note TEXT NOT NULL,
-			status TEXT NOT NULL DEFAULT 'registered' %s,
+			serial TEXT NOT NULL,
 			brand_fold TEXT NOT NULL,
 			model_fold TEXT NOT NULL,
 			serial_fold TEXT NOT NULL,
 			created_at TEXT NOT NULL
 		);
-		CREATE INDEX IF NOT EXISTS devices_created ON devices (created_at, id);
-		CREATE INDEX IF NOT EXISTS devices_customer ON devices (customer_id, created_at, id);
-		CREATE INDEX IF NOT EXISTS devices_status ON devices (status, created_at, id);
-		CREATE TABLE IF NOT EXISTS device_status_changes (
-			id INTEGER PRIMARY KEY,
+		CREATE UNIQUE INDEX IF NOT EXISTS devices_identity ON devices (brand_fold, model_fold, serial_fold);
+		CREATE TABLE IF NOT EXISTS services (
+			id TEXT PRIMARY KEY,
 			device_id TEXT NOT NULL REFERENCES devices(id),
+			customer_id INTEGER NOT NULL REFERENCES customers(id),
+			note TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'registered' %s,
+			created_at TEXT NOT NULL
+		);
+		CREATE INDEX IF NOT EXISTS services_created ON services (created_at, id);
+		CREATE INDEX IF NOT EXISTS services_customer ON services (customer_id, created_at, id);
+		CREATE INDEX IF NOT EXISTS services_device ON services (device_id, created_at, id);
+		CREATE INDEX IF NOT EXISTS services_status ON services (status, created_at, id);
+		CREATE UNIQUE INDEX IF NOT EXISTS services_one_open ON services (device_id) WHERE status NOT IN ('delivered', 'cancelled');
+		CREATE TABLE IF NOT EXISTS service_status_changes (
+			id INTEGER PRIMARY KEY,
+			service_id TEXT NOT NULL REFERENCES services(id),
 			actor_username TEXT NOT NULL,
 			from_status TEXT NOT NULL,
 			to_status TEXT NOT NULL,
@@ -128,25 +136,25 @@ func Migrate(ctx context.Context, database *sql.DB) error {
 			photo_type TEXT NOT NULL DEFAULT '',
 			created_at TEXT NOT NULL
 		);
-		CREATE INDEX IF NOT EXISTS device_status_changes_device ON device_status_changes (device_id, created_at, id);
+		CREATE INDEX IF NOT EXISTS service_status_changes_service ON service_status_changes (service_id, created_at, id);
 		CREATE TABLE IF NOT EXISTS parts (
 			id TEXT PRIMARY KEY,
-			device_id TEXT NOT NULL REFERENCES devices(id),
+			service_id TEXT NOT NULL REFERENCES services(id),
 			name TEXT NOT NULL,
 			note TEXT NOT NULL,
 			position INTEGER NOT NULL
 		);
-		CREATE INDEX IF NOT EXISTS parts_device ON parts (device_id, position);
+		CREATE INDEX IF NOT EXISTS parts_service ON parts (service_id, position);
 		CREATE TABLE IF NOT EXISTS photos (
 			id TEXT PRIMARY KEY,
-			device_id TEXT NOT NULL REFERENCES devices(id),
+			service_id TEXT NOT NULL REFERENCES services(id),
 			part_id TEXT REFERENCES parts(id),
 			path TEXT NOT NULL,
 			size INTEGER NOT NULL,
 			media_type TEXT NOT NULL,
 			created_at TEXT NOT NULL
 		);
-		CREATE INDEX IF NOT EXISTS photos_device ON photos (device_id, created_at, id);
+		CREATE INDEX IF NOT EXISTS photos_service ON photos (service_id, created_at, id);
 		CREATE TABLE IF NOT EXISTS audit_events (
 			id INTEGER PRIMARY KEY,
 			created_at TEXT NOT NULL,
@@ -163,9 +171,6 @@ func Migrate(ctx context.Context, database *sql.DB) error {
 	`, deviceStatusCheck()))
 	if err != nil {
 		return fmt.Errorf("migrate: %w", err)
-	}
-	if err := widenDeviceStatus(ctx, database); err != nil {
-		return err
 	}
 	if err := ensureCustomerAddress(ctx, database); err != nil {
 		return err

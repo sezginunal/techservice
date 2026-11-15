@@ -29,7 +29,7 @@ export function CustomerDetail({ copy, lang, id, onNavigate, onUnauthorized }: P
       params.set("after", after.createdAt);
       params.set("afterId", after.id);
     }
-    return request<Page<DeviceItem>>(`/api/devices?${params}`, { signal });
+    return request<Page<DeviceItem>>(`/api/services?${params}`, { signal });
   });
 
   useEffect(() => {
@@ -111,7 +111,7 @@ export function CustomerDetail({ copy, lang, id, onNavigate, onUnauthorized }: P
     <>
       <header className="page-head row">
         <h1>{customer.name}</h1>
-        <button className="button" type="button" onClick={() => onNavigate(`/devices/new?customer=${customer.id}`)}>
+        <button className="button" type="button" onClick={() => onNavigate(`/services/new?customer=${customer.id}`)}>
           {copy.newDevice}
         </button>
       </header>
@@ -142,10 +142,10 @@ export function CustomerDetail({ copy, lang, id, onNavigate, onUnauthorized }: P
       <section className="panel stack">
         <h2>{copy.customerDevices}</h2>
         {devices.items.map((item) => (
-          <button className="button secondary" type="button" key={item.id} onClick={() => onNavigate(`/devices/${item.id}`)}>
+          <button className="button secondary" type="button" key={item.id} onClick={() => onNavigate(`/services/${item.id}`)}>
             <strong className="with-icon">
               {item.image ? <ModelIcon brand={item.brand} model={item.model} /> : null}
-              {item.brand} {item.model}
+              {item.brand} {item.model} · {item.serial}
             </strong>
             <span className="muted">
               {statusLabel(item.status, copy)} · {formatWhen(item.createdAt, lang)}

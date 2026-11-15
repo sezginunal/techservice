@@ -317,7 +317,11 @@ func openShop(t *testing.T) shopFix {
 
 func registerAt(t *testing.T, ctx context.Context, shop shopFix, customer *int64, brand, model string, at time.Time) Device {
 	t.Helper()
-	input := NewDevice{Brand: brand, Model: model, Note: "ok", CustomerID: customer}
+	serial, err := newID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := NewDevice{Brand: brand, Model: model, Serial: serial, Note: "ok", CustomerID: customer}
 	if customer == nil {
 		input.CustomerName = "Ada Lovelace"
 		input.CustomerPhone = "5550001122"
@@ -326,7 +330,7 @@ func registerAt(t *testing.T, ctx context.Context, shop shopFix, customer *int64
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := shop.db.ExecContext(ctx, `UPDATE devices SET created_at = ? WHERE id = ?`, timestamp(at), device.ID); err != nil {
+	if _, err := shop.db.ExecContext(ctx, `UPDATE services SET created_at = ? WHERE id = ?`, timestamp(at), device.ID); err != nil {
 		t.Fatal(err)
 	}
 	return device
@@ -345,10 +349,10 @@ func setStatusAt(t *testing.T, ctx context.Context, shop shopFix, id, status str
 		t.Fatal(err)
 	}
 	if _, err := shop.db.ExecContext(ctx, `
-		UPDATE device_status_changes
+		UPDATE service_status_changes
 		SET created_at = ?
-		WHERE device_id = ? AND id = (
-			SELECT id FROM device_status_changes WHERE device_id = ? ORDER BY id DESC LIMIT 1
+		WHERE service_id = ? AND id = (
+			SELECT id FROM service_status_changes WHERE service_id = ? ORDER BY id DESC LIMIT 1
 		)
 	`, timestamp(at), id, id); err != nil {
 		t.Fatal(err)

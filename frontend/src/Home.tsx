@@ -128,7 +128,7 @@ function Shop({
         <section className="panel stack">
           <header className="section-head">
             <h2>{copy.byStatus}</h2>
-            <button className="button linkish" type="button" onClick={() => onNavigate("/devices")}>
+            <button className="button linkish" type="button" onClick={() => onNavigate("/services")}>
               {copy.allDevices}
             </button>
           </header>
@@ -138,7 +138,7 @@ function Shop({
                 key={item.status}
                 className="home-link"
                 type="button"
-                onClick={() => onNavigate(`/devices?status=${encodeURIComponent(item.status)}`)}
+                onClick={() => onNavigate(`/services?status=${encodeURIComponent(item.status)}`)}
               >
                 <span>{statusLabel(item.status, copy)}</span>
                 <strong>{item.count}</strong>
@@ -188,11 +188,11 @@ function Shop({
                 className="home-link"
                 type="button"
                 data-wait={waitTone(item.days)}
-                onClick={() => onNavigate(`/devices/${item.id}`)}
+                onClick={() => onNavigate(`/services/${item.id}`)}
               >
                 <span className="home-id">
                   <strong>
-                    {item.brand} {item.model}
+                    {item.brand} {item.model} · {item.serial}
                   </strong>
                   <span className="muted">{item.customerName}</span>
                 </span>
@@ -219,12 +219,12 @@ function Shop({
                 key={item.id}
                 className="home-link"
                 type="button"
-                onClick={() => onNavigate(`/devices/${item.id}`)}
+                onClick={() => onNavigate(`/services/${item.id}`)}
               >
                 <span className="with-icon">
                   {item.image ? <ModelIcon brand={item.brand} model={item.model} /> : null}
                   <strong>
-                    {item.brand} {item.model}
+                    {item.brand} {item.model} · {item.serial}
                   </strong>
                 </span>
                 <span className="home-meta">

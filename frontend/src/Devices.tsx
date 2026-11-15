@@ -29,7 +29,7 @@ export function Devices({ copy, lang, status, onNavigate, onUnauthorized }: Prop
       params.set("after", after.createdAt);
       params.set("afterId", after.id);
     }
-    return request<Page<DeviceItem>>(`/api/devices?${params}`, { signal });
+    return request<Page<DeviceItem>>(`/api/services?${params}`, { signal });
   });
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export function Devices({ copy, lang, status, onNavigate, onUnauthorized }: Prop
           <h1>{copy.devices}</h1>
           <p className="muted">{copy.devicesLead}</p>
         </div>
-        <button className="button" type="button" onClick={() => onNavigate("/devices/new")}>
+        <button className="button" type="button" onClick={() => onNavigate("/services/new")}>
           {copy.newDevice}
         </button>
       </header>
@@ -66,7 +66,7 @@ export function Devices({ copy, lang, status, onNavigate, onUnauthorized }: Prop
             value={selected}
             onChange={(event) => {
               const next = event.target.value;
-              onNavigate(next ? `/devices?status=${encodeURIComponent(next)}` : "/devices");
+              onNavigate(next ? `/services?status=${encodeURIComponent(next)}` : "/services");
             }}
           >
             <option value="">{copy.allStatuses}</option>
@@ -89,6 +89,7 @@ export function Devices({ copy, lang, status, onNavigate, onUnauthorized }: Prop
               <th>{copy.recordId}</th>
               <th>{copy.brand}</th>
               <th>{copy.model}</th>
+              <th>{copy.serial}</th>
               <th>{copy.customer}</th>
               <th>{copy.status}</th>
               <th>{copy.registeredOn}</th>
@@ -108,13 +109,14 @@ export function Devices({ copy, lang, status, onNavigate, onUnauthorized }: Prop
                     {item.model}
                   </span>
                 </td>
+                <td data-label={copy.serial}>{item.serial}</td>
                 <td data-label={copy.customer}>{item.customerName}</td>
                 <td data-label={copy.status}>
                   <span className="badge">{statusLabel(item.status, copy)}</span>
                 </td>
                 <td data-label={copy.registeredOn}>{formatWhen(item.createdAt, lang)}</td>
                 <td className="row-action">
-                  <button className="button secondary" type="button" onClick={() => onNavigate(`/devices/${item.id}`)}>
+                  <button className="button secondary" type="button" onClick={() => onNavigate(`/services/${item.id}`)}>
                     {copy.open}
                   </button>
                 </td>

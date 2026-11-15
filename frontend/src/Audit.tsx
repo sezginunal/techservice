@@ -9,9 +9,10 @@ import { problemText } from "./problems";
 const eventIds = [
   "customer.created",
   "customer.updated",
-  "device.registered",
+  "service.registered",
+  "service.updated",
   "device.updated",
-  "device.status_changed",
+  "service.status_changed",
   "user.created",
   "user.role_changed",
   "user.password_changed",
@@ -154,9 +155,10 @@ function eventLabel(copy: Copy, event: string) {
   const labels: Record<string, string> = {
     "customer.created": copy.eventCustomerCreated,
     "customer.updated": copy.eventCustomerUpdated,
-    "device.registered": copy.eventDeviceRegistered,
+    "service.registered": copy.eventDeviceRegistered,
+    "service.updated": copy.eventServiceUpdated,
     "device.updated": copy.eventDeviceUpdated,
-    "device.status_changed": copy.eventDeviceStatusChanged,
+    "service.status_changed": copy.eventDeviceStatusChanged,
     "user.created": copy.eventUserCreated,
     "user.role_changed": copy.eventUserRoleChanged,
     "user.password_changed": copy.eventUserPasswordChanged,
@@ -174,13 +176,21 @@ function subjectOf(copy: Copy, item: AuditItem) {
   if (item.event === "customer.created" || item.event === "customer.updated") {
     return detail.name ?? "";
   }
-  if (item.event === "device.registered" || item.event === "device.updated") {
-    return [detail.brand, detail.model, detail.uuid, detail.customer].filter(Boolean).join(" · ");
+  if (item.event === "service.registered" || item.event === "service.updated") {
+    const customer =
+      detail.previousCustomer && detail.customer ? `${detail.previousCustomer} → ${detail.customer}` : detail.customer;
+    return [detail.brand, detail.model, detail.serial, detail.uuid, customer].filter(Boolean).join(" · ");
   }
-  if (item.event === "device.status_changed") {
+  if (item.event === "device.updated") {
+    const brand = detail.previousBrand ? `${detail.previousBrand} → ${detail.brand ?? ""}` : detail.brand;
+    const model = detail.previousModel ? `${detail.previousModel} → ${detail.model ?? ""}` : detail.model;
+    const serial = detail.previousSerial ? `${detail.previousSerial} → ${detail.serial ?? ""}` : detail.serial;
+    return [brand, model, serial, detail.uuid].filter(Boolean).join(" · ");
+  }
+  if (item.event === "service.status_changed") {
     const from = statusLabel(detail.from ?? "", copy);
     const to = statusLabel(detail.to ?? "", copy);
-    return [detail.brand, detail.model, detail.uuid, `${from} → ${to}`].filter(Boolean).join(" · ");
+    return [detail.brand, detail.model, detail.serial, detail.uuid, `${from} → ${to}`].filter(Boolean).join(" · ");
   }
   if (item.event === "user.created") {
     return [detail.username, roleName(copy, detail.role)].filter(Boolean).join(" · ");

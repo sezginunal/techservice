@@ -47,6 +47,7 @@ type IdleDevice struct {
 	ID           string
 	Brand        string
 	Model        string
+	Serial       string
 	CustomerName string
 	Status       string
 	Days         int
@@ -57,6 +58,7 @@ type RecentDevice struct {
 	ID        string
 	Brand     string
 	Model     string
+	Serial    string
 	Status    string
 	CreatedAt time.Time
 }
@@ -139,7 +141,7 @@ func registrationDays(now time.Time) ([]DayCount, time.Time, time.Time) {
 
 func registrationCounts(ctx context.Context, database *sql.DB, start, end time.Time) (map[string]int, error) {
 	rows, err := database.QueryContext(ctx, `
-		SELECT created_at FROM devices
+		SELECT created_at FROM services
 		WHERE created_at >= ? AND created_at < ?
 	`, timestamp(start), timestamp(end))
 	if err != nil {
@@ -174,7 +176,7 @@ func countValues(counts map[string]int) int {
 }
 
 func statusCounts(ctx context.Context, database *sql.DB, summary *Summary) error {
-	rows, err := database.QueryContext(ctx, `SELECT status, COUNT(*) FROM devices GROUP BY status`)
+	rows, err := database.QueryContext(ctx, `SELECT status, COUNT(*) FROM services GROUP BY status`)
 	if err != nil {
 		return fmt.Errorf("home status: %w", err)
 	}
@@ -213,11 +215,12 @@ func statusCounts(ctx context.Context, database *sql.DB, summary *Summary) error
 
 func modelCounts(ctx context.Context, database *sql.DB, start, end time.Time) ([]ModelCount, int, error) {
 	rows, err := database.QueryContext(ctx, `
-		SELECT brand, model, COUNT(*) AS n
-		FROM devices
-		WHERE created_at >= ? AND created_at < ?
-		GROUP BY brand, model
-		ORDER BY n DESC, brand COLLATE NOCASE, model COLLATE NOCASE
+		SELECT devices.brand, devices.model, COUNT(*) AS n
+		FROM services
+		JOIN devices ON devices.id = services.device_id
+		WHERE services.created_at >= ? AND services.created_at < ?
+		GROUP BY devices.brand, devices.model
+		ORDER BY n DESC, devices.brand COLLATE NOCASE, devices.model COLLATE NOCASE
 	`, timestamp(start), timestamp(end))
 	if err != nil {
 		return nil, 0, fmt.Errorf("home models: %w", err)
@@ -248,13 +251,13 @@ func modelCounts(ctx context.Context, database *sql.DB, start, end time.Time) ([
 	return all[:homeModels], other, nil
 }
 
-const sinceExpr = `COALESCE((SELECT MAX(created_at) FROM device_status_changes WHERE device_id = devices.id), devices.created_at)`
+const sinceExpr = `COALESCE((SELECT MAX(created_at) FROM service_status_changes WHERE service_id = services.id), services.created_at)`
 
 func idleCounts(ctx context.Context, database *sql.DB, now time.Time, summary *Summary) error {
 	cutoff := timestamp(now.Add(-7 * fullDay))
 	if err := database.QueryRowContext(ctx, `
 		SELECT COUNT(*)
-		FROM devices
+		FROM services
 		WHERE status != ?
 		  AND `+sinceExpr+` <= ?
 	`, StatusDelivered, cutoff).Scan(&summary.Idle7); err != nil {
@@ -262,12 +265,13 @@ func idleCounts(ctx context.Context, database *sql.DB, now time.Time, summary *S
 	}
 
 	rows, err := database.QueryContext(ctx, `
-		SELECT devices.id, devices.brand, devices.model, customers.name, devices.status, `+sinceExpr+`
-		FROM devices
-		JOIN customers ON customers.id = devices.customer_id
-		WHERE devices.status != ?
+		SELECT services.id, devices.brand, devices.model, devices.serial, customers.name, services.status, `+sinceExpr+`
+		FROM services
+		JOIN devices ON devices.id = services.device_id
+		JOIN customers ON customers.id = services.customer_id
+		WHERE services.status != ?
 		  AND `+sinceExpr+` <= ?
-		ORDER BY `+sinceExpr+` ASC, devices.id ASC
+		ORDER BY `+sinceExpr+` ASC, services.id ASC
 		LIMIT ?
 	`, StatusDelivered, timestamp(now.Add(-fullDay)), homeUnchanged+1)
 	if err != nil {
@@ -278,7 +282,7 @@ func idleCounts(ctx context.Context, database *sql.DB, now time.Time, summary *S
 	for rows.Next() {
 		var item IdleDevice
 		var raw string
-		if err := rows.Scan(&item.ID, &item.Brand, &item.Model, &item.CustomerName, &item.Status, &raw); err != nil {
+		if err := rows.Scan(&item.ID, &item.Brand, &item.Model, &item.Serial, &item.CustomerName, &item.Status, &raw); err != nil {
 			return fmt.Errorf("home unchanged: %w", err)
 		}
 		since, err := time.Parse(timestampLayout, raw)
@@ -309,9 +313,10 @@ func fullDays(now, since time.Time) int {
 
 func latestDevices(ctx context.Context, database *sql.DB) ([]RecentDevice, error) {
 	rows, err := database.QueryContext(ctx, `
-		SELECT id, brand, model, status, created_at
-		FROM devices
-		ORDER BY created_at DESC, id DESC
+		SELECT services.id, devices.brand, devices.model, devices.serial, services.status, services.created_at
+		FROM services
+		JOIN devices ON devices.id = services.device_id
+		ORDER BY services.created_at DESC, services.id DESC
 		LIMIT ?
 	`, homeLatest)
 	if err != nil {
@@ -323,7 +328,7 @@ func latestDevices(ctx context.Context, database *sql.DB) ([]RecentDevice, error
 	for rows.Next() {
 		var item RecentDevice
 		var raw string
-		if err := rows.Scan(&item.ID, &item.Brand, &item.Model, &item.Status, &raw); err != nil {
+		if err := rows.Scan(&item.ID, &item.Brand, &item.Model, &item.Serial, &item.Status, &raw); err != nil {
 			return nil, fmt.Errorf("home latest: %w", err)
 		}
 		parsed, err := time.Parse(timestampLayout, raw)

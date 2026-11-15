@@ -2,15 +2,15 @@
 
 Status: approved.
 
-A signed-in technician, owner, or admin lists every device, opens one, and changes its state. The three roles see and do the same work. A signed-out request is unauthorized.
+A signed-in technician, owner, or admin lists every service, opens one, and changes its state. The three roles see and do the same work. A signed-out request is unauthorized.
 
 ## Device notes
 
-The free-text field on the device is the device notes. Every screen shows it as "Device notes (optional)" in English and "Cihaz notları (isteğe bağlı)" in Turkish. It is optional. The operator writes any text, or leaves it empty.
+The free-text field on the service is the device notes. Every screen shows it as "Device notes (optional)" in English and "Cihaz notları (isteğe bağlı)" in Turkish. It is optional. The operator writes any text, or leaves it empty.
 
 The part note shows "Part note (optional)" in English and "Parça notu (isteğe bağlı)" in Turkish. It is optional.
 
-"Status" in English and "Durum" in Turkish mean only the device state.
+"Status" in English and "Durum" in Turkish mean only the service state.
 
 ## States
 
@@ -31,43 +31,37 @@ The state is one of these values. The screen shows the English name, then the Tu
 
 Registration sets `registered`. The registration screen has no state control.
 
-The operator moves a device from any state to any other state. A save that keeps the same state is refused and writes nothing.
+The operator moves a service from any state to any other state. A save that keeps the same state is refused and writes nothing.
 
-Warranty lives only in `repair_warranty` and `repair_out_of_warranty`. A device in another state is not filtered as under warranty. The previous state stays in the history. This feature adds no separate warranty field.
+Warranty lives only in `repair_warranty` and `repair_out_of_warranty`. A service in another state is not filtered as under warranty. The previous state stays in the history. This feature adds no separate warranty field.
 
-A cancelled device is not delivered. Home counts that leave out only `delivered` still include it.
+A cancelled service is not delivered. Home counts that leave out only `delivered` still include it.
 
-## Device list
+## Service list
 
-The device list follows the lists rule.
+The service list is the list in the intake feature. This feature adds the state filter.
 
-A row shows the UUID, brand, model, customer name, state, and registration date. It does not show photos, parts, or notes.
+A state filter offers every state, or all states. An empty choice means all states. The service list address keeps the chosen state. The search and the state filter apply together.
 
-The search box stays. It matches the brand, model, serial number, customer name, phone, or UUID.
+An empty shop says there are no services, as in intake. A search or a state filter that matches nothing says "No service matches that search." in English and "Bu aramaya uyan servis yok." in Turkish.
 
-A state filter offers every state, or all states. An empty choice means all states. The device list address keeps the chosen state. The search and the state filter apply together.
+Opening a row opens the service.
 
-The newest registration is first.
-
-An empty shop says there are no devices. A search or a state filter that matches nothing says so.
-
-Opening a row opens the device.
-
-The customer detail lists that customer's devices with the state names above. The operator changes a state only from the device detail.
+The customer detail lists that customer's services, as in intake. The operator changes a state only from the service detail.
 
 ## Changing a state
 
-The device detail shows the current state. The operator picks a new state, writes a change note or leaves it empty, adds one photo or adds none, and saves.
+The service detail shows the current state. The operator picks a new state, writes a change note or leaves it empty, adds one photo or adds none, and saves.
 
-The change note is optional. A photo is optional. The photo is JPEG, PNG, or WebP, and at most 8 MB. One change holds one photo. That photo does not count toward the device's 30 photos.
+The change note is optional. A photo is optional. The photo is JPEG, PNG, or WebP, and at most 8 MB. One change holds one photo. That photo does not count toward the service's 30 photos.
 
 A refused photo or a same-state save writes nothing. The stored state stays as it was.
 
-The correction screen still edits the device notes, the device fields, the parts, and the device photos. It does not change the state.
+The correction screen still edits the device notes, the parts, and the service photos. The brand, the model, the serial number, and the customer for this service are corrected as in the device feature. The correction screen does not change the state.
 
 ## History
 
-The device detail shows the state history, newest first.
+The service detail shows the state history, newest first.
 
 A row shows the time, the actor's username, the previous state, the new state, the change note when one was entered, and the photo when one was added.
 

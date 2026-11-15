@@ -62,6 +62,7 @@ export type StatusChange = {
 
 export type Device = {
   id: string;
+  deviceId: string;
   brand: string;
   model: string;
   image: boolean;
@@ -96,6 +97,7 @@ export type HomeIdle = {
   id: string;
   brand: string;
   model: string;
+  serial: string;
   customerName: string;
   status: string;
   days: number;
@@ -106,6 +108,7 @@ export type HomeRecent = {
   id: string;
   brand: string;
   model: string;
+  serial: string;
   image: boolean;
   status: string;
   createdAt: string;
@@ -132,10 +135,42 @@ export type DeviceItem = {
   id: string;
   brand: string;
   model: string;
+  serial: string;
   image: boolean;
   customerName: string;
   status: string;
   createdAt: string;
+};
+
+export type Identity = {
+  id: string;
+  brand: string;
+  model: string;
+  serial: string;
+  image: boolean;
+};
+
+export type EarlierService = {
+  id: string;
+  customerName: string;
+  phone: string;
+  status: string;
+  createdAt: string;
+};
+
+export type DeviceService = {
+  id: string;
+  customerName: string;
+  status: string;
+  createdAt: string;
+};
+
+export type DeviceMatch = {
+  matched: boolean;
+  deviceId: string;
+  openServiceId: string;
+  items: EarlierService[];
+  hasMore: boolean;
 };
 
 export type AuditDetail = {
@@ -143,6 +178,11 @@ export type AuditDetail = {
   previousName?: string;
   brand?: string;
   model?: string;
+  serial?: string;
+  previousBrand?: string;
+  previousModel?: string;
+  previousSerial?: string;
+  previousCustomer?: string;
   uuid?: string;
   customer?: string;
   username?: string;
@@ -172,10 +212,18 @@ export class ApiError extends Error {
   tooLong: string[];
   taken: string[];
   photo: string;
+  serviceId: string;
 
   constructor(
     code: string,
-    extra?: { missing?: string[]; invalid?: string[]; tooLong?: string[]; taken?: string[]; photo?: string },
+    extra?: {
+      missing?: string[];
+      invalid?: string[];
+      tooLong?: string[];
+      taken?: string[];
+      photo?: string;
+      serviceId?: string;
+    },
   ) {
     super(code);
     this.code = code;
@@ -184,6 +232,7 @@ export class ApiError extends Error {
     this.tooLong = extra?.tooLong ?? [];
     this.taken = extra?.taken ?? [];
     this.photo = extra?.photo ?? "";
+    this.serviceId = extra?.serviceId ?? "";
   }
 }
 
@@ -205,6 +254,7 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     tooLong?: string[];
     taken?: string[];
     photo?: string;
+    serviceId?: string;
   };
   if (!response.ok) {
     throw new ApiError(body.error ?? "unexpected", body);
@@ -212,10 +262,10 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-export function photoSrc(deviceId: string, photoId: string) {
-  return `/api/devices/${deviceId}/photos/${photoId}`;
+export function photoSrc(serviceId: string, photoId: string) {
+  return `/api/services/${serviceId}/photos/${photoId}`;
 }
 
-export function statusPhotoSrc(deviceId: string, changeId: number) {
-  return `/api/devices/${deviceId}/status/${changeId}/photo`;
+export function statusPhotoSrc(serviceId: string, changeId: number) {
+  return `/api/services/${serviceId}/status/${changeId}/photo`;
 }

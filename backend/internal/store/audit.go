@@ -10,21 +10,22 @@ import (
 )
 
 const (
-	EventCustomerCreated     = "customer.created"
-	EventCustomerUpdated     = "customer.updated"
-	EventDeviceRegistered    = "device.registered"
-	EventDeviceUpdated       = "device.updated"
-	EventDeviceStatusChanged = "device.status_changed"
-	EventUserCreated         = "user.created"
-	EventUserRoleChanged     = "user.role_changed"
-	EventUserPasswordChanged = "user.password_changed"
-	EventUserActivated       = "user.activated"
-	EventUserDeactivated     = "user.deactivated"
+	EventCustomerCreated      = "customer.created"
+	EventCustomerUpdated      = "customer.updated"
+	EventServiceRegistered    = "service.registered"
+	EventServiceUpdated       = "service.updated"
+	EventDeviceUpdated        = "device.updated"
+	EventServiceStatusChanged = "service.status_changed"
+	EventUserCreated          = "user.created"
+	EventUserRoleChanged      = "user.role_changed"
+	EventUserPasswordChanged  = "user.password_changed"
+	EventUserActivated        = "user.activated"
+	EventUserDeactivated      = "user.deactivated"
 )
 
 func knownEvent(event string) bool {
 	switch event {
-	case EventCustomerCreated, EventCustomerUpdated, EventDeviceRegistered, EventDeviceUpdated, EventDeviceStatusChanged,
+	case EventCustomerCreated, EventCustomerUpdated, EventServiceRegistered, EventServiceUpdated, EventDeviceUpdated, EventServiceStatusChanged,
 		EventUserCreated, EventUserRoleChanged, EventUserPasswordChanged, EventUserActivated, EventUserDeactivated:
 		return true
 	default:

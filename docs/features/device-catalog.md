@@ -2,7 +2,7 @@
 
 Status: approved.
 
-A signed-in technician, owner, or admin picks a brand and a model while registering a device, and while correcting one. The three roles see and do the same work. A signed-out request is unauthorized.
+A signed-in technician, owner, or admin picks a brand and a model while registering a service, and while correcting a device. The three roles see and do the same work. A signed-out request is unauthorized.
 
 The brand and the model stay required. The operator picks a suggestion or types a value the catalog does not list.
 
@@ -47,7 +47,7 @@ When the brand matches a catalog brand, the model field suggests that brand's mo
 
 Selecting a suggestion fills that field with the catalog text. The required-field checks stay as they are in intake.
 
-A suggestion row shows the model image at icon size when that model has one. The device list and the device detail show the same icon when the stored brand and model match that catalog model. A model with no image shows the text alone.
+A suggestion row shows the model image at icon size when that model has one. The service list, the service detail, and the device page show the same icon when the stored brand and model match that catalog model. A model with no image shows the text alone.
 
 ## Not in this feature
 

@@ -36,7 +36,7 @@ func detectMedia(header []byte) (string, bool) {
 }
 
 func photoRel(deviceID string, photoID string) string {
-	return filepath.Join("devices", deviceID, photoID)
+	return filepath.Join("services", deviceID, photoID)
 }
 
 func photoFull(root string, rel string) (string, error) {

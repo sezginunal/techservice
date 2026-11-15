@@ -42,13 +42,16 @@ func New(database *sql.DB, uploadPath string, shop brand.Brand, devices catalog.
 	mux.HandleFunc("GET /api/customers", authenticated(database, listCustomers(database)))
 	mux.HandleFunc("GET /api/customers/{id}", authenticated(database, getCustomer(database)))
 	mux.HandleFunc("PATCH /api/customers/{id}", authenticated(database, updateCustomer(database)))
-	mux.HandleFunc("GET /api/devices", authenticated(database, listDevices(database, devices)))
-	mux.HandleFunc("POST /api/devices", authenticated(database, registerDevice(database, uploadPath, devices)))
-	mux.HandleFunc("GET /api/devices/{id}/photos/{photoId}", authenticated(database, getPhoto(database, uploadPath)))
-	mux.HandleFunc("GET /api/devices/{id}/status/{changeId}/photo", authenticated(database, getStatusPhoto(database, uploadPath)))
-	mux.HandleFunc("POST /api/devices/{id}/status", authenticated(database, changeDeviceStatus(database, uploadPath, devices)))
-	mux.HandleFunc("GET /api/devices/{id}", authenticated(database, getDevice(database, devices)))
-	mux.HandleFunc("PUT /api/devices/{id}", authenticated(database, updateDevice(database, uploadPath, devices)))
+	mux.HandleFunc("GET /api/services", authenticated(database, listDevices(database, devices)))
+	mux.HandleFunc("POST /api/services", authenticated(database, registerDevice(database, uploadPath, devices)))
+	mux.HandleFunc("GET /api/services/{id}/photos/{photoId}", authenticated(database, getPhoto(database, uploadPath)))
+	mux.HandleFunc("GET /api/services/{id}/status/{changeId}/photo", authenticated(database, getStatusPhoto(database, uploadPath)))
+	mux.HandleFunc("POST /api/services/{id}/status", authenticated(database, changeDeviceStatus(database, uploadPath, devices)))
+	mux.HandleFunc("GET /api/services/{id}", authenticated(database, getDevice(database, devices)))
+	mux.HandleFunc("PUT /api/services/{id}", authenticated(database, updateDevice(database, uploadPath, devices)))
+	mux.HandleFunc("GET /api/devices/match", authenticated(database, matchDevice(database)))
+	mux.HandleFunc("GET /api/devices/{id}/services", authenticated(database, listDeviceServices(database)))
+	mux.HandleFunc("GET /api/devices/{id}", authenticated(database, getIdentity(database, devices)))
 	mux.HandleFunc("GET /api/audit", authenticated(database, listAudit(database)))
 	return mux
 }
@@ -346,6 +349,12 @@ func writeStoreError(w http.ResponseWriter, err error) {
 	case errors.Is(err, store.ErrInvalidStatus):
 		writeError(w, http.StatusBadRequest, "invalid_status")
 	default:
+		var shop *store.InShopError
+		if errors.As(err, &shop) {
+			log.Printf("validation: device in shop %s", shop.ServiceID)
+			writeJSON(w, http.StatusConflict, map[string]string{"error": "device_in_shop", "serviceId": shop.ServiceID})
+			return
+		}
 		log.Printf("store: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal")
 	}

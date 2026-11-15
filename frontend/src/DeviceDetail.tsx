@@ -26,7 +26,7 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
 
   useEffect(() => {
     const controller = new AbortController();
-    request<Device>(`/api/devices/${id}`, { signal: controller.signal })
+    request<Device>(`/api/services/${id}`, { signal: controller.signal })
       .then(setDevice)
       .catch((err: unknown) => {
         if (controller.signal.aborted) {
@@ -60,7 +60,7 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
     setSaving(true);
     setStatusError(null);
     try {
-      const saved = await request<Device>(`/api/devices/${device.id}/status`, { method: "POST", body });
+      const saved = await request<Device>(`/api/services/${device.id}/status`, { method: "POST", body });
       setDevice(saved);
       setNext("");
       setNote("");
@@ -87,7 +87,9 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
         <div className="stack">
           <h1 className="with-icon">
             {device.image ? <ModelIcon brand={device.brand} model={device.model} /> : null}
-            {device.brand} {device.model}
+            <button className="button linkish" type="button" onClick={() => onNavigate(`/devices/${device.deviceId}`)}>
+              {device.brand} {device.model} · {device.serial}
+            </button>
           </h1>
           <p className="uuid">{device.id}</p>
           <p className="muted">
@@ -95,7 +97,7 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
           </p>
           <span className="badge">{statusLabel(device.status, copy)}</span>
         </div>
-        <button className="button" type="button" onClick={() => onNavigate(`/devices/${device.id}/edit`)}>
+        <button className="button" type="button" onClick={() => onNavigate(`/services/${device.id}/edit`)}>
           {copy.correct}
         </button>
       </header>
@@ -107,12 +109,7 @@ export function DeviceDetail({ copy, lang, id, onNavigate, onUnauthorized }: Pro
         <p>{device.customer.address}</p>
       </section>
       <section className="panel stack">
-        <h2>{copy.devices}</h2>
-        {device.serial ? (
-          <p>
-            {copy.serial}: {device.serial}
-          </p>
-        ) : null}
+        <h2>{copy.device}</h2>
         <p>{device.note}</p>
         <PhotoRow copy={copy} deviceId={device.id} photos={device.photos} onUnauthorized={onUnauthorized} />
       </section>

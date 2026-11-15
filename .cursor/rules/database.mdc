@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Database and files
 
-- Store records in SQLite. Records include devices, statuses, notes, users, and file metadata.
+- Store records in SQLite. Records include devices, services, statuses, notes, users, and file metadata.
 - Store uploaded files, including photos, on a disk volume. The database stores the path, size, type, and the record the file belongs to.
 - Keep the SQLite file and the upload directory on named Docker volumes used by the backend. Recreating the container keeps both.
 - Only the backend opens the database.

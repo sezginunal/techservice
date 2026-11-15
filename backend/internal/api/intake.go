@@ -134,6 +134,7 @@ func listDevices(database *sql.DB, images catalog.Index) http.HandlerFunc {
 				"id":           item.ID,
 				"brand":        item.Brand,
 				"model":        item.Model,
+				"serial":       item.Serial,
 				"customerName": item.CustomerName,
 				"status":       item.Status,
 				"createdAt":    store.FormatTime(item.CreatedAt),
@@ -213,6 +214,8 @@ func updateDevice(database *sql.DB, root string, images catalog.Index) http.Hand
 			Model           string `json:"model"`
 			Serial          string `json:"serial"`
 			Note            string `json:"note"`
+			NewCustomer     bool   `json:"newCustomer"`
+			CustomerID      *int64 `json:"customerId"`
 			CustomerName    string `json:"customerName"`
 			CustomerPhone   string `json:"customerPhone"`
 			CustomerEmail   string `json:"customerEmail"`
@@ -242,6 +245,8 @@ func updateDevice(database *sql.DB, root string, images catalog.Index) http.Hand
 			Model:           body.Model,
 			Serial:          body.Serial,
 			Note:            body.Note,
+			NewCustomer:     body.NewCustomer,
+			CustomerID:      body.CustomerID,
 			CustomerName:    body.CustomerName,
 			CustomerPhone:   body.CustomerPhone,
 			CustomerEmail:   body.CustomerEmail,
@@ -325,6 +330,104 @@ func getPhoto(database *sql.DB, root string) http.HandlerFunc {
 	}
 }
 
+func matchDevice(database *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		limit, err := queryLimit(r)
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		query := store.VisitQuery{Limit: limit}
+		after := r.URL.Query().Get("after")
+		afterID := r.URL.Query().Get("afterId")
+		if (after == "") != (afterID == "") {
+			writeError(w, http.StatusBadRequest, "invalid_cursor")
+			return
+		}
+		if after != "" {
+			query.HasAfter = true
+			query.AfterTime = after
+			query.AfterID = afterID
+		}
+		match, err := store.MatchDevice(r.Context(), database, r.URL.Query().Get("brand"), r.URL.Query().Get("model"), r.URL.Query().Get("serial"), query)
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		items := make([]map[string]any, 0, len(match.Items))
+		for _, item := range match.Items {
+			items = append(items, map[string]any{
+				"id":           item.ID,
+				"customerName": item.CustomerName,
+				"phone":        item.Phone,
+				"status":       item.Status,
+				"createdAt":    store.FormatTime(item.CreatedAt),
+			})
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"matched":       match.Matched,
+			"deviceId":      match.DeviceID,
+			"openServiceId": match.OpenServiceID,
+			"items":         items,
+			"hasMore":       match.HasMore,
+		})
+	}
+}
+
+func getIdentity(database *sql.DB, images catalog.Index) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		identity, err := store.GetIdentity(r.Context(), database, r.PathValue("id"))
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"id":     identity.ID,
+			"brand":  identity.Brand,
+			"model":  identity.Model,
+			"serial": identity.Serial,
+			"image":  images.Has(identity.Brand, identity.Model),
+		})
+	}
+}
+
+func listDeviceServices(database *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		limit, err := queryLimit(r)
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		query := store.VisitQuery{Limit: limit}
+		after := r.URL.Query().Get("after")
+		afterID := r.URL.Query().Get("afterId")
+		if (after == "") != (afterID == "") {
+			writeError(w, http.StatusBadRequest, "invalid_cursor")
+			return
+		}
+		if after != "" {
+			query.HasAfter = true
+			query.AfterTime = after
+			query.AfterID = afterID
+		}
+		items, hasMore, err := store.ListDeviceServices(r.Context(), database, r.PathValue("id"), query)
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		body := make([]map[string]any, 0, len(items))
+		for _, item := range items {
+			body = append(body, map[string]any{
+				"id":           item.ID,
+				"customerName": item.CustomerName,
+				"status":       item.Status,
+				"createdAt":    store.FormatTime(item.CreatedAt),
+			})
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"items": body, "hasMore": hasMore})
+	}
+}
+
 func customerJSON(customer store.Customer) map[string]any {
 	return map[string]any{
 		"id":      customer.ID,
@@ -347,6 +450,7 @@ func deviceJSON(device store.Device, images catalog.Index) map[string]any {
 	}
 	return map[string]any{
 		"id":        device.ID,
+		"deviceId":  device.DeviceID,
 		"brand":     device.Brand,
 		"model":     device.Model,
 		"image":     images.Has(device.Brand, device.Model),
