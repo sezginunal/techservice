@@ -1,0 +1,19 @@
+---
+description: An existing database survives an update; a schema change is the next migration
+alwaysApply: true
+---
+
+# Compatibility
+
+The repository is shared. An installation keeps its SQLite file and upload directory when it updates. A schema change upgrades that database. Code in one release still has one shape.
+
+- Change every caller, type, query, screen, and test in the same change. Leave the tree in the shape the new rule requires.
+- Do not keep the previous request, response, field, route, or function beside the new one.
+- Do not add an alias, a feature flag, or a shim for the previous source shape.
+- A schema change is a new migration. Startup applies it to the database already stored. Do not replace tables, delete the database file, or edit a migration already in the repository.
+- The database rule defines how a migration is written and applied.
+
+```text
+Strong: add the next migration, backfill existing rows, and point the query, handler, and screen at the new column.
+Weak: change CREATE TABLE and expect the operator to delete the SQLite file.
+```

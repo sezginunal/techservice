@@ -12,3 +12,12 @@ alwaysApply: false
 - Only the backend opens the database.
 - Use WAL mode. Reads proceed during a write. One write runs at a time. Do not replace SQLite with another engine for request parallelism.
 - A backup covers the SQLite file and the upload directory together. The backup feature itself is not decided yet.
+
+# Schema migrations
+
+- Keep migrations in the store package. `Migrate` applies them at startup, in version order, each once, inside a transaction.
+- Record the applied version in `schema_migrations` (`version` integer primary key, `applied_at` text). A new database runs every migration. An existing database runs only versions it has not applied.
+- Version 1 is the schema already shipped: the current tables, including columns that used to be added by a later alter. A database that already has those tables and has no `schema_migrations` table records version 1 and does not replay it.
+- The next schema change is the next integer. Do not change a migration that is already in the repository. Do not probe `PRAGMA table_info` to decide whether to alter a table.
+- The migration adds or rewrites the table and backfills every stored row the new code reads. Previously valid rows stay readable. Dropping a column or table happens in that same migration, after the kept data is copied.
+- `CREATE TABLE IF NOT EXISTS` belongs only in version 1. A later change is an `ALTER` or a copy into the new table.
