@@ -94,3 +94,7 @@ npm run build
 - [Audit](docs/features/audit.md) — who changed a record
 - [Brand](docs/features/brand.md) — shop name and logo
 - [Device catalog](docs/features/device-catalog.md) — brand and model suggestions
+
+## License
+
+[MIT](LICENSE)
