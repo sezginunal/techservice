@@ -11,7 +11,7 @@ The shown name is the company name followed by "Teknik Servis". It does not chan
 `.env` holds two settings. `.env.example` lists them.
 
 - `COMPANY_NAME` is the name. When it is empty, the screen keeps "Techservice" in English and "Teknik servis" in Turkish.
-- `LOGO_PATH` is a file in the `brand` directory next to the app. The value is the path the backend reads, for example `/brand/logo.png`. When the path is empty, or the file is missing, or the file is not a JPEG, PNG, WebP, or SVG, the screen keeps the current mark and the app still starts.
+- `LOGO_PATH` is a file in the `brand` directory next to the app. The value is the path the backend reads, for example `/brand/logo.png`. When the path is empty, or the file is missing, or the file is not a JPEG, PNG, WebP, or SVG, the screen keeps the current mark and the app still starts. The logo file stays on the machine. The repository does not include it.
 
 The sign-in screen can read the name and the logo without a session. A later request does not grant any other access.
 

@@ -12,7 +12,7 @@ The saved device stores the brand text and the model text left in the fields. A 
 
 `.env` holds one setting. `.env.example` lists it.
 
-- `DEVICE_CATALOG_PATH` is a JSON file in the `brand` directory next to the app. The value is the path the backend reads, for example `/brand/devices.json`. When the path is empty, or the file is missing, or the JSON is invalid, the screen keeps plain brand and model fields and the app still starts. The process log records the failed read and its cause.
+- `DEVICE_CATALOG_PATH` is a JSON file in the `brand` directory next to the app. The value is the path the backend reads, for example `/brand/devices.json`. When the path is empty, or the file is missing, or the JSON is invalid, the screen keeps plain brand and model fields and the app still starts. The process log records the failed read and its cause. The catalog file and the model images stay on the machine. The repository does not include them.
 
 The file is an array. Each element is one brand.
 
