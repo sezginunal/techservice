@@ -1,5 +1,14 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ApiError, photoSrc, request, statusPhotoSrc, type Device, type ServiceState } from "./api";
+import {
+  ApiError,
+  photoSrc,
+  request,
+  statusPhotoSrc,
+  type Device,
+  type ServiceComment,
+  type ServiceState,
+  type User,
+} from "./api";
 import { ModelIcon } from "./ModelIcon";
 import { choosableStates, formatWhen, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
@@ -7,16 +16,19 @@ import { PhotoButton } from "./PhotoView";
 import { fileProblem, problemText } from "./problems";
 import { SpareService } from "./SpareService";
 
+const maxCommentLen = 4000;
+
 type Props = {
   copy: Copy;
   lang: Lang;
   states: ServiceState[];
+  user: User;
   id: string;
   onNavigate: (path: string) => void;
   onUnauthorized: () => void;
 };
 
-export function DeviceDetail({ copy, lang, states, id, onNavigate, onUnauthorized }: Props) {
+export function DeviceDetail({ copy, lang, states, user, id, onNavigate, onUnauthorized }: Props) {
   const [device, setDevice] = useState<Device | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [next, setNext] = useState("");
@@ -25,6 +37,13 @@ export function DeviceDetail({ copy, lang, states, id, onNavigate, onUnauthorize
   const [fileKey, setFileKey] = useState(0);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const [commentSaving, setCommentSaving] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -76,6 +95,89 @@ export function DeviceDetail({ copy, lang, states, id, onNavigate, onUnauthorize
       setStatusError(problemText(copy, err));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function saveComment(event: FormEvent) {
+    event.preventDefault();
+    if (!device) {
+      return;
+    }
+    const text = draft.trim();
+    if (!text) {
+      setCommentError(problemText(copy, new ApiError("validation", { missing: ["comment"] })));
+      return;
+    }
+    if ([...text].length > maxCommentLen) {
+      setCommentError(problemText(copy, new ApiError("validation", { tooLong: ["comment"] })));
+      return;
+    }
+    setCommentSaving(true);
+    setCommentError(null);
+    try {
+      const saved = await request<ServiceComment>(`/api/services/${device.id}/comments`, {
+        method: "POST",
+        body: JSON.stringify({ text: draft }),
+      });
+      setDevice({ ...device, comments: [...device.comments, saved] });
+      setDraft("");
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.code === "unauthorized") {
+        onUnauthorized();
+        return;
+      }
+      setCommentError(problemText(copy, err));
+    } finally {
+      setCommentSaving(false);
+    }
+  }
+
+  function startEdit(comment: ServiceComment) {
+    setEditingId(comment.id);
+    setEditText(comment.text);
+    setEditError(null);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditText("");
+    setEditError(null);
+  }
+
+  async function saveEdit(event: FormEvent) {
+    event.preventDefault();
+    if (!device || editingId == null) {
+      return;
+    }
+    const text = editText.trim();
+    if (!text) {
+      setEditError(problemText(copy, new ApiError("validation", { missing: ["comment"] })));
+      return;
+    }
+    if ([...text].length > maxCommentLen) {
+      setEditError(problemText(copy, new ApiError("validation", { tooLong: ["comment"] })));
+      return;
+    }
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      const saved = await request<ServiceComment>(`/api/services/${device.id}/comments/${editingId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ text: editText }),
+      });
+      setDevice({
+        ...device,
+        comments: device.comments.map((item) => (item.id === saved.id ? saved : item)),
+      });
+      cancelEdit();
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.code === "unauthorized") {
+        onUnauthorized();
+        return;
+      }
+      setEditError(problemText(copy, err));
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -134,6 +236,59 @@ export function DeviceDetail({ copy, lang, states, id, onNavigate, onUnauthorize
         onNavigate={onNavigate}
         onUnauthorized={onUnauthorized}
       />
+      <section className="panel stack">
+        <h2>{copy.comments}</h2>
+        {device.comments.length === 0 ? <p className="muted">{copy.noComments}</p> : null}
+        {device.comments.map((comment) => (
+          <div className="stack part" key={comment.id}>
+            {editingId === comment.id ? (
+              <form className="stack" onSubmit={(event) => void saveEdit(event)}>
+                <label className="field">
+                  {copy.comment}
+                  <textarea value={editText} onChange={(event) => setEditText(event.target.value)} />
+                </label>
+                {editError ? <p className="alert">{editError}</p> : null}
+                <div className="row">
+                  <button className="button" type="submit" disabled={editSaving}>
+                    {copy.save}
+                  </button>
+                  <button className="button" type="button" onClick={cancelEdit} disabled={editSaving}>
+                    {copy.cancel}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <p>
+                  {formatWhen(comment.createdAt, lang)} · {comment.authorUsername}
+                  {comment.edited ? (
+                    <>
+                      {" "}
+                      · {copy.edited} {formatWhen(comment.updatedAt, lang)}
+                    </>
+                  ) : null}
+                </p>
+                <p>{comment.text}</p>
+                {comment.authorId === user.id ? (
+                  <button className="button linkish" type="button" onClick={() => startEdit(comment)}>
+                    {copy.edit}
+                  </button>
+                ) : null}
+              </>
+            )}
+          </div>
+        ))}
+        <form className="stack" onSubmit={(event) => void saveComment(event)}>
+          <label className="field">
+            {copy.comment}
+            <textarea value={draft} onChange={(event) => setDraft(event.target.value)} />
+          </label>
+          {commentError ? <p className="alert">{commentError}</p> : null}
+          <button className="button" type="submit" disabled={commentSaving}>
+            {copy.save}
+          </button>
+        </form>
+      </section>
       <form className="panel stack" onSubmit={(event) => void saveStatus(event)}>
         <h2>{copy.changeStatus}</h2>
         <label className="field">

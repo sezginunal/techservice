@@ -40,6 +40,7 @@ func Migrate(ctx context.Context, database *sql.DB) error {
 		{1, false, migration1},
 		{2, true, migration2},
 		{3, false, migration3},
+		{4, false, migration4},
 	}
 	for _, step := range steps {
 		if version >= step.version {
@@ -284,6 +285,25 @@ func migration3(ctx context.Context, tx *sql.Tx) error {
 	`)
 	if err != nil {
 		return fmt.Errorf("migrate 3: %w", err)
+	}
+	return nil
+}
+
+func migration4(ctx context.Context, tx *sql.Tx) error {
+	_, err := tx.ExecContext(ctx, `
+		CREATE TABLE service_comments (
+			id INTEGER PRIMARY KEY,
+			service_id TEXT NOT NULL REFERENCES services(id),
+			author_id INTEGER NOT NULL REFERENCES users(id),
+			author_username TEXT NOT NULL,
+			body TEXT NOT NULL,
+			created_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL
+		);
+		CREATE INDEX service_comments_service ON service_comments (service_id, created_at, id);
+	`)
+	if err != nil {
+		return fmt.Errorf("migrate 4: %w", err)
 	}
 	return nil
 }

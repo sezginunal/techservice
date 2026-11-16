@@ -75,6 +75,7 @@ function fieldLine(copy: Copy, field: string, kind: "missing" | "invalid") {
     nameEn: copy.englishNameRequired,
     nameTr: copy.turkishNameRequired,
     quantity: copy.quantityRequired,
+    comment: copy.commentRequired,
   };
   return required[field] ?? copy.unexpected;
 }
@@ -114,6 +115,7 @@ function fieldLabel(copy: Copy, field: string) {
     nameTr: copy.turkishName,
     spareNote: copy.optionalNote,
     quantity: copy.quantity,
+    comment: copy.comment,
   };
   return labels[field] ?? field;
 }

@@ -462,6 +462,7 @@ func deviceJSON(device store.Device, images catalog.Index) map[string]any {
 		"parts":     parts,
 		"photos":    photosJSON(device.Photos),
 		"history":   historyJSON(device.History),
+		"comments":  commentsJSON(device.Comments),
 	}
 }
 
