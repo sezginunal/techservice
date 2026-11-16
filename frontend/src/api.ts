@@ -66,6 +66,16 @@ export type StatusChange = {
   createdAt: string;
 };
 
+export type ServiceComment = {
+  id: number;
+  authorId: number;
+  authorUsername: string;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+  edited: boolean;
+};
+
 export type Device = {
   id: string;
   deviceId: string;
@@ -80,6 +90,7 @@ export type Device = {
   parts: Part[];
   photos: Photo[];
   history: StatusChange[];
+  comments: ServiceComment[];
 };
 
 export type HomeDay = {

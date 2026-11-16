@@ -221,6 +221,7 @@ export function App() {
         copy={copy}
         lang={lang}
         states={states}
+        user={user}
         id={service[1]}
         onNavigate={go}
         onUnauthorized={unauthorized}

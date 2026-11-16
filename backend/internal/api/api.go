@@ -51,6 +51,8 @@ func New(database *sql.DB, uploadPath string, shop brand.Brand, devices catalog.
 	mux.HandleFunc("GET /api/services/{id}/photos/{photoId}", authenticated(database, getPhoto(database, uploadPath)))
 	mux.HandleFunc("GET /api/services/{id}/status/{changeId}/photo", authenticated(database, getStatusPhoto(database, uploadPath)))
 	mux.HandleFunc("POST /api/services/{id}/status", authenticated(database, changeDeviceStatus(database, uploadPath, devices)))
+	mux.HandleFunc("POST /api/services/{id}/comments", authenticated(database, addServiceComment(database)))
+	mux.HandleFunc("PATCH /api/services/{id}/comments/{commentId}", authenticated(database, updateServiceComment(database)))
 	mux.HandleFunc("GET /api/services/{id}", authenticated(database, getDevice(database, devices)))
 	mux.HandleFunc("PUT /api/services/{id}", authenticated(database, updateDevice(database, uploadPath, devices)))
 	mux.HandleFunc("GET /api/devices/match", authenticated(database, matchDevice(database)))

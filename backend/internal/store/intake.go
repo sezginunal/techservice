@@ -46,6 +46,7 @@ type Device struct {
 	Parts     []Part
 	Photos    []Photo
 	History   []StatusChange
+	Comments  []ServiceComment
 }
 
 type DeviceListItem struct {
@@ -920,6 +921,7 @@ func loadDevice(ctx context.Context, q queryer, id string) (Device, error) {
 	device.Parts = []Part{}
 	device.Photos = []Photo{}
 	device.History = []StatusChange{}
+	device.Comments = []ServiceComment{}
 	partRows, err := q.QueryContext(ctx, `
 		SELECT id, name, note FROM parts WHERE service_id = ? ORDER BY position, id
 	`, id)
@@ -977,6 +979,11 @@ func loadDevice(ctx context.Context, q queryer, id string) (Device, error) {
 		return Device{}, err
 	}
 	device.History = history
+	comments, err := loadServiceComments(ctx, q, id)
+	if err != nil {
+		return Device{}, err
+	}
+	device.Comments = comments
 	return device, nil
 }
 
