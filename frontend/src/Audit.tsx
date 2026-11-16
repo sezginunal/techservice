@@ -3,6 +3,7 @@ import { ApiError, request, type AuditItem, type Page, type Role, type ServiceSt
 import { DateField } from "./DateField";
 import { dayStart, formatWhen, nextDay, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
+import { Icon } from "./icons";
 import { End, usePaused, useWindow } from "./list";
 import { problemText } from "./problems";
 
@@ -91,12 +92,16 @@ export function Audit({ copy, lang, states, onUnauthorized }: Props) {
   const empty = !list.loading && list.items.length === 0;
 
   return (
-    <>
+    <div className="page">
       <header className="page-head">
-        <h1>{copy.audit}</h1>
-        <p className="muted">{copy.auditLead}</p>
+        <div className="page-title">
+          <div className="page-title-text">
+            <h1>{copy.audit}</h1>
+            <p className="lead">{copy.auditLead}</p>
+          </div>
+        </div>
       </header>
-      <form className="filters" onSubmit={submit}>
+      <form className="panel filters" onSubmit={submit}>
         <DateField copy={copy} lang={lang} label={copy.fromDate} value={from} onChange={setFrom} />
         <DateField copy={copy} lang={lang} label={copy.toDate} value={to} onChange={setTo} />
         <label className="field">
@@ -130,34 +135,54 @@ export function Audit({ copy, lang, states, onUnauthorized }: Props) {
         </button>
       </form>
       {list.error ? <p className="alert">{problemText(copy, list.error)}</p> : null}
-      <div className="panel table-wrap">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{copy.when}</th>
-              <th>{copy.person}</th>
-              <th>{copy.role}</th>
-              <th>{copy.event}</th>
-              <th>{copy.subject}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.items.map((item) => (
-              <tr key={item.id}>
-                <td data-label={copy.when}>{formatWhen(item.at, lang)}</td>
-                <td data-label={copy.person}>{item.actorUsername}</td>
-                <td data-label={copy.role}>{copy[item.actorRole]}</td>
-                <td data-label={copy.event}>{eventLabel(copy, item.event)}</td>
-                <td data-label={copy.subject}>{subjectOf(copy, lang, states, item)}</td>
+      <div className="panel flush">
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{copy.when}</th>
+                <th>{copy.person}</th>
+                <th>{copy.role}</th>
+                <th>{copy.event}</th>
+                <th>{copy.subject}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {empty ? <p className="muted empty">{filtered ? copy.noAuditMatches : copy.emptyAudit}</p> : null}
-        {list.loading ? <p className="muted empty">{copy.loading}</p> : null}
+            </thead>
+            <tbody>
+              {list.items.map((item) => (
+                <tr key={item.id}>
+                  <td data-label={copy.when} className="cell-nowrap">
+                    {formatWhen(item.at, lang)}
+                  </td>
+                  <td data-label={copy.person} className="cell-strong">
+                    {item.actorUsername}
+                  </td>
+                  <td data-label={copy.role}>{copy[item.actorRole]}</td>
+                  <td data-label={copy.event}>{eventLabel(copy, item.event)}</td>
+                  <td data-label={copy.subject} className="wrap">
+                    {subjectOf(copy, lang, states, item)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {empty ? (
+          <div className="empty">
+            <span className="empty-icon">
+              <Icon name="audit" size={18} />
+            </span>
+            <span>{filtered ? copy.noAuditMatches : copy.emptyAudit}</span>
+          </div>
+        ) : null}
+        {list.loading ? (
+          <div className="loading">
+            <span className="spinner" />
+            {copy.loading}
+          </div>
+        ) : null}
         <End enabled={list.hasMore && !list.loading} onEnd={list.more} />
       </div>
-    </>
+    </div>
   );
 }
 

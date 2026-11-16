@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Copy } from "./i18n";
+import { Icon } from "./icons";
 
 type Props = {
   src: string;
@@ -9,13 +10,13 @@ type Props = {
   onUnauthorized?: () => void;
 };
 
-export function PhotoButton({ src, name, copy, className, onUnauthorized }: Props) {
+export function PhotoButton({ src, name, copy, onUnauthorized }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
       <button className="photo-open" type="button" aria-label={copy.open} onClick={() => setOpen(true)}>
-        <img className={className} src={src} alt="" />
+        <img src={src} alt="" />
       </button>
       {open ? (
         <PhotoView src={src} name={name} copy={copy} onClose={() => setOpen(false)} onUnauthorized={onUnauthorized} />
@@ -78,18 +79,34 @@ function PhotoView({
   }
 
   return (
-    <div className="photo-view" role="dialog" aria-modal="true" aria-label={copy.open} onClick={onClose}>
-      <div className="photo-view-frame" onClick={(event) => event.stopPropagation()}>
+    <div className="lightbox" role="dialog" aria-modal="true" aria-label={copy.open} onClick={onClose}>
+      <div className="lightbox-bar">
+        <button
+          className="button glass"
+          type="button"
+          disabled={saving}
+          onClick={(event) => {
+            event.stopPropagation();
+            void download();
+          }}
+        >
+          <Icon name="download" size={16} />
+          {copy.download}
+        </button>
+        <button
+          className="icon-button glass"
+          type="button"
+          aria-label={copy.close}
+          onClick={(event) => {
+            event.stopPropagation();
+            onClose();
+          }}
+        >
+          <Icon name="close" size={18} />
+        </button>
+      </div>
+      <div className="lightbox-stage" onClick={(event) => event.stopPropagation()}>
         <img src={src} alt="" />
-        <div className="photo-view-actions">
-          <button className="button secondary" type="button" disabled={saving} onClick={() => void download()}>
-            <DownloadIcon />
-            {copy.download}
-          </button>
-          <button className="button secondary" type="button" onClick={onClose}>
-            {copy.close}
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -114,14 +131,4 @@ function extension(type: string) {
     return "webp";
   }
   return "";
-}
-
-function DownloadIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <path d="M12 4v10" />
-      <path d="M7 11l5 5 5-5" />
-      <path d="M5 20h14" />
-    </svg>
-  );
 }

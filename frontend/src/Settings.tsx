@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from "react";
 import { ApiError, request, type ServiceState } from "./api";
+import { statusTone } from "./format";
 import type { Copy, Lang } from "./i18n";
 import { problemText } from "./problems";
 
@@ -159,16 +160,22 @@ export function Settings({ copy, lang, states, onStates, onUnauthorized }: Props
   }
 
   return (
-    <>
+    <div className="page">
       <header className="page-head">
-        <h1>{copy.settings}</h1>
-        <p className="muted">{copy.settingsLead}</p>
+        <div className="page-title">
+          <div className="page-title-text">
+            <h1>{copy.settings}</h1>
+            <p className="lead">{copy.settingsLead}</p>
+          </div>
+        </div>
       </header>
-      <section className="stack">
-        <header>
-          <h2>{copy.serviceStates}</h2>
-          <p className="muted">{copy.serviceStatesLead}</p>
-        </header>
+      <section className="panel">
+        <div className="panel-head">
+          <div className="panel-title">
+            <h2>{copy.serviceStates}</h2>
+            <p>{copy.serviceStatesLead}</p>
+          </div>
+        </div>
         {error ? <p className="alert">{error}</p> : null}
         <div className="state-list">
           {states.map((state) => (
@@ -187,8 +194,12 @@ export function Settings({ copy, lang, states, onStates, onUnauthorized }: Props
           ))}
         </div>
       </section>
-      <form className="panel stack" onSubmit={(event) => void create(event)}>
-        <h2>{copy.addState}</h2>
+      <form className="panel" onSubmit={(event) => void create(event)}>
+        <div className="panel-head">
+          <div className="panel-title">
+            <h2>{copy.addState}</h2>
+          </div>
+        </div>
         <div className="state-add">
           <label className="field">
             {copy.englishName}
@@ -198,8 +209,8 @@ export function Settings({ copy, lang, states, onStates, onUnauthorized }: Props
             {copy.turkishName}
             <input value={nameTr} onChange={(event) => setNameTr(event.target.value)} />
           </label>
-          <label className="check">
-            <input type="checkbox" checked={showOnHome} onChange={(event) => setShowOnHome(event.target.checked)} />
+          <label className="toggle">
+            <input className="switch" type="checkbox" checked={showOnHome} onChange={(event) => setShowOnHome(event.target.checked)} />
             {copy.showOnHome}
           </label>
           <button className="button" type="submit">
@@ -207,7 +218,7 @@ export function Settings({ copy, lang, states, onStates, onUnauthorized }: Props
           </button>
         </div>
       </form>
-    </>
+    </div>
   );
 }
 
@@ -275,6 +286,7 @@ function StateCard({
     <article
       className={dragging ? "state-card dragging" : state.active ? "state-card" : "state-card off"}
       data-state={state.code}
+      data-tone={statusTone(state.code)}
       onDragOver={dragOver}
       onDrop={drop}
     >
@@ -310,6 +322,9 @@ function StateCard({
         )}
       </div>
       <div className="state-flags">
+        <span className={state.active ? "badge" : "badge off"} data-tone={state.active ? statusTone(state.code) : undefined}>
+          {state.active ? copy.stateActive : copy.stateInactive}
+        </span>
         {state.locked ? (
           <p className="muted state-note">{note}</p>
         ) : (

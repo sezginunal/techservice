@@ -6,6 +6,19 @@ export type NamedState = {
   nameTr: string;
 };
 
+export function statusTone(status: string) {
+  if (status === "delivered") {
+    return "done";
+  }
+  if (status === "cancelled") {
+    return "stop";
+  }
+  if (status === "repair_warranty" || status === "repair_out_of_warranty") {
+    return "work";
+  }
+  return "open";
+}
+
 export function statusLabel(status: string, states: NamedState[], lang: Lang) {
   const item = states.find((state) => state.code === status);
   if (!item) {

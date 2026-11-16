@@ -89,14 +89,22 @@ export function Users({ copy, onUnauthorized }: { copy: Copy; onUnauthorized: ()
   }
 
   return (
-    <>
+    <div className="page">
       <header className="page-head">
-        <h1>{copy.users}</h1>
-        <p className="muted">{copy.usersLead}</p>
+        <div className="page-title">
+          <div className="page-title-text">
+            <h1>{copy.users}</h1>
+            <p className="lead">{copy.usersLead}</p>
+          </div>
+        </div>
       </header>
-      <form className="panel stack" onSubmit={(event) => void create(event)}>
-        <h2>{copy.createUser}</h2>
-        <div className="form-row">
+      <form className="panel" onSubmit={(event) => void create(event)}>
+        <div className="panel-head">
+          <div className="panel-title">
+            <h2>{copy.createUser}</h2>
+          </div>
+        </div>
+        <div className="fields-3">
           <label className="field">
             {copy.username}
             <input
@@ -118,31 +126,35 @@ export function Users({ copy, onUnauthorized }: { copy: Copy; onUnauthorized: ()
             {copy.role}
             <RoleSelect copy={copy} value={role} onChange={setRole} />
           </label>
+        </div>
+        {error ? <p className="alert">{error}</p> : null}
+        <div className="form-actions">
           <button className="button" type="submit">
             {copy.createUser}
           </button>
         </div>
-        {error ? <p className="alert">{error}</p> : null}
       </form>
-      <div className="panel table-wrap">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{copy.username}</th>
-              <th>{copy.role}</th>
-              <th>{copy.newPassword}</th>
-              <th>{copy.active}</th>
-              <th>{copy.save}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <UserRow key={user.id} copy={copy} user={user} onSave={save} />
-            ))}
-          </tbody>
-        </table>
+      <div className="panel flush">
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{copy.username}</th>
+                <th>{copy.role}</th>
+                <th>{copy.newPassword}</th>
+                <th>{copy.active}</th>
+                <th>{copy.save}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <UserRow key={user.id} copy={copy} user={user} onSave={save} />
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -162,7 +174,7 @@ function UserRow({
 
   return (
     <tr>
-      <td>
+      <td data-label={copy.username}>
         <form
           id={formId}
           onSubmit={(event) => {
@@ -175,12 +187,14 @@ function UserRow({
           }}
         />
         <div className="who">
-          <span className="avatar" aria-hidden="true">
+          <span className="avatar" data-tone="teal" aria-hidden="true">
             {initials(user.username)}
           </span>
-          <div className="stack">
+          <div className="who-text">
             <span className="who-name">{user.username}</span>
-            <span className={user.active ? "badge" : "badge off"}>{user.active ? copy.active : copy.inactive}</span>
+            <span className="badge" data-tone={user.active ? "green" : "gray"}>
+              <span>{user.active ? copy.active : copy.inactive}</span>
+            </span>
           </div>
         </div>
       </td>
@@ -197,7 +211,7 @@ function UserRow({
           onChange={(event) => setPassword(event.target.value)}
         />
       </td>
-      <td>
+      <td data-label={copy.active}>
         <label className="check">
           <input
             form={formId}
@@ -208,7 +222,7 @@ function UserRow({
           {copy.active}
         </label>
       </td>
-      <td>
+      <td className="row-action" data-label={copy.save}>
         <button className="button" type="submit" form={formId}>
           {copy.save}
         </button>

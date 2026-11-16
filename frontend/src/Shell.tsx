@@ -1,10 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { logoSrc, type Brand, type User } from "./api";
 import { shopName, type Copy, type Lang } from "./i18n";
+import { Icon, type IconName } from "./icons";
 import { LanguageSwitch } from "./LanguageSwitch";
 import { appVersion } from "./version";
 
-export type NavIcon = "home" | "users" | "devices" | "customers" | "spare" | "audit" | "settings";
+export type NavIcon = Extract<IconName, "home" | "users" | "services" | "customers" | "spare" | "audit" | "settings">;
 
 export type NavItem = {
   path: string;
@@ -25,8 +26,13 @@ type ShellProps = {
   children: ReactNode;
 };
 
+const primaryPaths = ["/", "/services", "/customers", "/spare-parts"] as const;
+
 export function Shell({ copy, lang, user, brand, path, items, onLang, onNavigate, onSignOut, children }: ShellProps) {
   const [open, setOpen] = useState(false);
+  const primary = items.filter((item) => (primaryPaths as readonly string[]).includes(item.path));
+  const secondary = items.filter((item) => !(primaryPaths as readonly string[]).includes(item.path));
+  const moreActive = secondary.some((item) => current(path, item.path));
 
   useEffect(() => {
     setOpen(false);
@@ -46,8 +52,8 @@ export function Shell({ copy, lang, user, brand, path, items, onLang, onNavigate
   }, [open]);
 
   return (
-    <div className="app">
-      <aside className="sidebar" data-open={open ? "true" : "false"}>
+    <div className="app" data-menu={open ? "open" : undefined}>
+      <aside className="sidebar">
         <button className="brand" type="button" onClick={() => onNavigate("/")}>
           <BrandMark copy={copy} brand={brand} />
         </button>
@@ -61,24 +67,28 @@ export function Shell({ copy, lang, user, brand, path, items, onLang, onNavigate
               aria-current={current(path, item.path) ? "page" : undefined}
               onClick={() => onNavigate(item.path)}
             >
-              <Icon name={item.icon} />
+              <Icon name={item.icon} size={18} />
               {item.label}
             </button>
           ))}
         </nav>
         <div className="sidebar-foot">
           <div className="account">
-            <span className="avatar" aria-hidden="true">
+            <span className="avatar" data-tone="teal" aria-hidden="true">
               {initials(user.username)}
             </span>
             <span className="account-text">
               <strong>{user.username}</strong>
               <span>{copy[user.role]}</span>
             </span>
+            <button className="icon-button" type="button" aria-label={copy.signOut} onClick={onSignOut}>
+              <Icon name="logout" size={18} />
+            </button>
           </div>
-          <button className="button secondary" type="button" onClick={onSignOut}>
-            {copy.signOut}
-          </button>
+          <div className="sidebar-tools">
+            <LanguageSwitch copy={copy} lang={lang} onLang={onLang} />
+            <AppVersion copy={copy} />
+          </div>
         </div>
       </aside>
       {open ? (
@@ -86,14 +96,8 @@ export function Shell({ copy, lang, user, brand, path, items, onLang, onNavigate
       ) : null}
       <div className="inset">
         <header className="topbar">
-          <button
-            className="icon-button"
-            type="button"
-            aria-expanded={open}
-            aria-label={open ? copy.closeMenu : copy.menu}
-            onClick={() => setOpen((value) => !value)}
-          >
-            <Icon name="menu" />
+          <button className="brand" type="button" onClick={() => onNavigate("/")}>
+            <BrandMark copy={copy} brand={brand} />
           </button>
           <div className="topbar-end">
             <AppVersion copy={copy} />
@@ -101,6 +105,34 @@ export function Shell({ copy, lang, user, brand, path, items, onLang, onNavigate
           </div>
         </header>
         <main className="content">{children}</main>
+        <nav className="tabbar" aria-label={copy.general}>
+          {primary.map((item) => (
+            <button
+              key={item.path}
+              className="tab"
+              type="button"
+              aria-current={current(path, item.path) ? "page" : undefined}
+              onClick={() => onNavigate(item.path)}
+            >
+              <span className="tab-icon">
+                <Icon name={item.icon} size={18} />
+              </span>
+              <span className="tab-label">{item.label}</span>
+            </button>
+          ))}
+          <button
+            className="tab"
+            type="button"
+            aria-expanded={open}
+            aria-current={moreActive && !open ? "page" : undefined}
+            onClick={() => setOpen((value) => !value)}
+          >
+            <span className="tab-icon">
+              <Icon name={open ? "close" : "menu"} size={18} />
+            </span>
+            <span className="tab-label">{copy.more}</span>
+          </button>
+        </nav>
       </div>
     </div>
   );
@@ -129,7 +161,7 @@ export function AppVersion({ copy }: { copy: Copy }) {
 export function BrandMark({ copy, brand }: { copy: Copy; brand: Brand }) {
   return (
     <>
-      {brand.logo ? <img className="mark" src={logoSrc} alt="" /> : <Mark />}
+      {brand.logo ? <img className="mark" src={logoSrc} alt="" /> : <DefaultMark />}
       <span className="brand-name">
         <strong>{shopName(copy, brand.name)}</strong>
         <span>{copy.tagline}</span>
@@ -138,101 +170,10 @@ export function BrandMark({ copy, brand }: { copy: Copy; brand: Brand }) {
   );
 }
 
-function Mark() {
+function DefaultMark() {
   return (
     <span className="mark" aria-hidden="true">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4L15 12l-3-3 2.7-2.7z" />
-      </svg>
+      <Icon name="services" size={16} />
     </span>
-  );
-}
-
-function Icon({ name }: { name: NavIcon | "menu" }) {
-  const props = {
-    width: 18,
-    height: 18,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 2,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    "aria-hidden": true as const,
-  };
-  if (name === "menu") {
-    return (
-      <svg {...props}>
-        <path d="M4 7h16" />
-        <path d="M4 12h16" />
-        <path d="M4 17h16" />
-      </svg>
-    );
-  }
-  if (name === "users") {
-    return (
-      <svg {...props}>
-        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="3" />
-        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-    );
-  }
-  if (name === "devices") {
-    return (
-      <svg {...props}>
-        <rect x="4" y="4" width="16" height="12" rx="2" />
-        <path d="M8 20h8" />
-        <path d="M12 16v4" />
-      </svg>
-    );
-  }
-  if (name === "spare") {
-    return (
-      <svg {...props}>
-        <path d="M21 8l-9-5-9 5 9 5 9-5z" />
-        <path d="M3 8v8l9 5 9-5V8" />
-        <path d="M12 13v8" />
-      </svg>
-    );
-  }
-  if (name === "customers") {
-    return (
-      <svg {...props}>
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-        <circle cx="12" cy="7" r="3" />
-      </svg>
-    );
-  }
-  if (name === "settings") {
-    return (
-      <svg {...props}>
-        <path d="M4 7h16" />
-        <path d="M4 17h16" />
-        <circle cx="8" cy="7" r="2" />
-        <circle cx="16" cy="17" r="2" />
-      </svg>
-    );
-  }
-  if (name === "audit") {
-    return (
-      <svg {...props}>
-        <path d="M8 6h13" />
-        <path d="M8 12h13" />
-        <path d="M8 18h13" />
-        <path d="M3 6h.01" />
-        <path d="M3 12h.01" />
-        <path d="M3 18h.01" />
-      </svg>
-    );
-  }
-  return (
-    <svg {...props}>
-      <rect x="3" y="3" width="7" height="9" rx="1" />
-      <rect x="14" y="3" width="7" height="5" rx="1" />
-      <rect x="14" y="12" width="7" height="9" rx="1" />
-      <rect x="3" y="16" width="7" height="5" rx="1" />
-    </svg>
   );
 }

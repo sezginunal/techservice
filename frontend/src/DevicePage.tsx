@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { ApiError, request, type DeviceService, type Identity, type Page, type ServiceState } from "./api";
 import { ModelIcon } from "./ModelIcon";
-import { formatWhen, statusLabel } from "./format";
+import { formatWhen, statusLabel, statusTone } from "./format";
 import type { Copy, Lang } from "./i18n";
+import { Icon } from "./icons";
 import { End, useWindow } from "./list";
 import { problemText } from "./problems";
 
@@ -51,34 +52,76 @@ export function DevicePage({ copy, lang, states, id, onNavigate, onUnauthorized 
   }, [list.error, onUnauthorized]);
 
   if (!device) {
-    return <p className={error ? "alert" : "muted"}>{error ?? copy.loading}</p>;
+    return (
+      <div className="page">
+        {error ? <p className="alert">{error}</p> : (
+          <div className="loading">
+            <span className="spinner" />
+            {copy.loading}
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
-    <>
+    <div className="page">
       <header className="page-head">
-        <h1 className="with-icon">
-          {device.image ? <ModelIcon brand={device.brand} model={device.model} /> : null}
-          {device.brand} {device.model}
-        </h1>
-        <p className="muted">
-          {copy.serial}: {device.serial}
-        </p>
-      </header>
-      <section className="panel stack">
-        <h2>{copy.customerDevices}</h2>
-        {list.items.map((item) => (
-          <button className="button secondary" type="button" key={item.id} onClick={() => onNavigate(`/services/${item.id}`)}>
-            <strong>{formatWhen(item.createdAt, lang)}</strong>
-            <span className="muted">
-              {item.customerName} · {statusLabel(item.status, states, lang)}
+        <div className="page-title">
+          <div className="page-title-main">
+            <span className="page-media">
+              {device.image ? <ModelIcon brand={device.brand} model={device.model} /> : <Icon name="device" size={20} />}
             </span>
-          </button>
-        ))}
+            <div className="page-title-text">
+              <h1>
+                {device.brand} {device.model}
+              </h1>
+              <p className="meta">
+                <span className="meta-item">
+                  <Icon name="hash" size={14} />
+                  <span className="mono">{device.serial}</span>
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </header>
+      <section className="panel flush">
+        <div className="panel-head">
+          <div className="panel-title">
+            <h2>{copy.customerDevices}</h2>
+          </div>
+        </div>
+        {list.items.length > 0 ? (
+          <ul className="rows">
+            {list.items.map((item) => (
+              <li key={item.id}>
+                <button className="row" type="button" onClick={() => onNavigate(`/services/${item.id}`)}>
+                  <span className="row-main">
+                    <span className="row-text">
+                      <span className="row-title">{formatWhen(item.createdAt, lang)}</span>
+                      <span className="row-sub">{item.customerName}</span>
+                    </span>
+                  </span>
+                  <span className="row-end">
+                    <span className="badge" data-tone={statusTone(item.status)}>
+                      <span>{statusLabel(item.status, states, lang)}</span>
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {list.error ? <p className="alert">{problemText(copy, list.error)}</p> : null}
-        {list.loading ? <p className="muted">{copy.loading}</p> : null}
+        {list.loading ? (
+          <div className="loading">
+            <span className="spinner" />
+            {copy.loading}
+          </div>
+        ) : null}
         <End enabled={list.hasMore && !list.loading} onEnd={list.more} />
       </section>
-    </>
+    </div>
   );
 }

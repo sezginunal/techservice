@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, request, type Page, type ServiceState, type SpareMove, type SparePart } from "./api";
 import { wholeQuantity } from "./fields";
-import { formatWhen, statusLabel } from "./format";
+import { formatWhen, statusLabel, statusTone } from "./format";
 import type { Copy, Lang } from "./i18n";
+import { Icon } from "./icons";
 import { End, useWindow } from "./list";
 import { problemText } from "./problems";
 import { SpareField } from "./SpareField";
@@ -86,34 +87,70 @@ export function SparePartPage({ copy, lang, states, id, notice, onNavigate, onUn
   }
 
   if (!part) {
-    return <p className={error ? "alert" : "muted"}>{error ?? copy.loading}</p>;
+    return (
+      <div className="page">
+        {error ? <p className="alert">{error}</p> : (
+          <div className="loading">
+            <span className="spinner" />
+            {copy.loading}
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
-    <>
+    <div className="page">
       <header className="page-head">
-        <h1>
-          {part.brand} {part.model}
-        </h1>
-        <p className="muted">
-          {copy.inStock}: {part.onHand}
-        </p>
+        <ol className="crumbs">
+          <li>
+            <button className="link" type="button" onClick={() => onNavigate("/spare-parts")}>
+              {copy.spareParts}
+            </button>
+            <Icon name="chevronRight" size={14} />
+          </li>
+          <li aria-current="page">
+            {part.brand} {part.model}
+          </li>
+        </ol>
+        <div className="page-title">
+          <div className="page-title-text">
+            <h1>
+              {part.brand} {part.model}
+            </h1>
+            <p className="meta">
+              <span className="stock" data-tone={part.onHand === 0 ? "red" : part.onHand < 5 ? "amber" : "green"}>
+                {part.onHand}
+              </span>
+              <span className="meta-item">{copy.inStock}</span>
+            </p>
+          </div>
+        </div>
       </header>
-      {notice === "added" ? <p className="alert">{copy.spareAddedExisting}</p> : null}
-      <form className="panel stack" onSubmit={(event) => void saveIdentity(event)}>
-        <SpareField id="part-brand" label={copy.brand} value={brand} onChange={setBrand} onUnauthorized={onUnauthorized} />
-        <SpareField
-          id="part-model"
-          label={copy.model}
-          value={model}
-          brand={brand}
-          onChange={setModel}
-          onUnauthorized={onUnauthorized}
-        />
+      {notice === "added" ? <p className="alert" data-tone="success">{copy.spareAddedExisting}</p> : null}
+      <form className="panel" onSubmit={(event) => void saveIdentity(event)}>
+        <div className="panel-head">
+          <div className="panel-title">
+            <h2>{copy.correct}</h2>
+          </div>
+        </div>
+        <div className="fields-2">
+          <SpareField id="part-brand" label={copy.brand} value={brand} onChange={setBrand} onUnauthorized={onUnauthorized} />
+          <SpareField
+            id="part-model"
+            label={copy.model}
+            value={model}
+            brand={brand}
+            onChange={setModel}
+            onUnauthorized={onUnauthorized}
+          />
+        </div>
         {identityError ? <p className="alert">{identityError}</p> : null}
-        <button className="button" type="submit" disabled={savingIdentity}>
-          {copy.save}
-        </button>
+        <div className="form-actions">
+          <button className="button" type="submit" disabled={savingIdentity}>
+            {copy.save}
+          </button>
+        </div>
       </form>
       <StockForm
         copy={copy}
@@ -180,7 +217,7 @@ export function SparePartPage({ copy, lang, states, id, notice, onNavigate, onUn
         onNavigate={onNavigate}
         onUnauthorized={onUnauthorized}
       />
-    </>
+    </div>
   );
 }
 
@@ -256,22 +293,30 @@ function StockForm({
   }
 
   return (
-    <form className="panel stack" onSubmit={(event) => void submit(event)}>
-      <h2>{title}</h2>
-      <label className="field">
-        {copy.quantity}
-        <input inputMode="numeric" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
-      </label>
-      {withNote ? (
+    <form className="panel" onSubmit={(event) => void submit(event)}>
+      <div className="panel-head">
+        <div className="panel-title">
+          <h2>{title}</h2>
+        </div>
+      </div>
+      <div className="fields">
         <label className="field">
-          {copy.optionalNote}
-          <textarea value={note} onChange={(event) => setNote(event.target.value)} />
+          {copy.quantity}
+          <input inputMode="numeric" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
         </label>
-      ) : null}
+        {withNote ? (
+          <label className="field">
+            {copy.optionalNote}
+            <textarea value={note} onChange={(event) => setNote(event.target.value)} />
+          </label>
+        ) : null}
+      </div>
       {error ? <p className="alert">{error}</p> : null}
-      <button className="button" type="submit" disabled={disabled || saving}>
-        {submitLabel}
-      </button>
+      <div className="form-actions">
+        <button className="button" type="submit" disabled={disabled || saving}>
+          {submitLabel}
+        </button>
+      </div>
     </form>
   );
 }
@@ -317,8 +362,12 @@ function MoveList({
   const none = !list.loading && list.items.length === 0;
 
   return (
-    <section className="panel stack">
-      <h2>{title}</h2>
+    <section className="panel flush">
+      <div className="panel-head">
+        <div className="panel-title">
+          <h2>{title}</h2>
+        </div>
+      </div>
       {list.error ? <p className="alert">{problemText(copy, list.error)}</p> : null}
       <div className="table-wrap">
         <table className="table">
@@ -348,14 +397,20 @@ function MoveList({
                   <>
                     <td data-label={copy.device}>
                       <button
-                        className="button linkish"
+                        className="link"
                         type="button"
                         onClick={() => onNavigate(`/services/${move.serviceId}`)}
                       >
                         {move.deviceBrand} {move.deviceModel} · {move.serial}
                       </button>
                     </td>
-                    <td data-label={copy.status}>{move.status ? statusLabel(move.status, states, lang) : ""}</td>
+                    <td data-label={copy.status}>
+                      {move.status ? (
+                        <span className="badge" data-tone={statusTone(move.status)}>
+                          {statusLabel(move.status, states, lang)}
+                        </span>
+                      ) : null}
+                    </td>
                   </>
                 ) : null}
                 <td data-label={copy.optionalNote}>{move.note}</td>

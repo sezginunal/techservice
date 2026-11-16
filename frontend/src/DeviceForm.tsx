@@ -4,6 +4,7 @@ import { ApiError, photoSrc, request, type CatalogBrand, type CatalogModel, type
 import { ModelIcon } from "./ModelIcon";
 import { formatWhen, statusLabel } from "./format";
 import type { Copy, Lang } from "./i18n";
+import { Icon } from "./icons";
 import { End, usePaused, useWindow } from "./list";
 import { PhotoButton } from "./PhotoView";
 import { emailOk, phoneOk } from "./fields";
@@ -328,62 +329,51 @@ export function DeviceForm({ copy, lang, states, mode, deviceId, customerId, onN
   }
 
   if (!ready) {
-    return <p className="muted">{error ?? copy.loading}</p>;
+    return (
+      <div className="page">
+        {error ? <p className="alert">{error}</p> : (
+          <div className="loading">
+            <span className="spinner" />
+            {copy.loading}
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
-    <form className="stack" onSubmit={(event) => void save(event)}>
-      <header className="page-head row">
-        <div>
-          <h1>{editing ? copy.correct : copy.newDevice}</h1>
+    <form className="page form-page" onSubmit={(event) => void save(event)}>
+      <header className="page-head">
+        <div className="page-title">
+          <div className="page-title-text">
+            <h1>{editing ? copy.correct : copy.newDevice}</h1>
+          </div>
         </div>
-        <button
-          className="button secondary"
-          type="button"
-          onClick={() => onNavigate(editing && deviceId ? `/services/${deviceId}` : "/services")}
-        >
-          {copy.back}
-        </button>
       </header>
 
-      <section className="panel stack">
-        <h2>{copy.customer}</h2>
+      <section className="panel">
+        <div className="panel-head">
+          <div className="panel-title">
+            <h2>{copy.customer}</h2>
+          </div>
+        </div>
         {!editing && selected ? (
-          <>
-            {selected ? (
-              <div className="stack">
+          <div className="selected-customer">
+            <div className="person">
+              <div className="thing-text">
                 <p className="muted">{copy.selectedCustomer}</p>
-                <strong>{selected.name}</strong>
-                <span>{selected.phone}</span>
-                <span>{selected.email}</span>
-                <span>{selected.address}</span>
-                <button className="button secondary" type="button" onClick={() => setSelected(null)}>
-                  {copy.clearCustomer}
-                </button>
+                <strong className="person-name">{selected.name}</strong>
+                <span className="thing-sub">
+                  {[selected.phone, selected.email, selected.address].filter(Boolean).join(" · ")}
+                </span>
               </div>
-            ) : (
-              <div className="split">
-                <label className="field">
-                  {copy.customerName}
-                  <input value={customerName} onChange={(event) => setCustomerName(event.target.value)} />
-                </label>
-                <label className="field">
-                  {copy.phone}
-                  <input value={phone} inputMode="tel" autoComplete="tel" onChange={(event) => setPhone(event.target.value)} />
-                </label>
-                <label className="field">
-                  {copy.email}
-                  <input value={email} inputMode="email" autoComplete="email" onChange={(event) => setEmail(event.target.value)} />
-                </label>
-                <label className="field">
-                  {copy.address}
-                  <input value={address} autoComplete="street-address" onChange={(event) => setAddress(event.target.value)} />
-                </label>
-              </div>
-            )}
-          </>
+            </div>
+            <button className="button secondary" type="button" onClick={() => setSelected(null)}>
+              {copy.clearCustomer}
+            </button>
+          </div>
         ) : (
-          <>
+          <div className="fields">
             <label className="field">
               {copy.search}
               <input
@@ -393,10 +383,10 @@ export function DeviceForm({ copy, lang, states, mode, deviceId, customerId, onN
               />
             </label>
             {results.length > 0 ? (
-              <div className="choices">
+              <div className="results">
                 {results.map((customer) => (
                   <button
-                    className="button secondary"
+                    className="result"
                     type="button"
                     key={customer.id}
                     onClick={() => {
@@ -413,16 +403,18 @@ export function DeviceForm({ copy, lang, states, mode, deviceId, customerId, onN
                       setCustomerDraft("");
                     }}
                   >
-                    <strong>{customer.name}</strong>
-                    <span className="muted">
-                      {[customer.phone, customer.email, customer.address].filter(Boolean).join(" · ")}
+                    <span className="thing-text">
+                      <strong className="thing-title">{customer.name}</strong>
+                      <span className="thing-sub">
+                        {[customer.phone, customer.email, customer.address].filter(Boolean).join(" · ")}
+                      </span>
                     </span>
                   </button>
                 ))}
               </div>
             ) : null}
             {resultsMore ? <p className="muted">{copy.keepTyping}</p> : null}
-            <div className="split">
+            <div className="fields-2">
               <label className="field">
                 {copy.customerName}
                 <input value={customerName} onChange={(event) => setCustomerName(event.target.value)} />
@@ -455,13 +447,17 @@ export function DeviceForm({ copy, lang, states, mode, deviceId, customerId, onN
                 {copy.clearCustomer}
               </button>
             ) : null}
-          </>
+          </div>
         )}
       </section>
 
-      <section className="panel stack">
-        <h2>{copy.device}</h2>
-        <div className="split">
+      <section className="panel">
+        <div className="panel-head">
+          <div className="panel-title">
+            <h2>{copy.device}</h2>
+          </div>
+        </div>
+        <div className="fields-2">
           <Suggest
             label={copy.brand}
             value={brand}
@@ -484,19 +480,28 @@ export function DeviceForm({ copy, lang, states, mode, deviceId, customerId, onN
         {!editing && shopServiceId ? (
           <p className="alert">
             {copy.deviceInShop}{" "}
-            <button className="button linkish" type="button" onClick={() => onNavigate(`/services/${shopServiceId}`)}>
+            <button className="link" type="button" onClick={() => onNavigate(`/services/${shopServiceId}`)}>
               {copy.openService}
             </button>
           </p>
         ) : null}
         {!editing && earlier.items.length > 0 ? (
-          <div className="stack">
-            <h2>{copy.earlierServices}</h2>
-            {earlier.items.map((item) => (
-              <p key={item.id}>
-                {formatWhen(item.createdAt, lang)} · {item.customerName} · {item.phone} · {statusLabel(item.status, states, lang)}
-              </p>
-            ))}
+          <div className="earlier">
+            <h3>{copy.earlierServices}</h3>
+            <ul className="rows">
+              {earlier.items.map((item) => (
+                <li key={item.id}>
+                  <div className="row row-static">
+                    <span className="row-text">
+                      <span className="row-title">{item.customerName}</span>
+                      <span className="row-sub">
+                        {formatWhen(item.createdAt, lang)} · {item.phone} · {statusLabel(item.status, states, lang)}
+                      </span>
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
             <End enabled={earlier.hasMore && !earlier.loading} onEnd={earlier.more} />
           </div>
         ) : null}
@@ -523,29 +528,33 @@ export function DeviceForm({ copy, lang, states, mode, deviceId, customerId, onN
         />
       </section>
 
-      <section className="panel stack">
-        <div className="row">
-          <h2>{copy.parts}</h2>
-          <button
-            className="button secondary"
-            type="button"
-            onClick={() => {
-              const key = localKey();
-              setParts((current) => [...current, { key, id: "", name: "", note: "", existing: [], files: [] }]);
-            }}
-          >
-            {copy.addPart}
-          </button>
+      <section className="panel">
+        <div className="panel-head">
+          <div className="panel-title">
+            <h2>{copy.parts}</h2>
+          </div>
+          <div className="panel-actions">
+            <button
+              className="button secondary"
+              type="button"
+              onClick={() => {
+                const key = localKey();
+                setParts((current) => [...current, { key, id: "", name: "", note: "", existing: [], files: [] }]);
+              }}
+            >
+              {copy.addPart}
+            </button>
+          </div>
         </div>
         {parts.length === 0 ? <p className="muted">{copy.noParts}</p> : null}
         {parts.map((part, index) => (
-          <div className="stack part" key={part.key}>
-            <div className="row">
-              <h2>
+          <div className="part-card" key={part.key}>
+            <div className="part-card-head">
+              <h3>
                 {copy.parts} {index + 1}
-              </h2>
+              </h3>
               <button
-                className="button secondary"
+                className="button secondary small"
                 type="button"
                 onClick={() => {
                   part.files.forEach(dropFile);
@@ -614,10 +623,21 @@ export function DeviceForm({ copy, lang, states, mode, deviceId, customerId, onN
         ))}
       </section>
 
-      {error ? <p className="alert">{error}</p> : null}
-      <button className="button" type="submit" disabled={saving}>
-        {copy.save}
-      </button>
+      <div className="action-bar">
+        {error ? <p className="alert">{error}</p> : null}
+        <div className="action-bar-buttons">
+          <button
+            className="button secondary"
+            type="button"
+            onClick={() => onNavigate(editing && deviceId ? `/services/${deviceId}` : "/services")}
+          >
+            {copy.back}
+          </button>
+          <button className="button" type="submit" disabled={saving}>
+            {copy.save}
+          </button>
+        </div>
+      </div>
     </form>
   );
 }
@@ -855,23 +875,11 @@ function PhotoFields({
   onUnauthorized: () => void;
 }) {
   return (
-    <div className="stack">
-      <label className="field">
-        {label}
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          multiple
-          onChange={(event) => {
-            const chosen = Array.from(event.target.files ?? []);
-            onAdd(chosen);
-            event.target.value = "";
-          }}
-        />
-      </label>
-      <div className="photos">
+    <div className="fields">
+      <span className="field-label">{label}</span>
+      <div className="photo-grid">
         {existing.map((photo) => (
-          <figure className="photo" key={photo.id}>
+          <div className="photo-tile" key={photo.id}>
             {deviceId ? (
               <PhotoButton
                 copy={copy}
@@ -880,19 +888,33 @@ function PhotoFields({
                 onUnauthorized={onUnauthorized}
               />
             ) : null}
-            <button className="button secondary" type="button" onClick={() => onDropExisting(photo.id)}>
-              {copy.removePhoto}
+            <button className="photo-remove" type="button" aria-label={copy.removePhoto} onClick={() => onDropExisting(photo.id)}>
+              <Icon name="close" size={12} />
             </button>
-          </figure>
+          </div>
         ))}
         {files.map((file) => (
-          <figure className="photo" key={file.key}>
+          <div className="photo-tile" key={file.key}>
             <PhotoButton copy={copy} src={file.url} name={file.file.name} onUnauthorized={onUnauthorized} />
-            <button className="button secondary" type="button" onClick={() => onDropFile(file)}>
-              {copy.removePhoto}
+            <button className="photo-remove" type="button" aria-label={copy.removePhoto} onClick={() => onDropFile(file)}>
+              <Icon name="close" size={12} />
             </button>
-          </figure>
+          </div>
         ))}
+        <label className="photo-add">
+          <Icon name="imagePlus" size={18} />
+          <span>{copy.photos}</span>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            onChange={(event) => {
+              const chosen = Array.from(event.target.files ?? []);
+              onAdd(chosen);
+              event.target.value = "";
+            }}
+          />
+        </label>
       </div>
     </div>
   );

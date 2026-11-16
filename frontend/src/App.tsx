@@ -138,13 +138,14 @@ export function App() {
   }
 
   if (!langReady) {
-    return <main className="auth" />;
+    return <main className="auth-loading" />;
   }
 
   if (!ready) {
     return (
-      <main className="auth">
-        <p className="muted">{copy.checking}</p>
+      <main className="auth-loading">
+        <span className="spinner" aria-hidden="true" />
+        <p>{copy.checking}</p>
       </main>
     );
   }
@@ -155,7 +156,7 @@ export function App() {
 
   const items: NavItem[] = [
     { path: "/", label: copy.home, icon: "home" },
-    { path: "/services", label: copy.devices, icon: "devices" },
+    { path: "/services", label: copy.devices, icon: "services" },
     { path: "/customers", label: copy.customers, icon: "customers" },
     { path: "/spare-parts", label: copy.spareParts, icon: "spare" },
   ];

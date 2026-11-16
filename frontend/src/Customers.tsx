@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { ApiError, request, type Customer, type Page } from "./api";
 import type { Copy } from "./i18n";
+import { Icon } from "./icons";
 import { End, useQuery, useWindow } from "./list";
 import { problemText } from "./problems";
 
@@ -33,54 +34,89 @@ export function Customers({ copy, onNavigate, onUnauthorized }: Props) {
   const empty = !list.loading && list.items.length === 0;
 
   return (
-    <>
+    <div className="page">
       <header className="page-head">
-        <h1>{copy.customers}</h1>
-        <p className="muted">{copy.customersLead}</p>
+        <div className="page-title">
+          <div className="page-title-text">
+            <h1>{copy.customers}</h1>
+            <p className="lead">{copy.customersLead}</p>
+          </div>
+        </div>
       </header>
-      <form className="search-row" onSubmit={search.commit}>
-        <label className="field">
-          {copy.search}
+      <form className="toolbar panel" onSubmit={search.commit}>
+        <label className="field search">
+          <span className="sr-only">{copy.search}</span>
+          <Icon name="search" size={16} />
           <input
+            type="search"
             value={search.value}
             placeholder={copy.searchCustomers}
             onChange={(event) => search.setValue(event.target.value)}
           />
         </label>
-        <button className="button" type="submit">
+        <button className="button secondary" type="submit">
           {copy.search}
         </button>
       </form>
       {list.error ? <p className="alert">{problemText(copy, list.error)}</p> : null}
-      <div className="panel table-wrap">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{copy.customerName}</th>
-              <th>{copy.phone}</th>
-              <th>{copy.email}</th>
-              <th>{copy.address}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.items.map((customer) => (
-              <tr key={customer.id}>
-                <td data-label={copy.customerName}>
-                  <button className="button linkish" type="button" onClick={() => onNavigate(`/customers/${customer.id}`)}>
-                    {customer.name}
-                  </button>
-                </td>
-                <td data-label={copy.phone}>{customer.phone}</td>
-                <td data-label={copy.email}>{customer.email}</td>
-                <td data-label={copy.address}>{customer.address}</td>
+      <div className="panel flush">
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{copy.customerName}</th>
+                <th>{copy.phone}</th>
+                <th>{copy.email}</th>
+                <th>{copy.address}</th>
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {empty ? <p className="muted empty">{search.query ? copy.noCustomerMatches : copy.noCustomers}</p> : null}
-        {list.loading ? <p className="muted empty">{copy.loading}</p> : null}
+            </thead>
+            <tbody>
+              {list.items.map((customer) => (
+                <tr
+                  key={customer.id}
+                  className="row-link"
+                  onClick={() => onNavigate(`/customers/${customer.id}`)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onNavigate(`/customers/${customer.id}`);
+                    }
+                  }}
+                  tabIndex={0}
+                >
+                  <td data-label={copy.customerName} className="cell-main cell-strong">
+                    {customer.name}
+                  </td>
+                  <td data-label={copy.phone}>{customer.phone}</td>
+                  <td data-label={copy.email}>{customer.email}</td>
+                  <td data-label={copy.address} className="wrap">
+                    {customer.address}
+                  </td>
+                  <td className="cell-end">
+                    <Icon name="chevronRight" size={16} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {empty ? (
+          <div className="empty">
+            <span className="empty-icon">
+              <Icon name="customers" size={18} />
+            </span>
+            <span>{search.query ? copy.noCustomerMatches : copy.noCustomers}</span>
+          </div>
+        ) : null}
+        {list.loading ? (
+          <div className="loading">
+            <span className="spinner" />
+            {copy.loading}
+          </div>
+        ) : null}
         <End enabled={list.hasMore && !list.loading} onEnd={list.more} />
       </div>
-    </>
+    </div>
   );
 }

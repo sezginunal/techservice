@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, request, type Page, type SparePart } from "./api";
 import { wholeQuantity } from "./fields";
 import type { Copy } from "./i18n";
+import { Icon } from "./icons";
 import { End, useQuery, useWindow } from "./list";
 import { problemText } from "./problems";
 import { SpareField } from "./SpareField";
@@ -84,80 +85,127 @@ export function SpareParts({ copy, onNavigate, onUnauthorized }: Props) {
   const empty = !list.loading && list.items.length === 0;
 
   return (
-    <>
+    <div className="page">
       <header className="page-head">
-        <h1>{copy.spareParts}</h1>
-        <p className="muted">{copy.sparePartsLead}</p>
+        <div className="page-title">
+          <div className="page-title-text">
+            <h1>{copy.spareParts}</h1>
+            <p className="lead">{copy.sparePartsLead}</p>
+          </div>
+        </div>
       </header>
-      <form className="panel stack" onSubmit={(event) => void create(event)}>
-        <h2>{copy.addSparePart}</h2>
-        <SpareField id="spare-brand" label={copy.brand} value={brand} onChange={setBrand} onUnauthorized={onUnauthorized} />
-        <SpareField
-          id="spare-model"
-          label={copy.model}
-          value={model}
-          brand={brand}
-          onChange={setModel}
-          onUnauthorized={onUnauthorized}
-        />
-        <label className="field">
-          {copy.quantity}
-          <input inputMode="numeric" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
-        </label>
+      <form className="panel" onSubmit={(event) => void create(event)}>
+        <div className="panel-head">
+          <div className="panel-title">
+            <h2>{copy.addSparePart}</h2>
+          </div>
+        </div>
+        <div className="fields-3">
+          <SpareField id="spare-brand" label={copy.brand} value={brand} onChange={setBrand} onUnauthorized={onUnauthorized} />
+          <SpareField
+            id="spare-model"
+            label={copy.model}
+            value={model}
+            brand={brand}
+            onChange={setModel}
+            onUnauthorized={onUnauthorized}
+          />
+          <label className="field">
+            {copy.quantity}
+            <input inputMode="numeric" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
+          </label>
+        </div>
         {error ? <p className="alert">{error}</p> : null}
         {existing ? (
-          <p className="alert">
-            {copy.spareExists}{" "}
-            <button className="button linkish" type="button" onClick={() => onNavigate(`/spare-parts/${existing.id}`)}>
-              {copy.openSparePart}
-            </button>
+          <p className="alert" data-tone="info">
+            <span className="alert-body">
+              {copy.spareExists}{" "}
+              <button className="link" type="button" onClick={() => onNavigate(`/spare-parts/${existing.id}`)}>
+                {copy.openSparePart}
+              </button>
+            </span>
           </p>
         ) : null}
-        <button className="button" type="submit" disabled={saving}>
-          {copy.addSparePart}
-        </button>
+        <div className="form-actions">
+          <button className="button" type="submit" disabled={saving}>
+            {copy.addSparePart}
+          </button>
+        </div>
       </form>
-      <form className="search-row" onSubmit={search.commit}>
-        <label className="field">
-          {copy.search}
+      <form className="toolbar panel" onSubmit={search.commit}>
+        <label className="field search">
+          <span className="sr-only">{copy.search}</span>
+          <Icon name="search" size={16} />
           <input
+            type="search"
             value={search.value}
             placeholder={copy.spareSearch}
             onChange={(event) => search.setValue(event.target.value)}
           />
         </label>
-        <button className="button" type="submit">
+        <button className="button secondary" type="submit">
           {copy.search}
         </button>
       </form>
       {list.error ? <p className="alert">{problemText(copy, list.error)}</p> : null}
-      <div className="panel table-wrap">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{copy.brand}</th>
-              <th>{copy.model}</th>
-              <th>{copy.inStock}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.items.map((part) => (
-              <tr key={part.id}>
-                <td data-label={copy.brand}>
-                  <button className="button linkish" type="button" onClick={() => onNavigate(`/spare-parts/${part.id}`)}>
-                    {part.brand}
-                  </button>
-                </td>
-                <td data-label={copy.model}>{part.model}</td>
-                <td data-label={copy.inStock}>{part.onHand}</td>
+      <div className="panel flush">
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{copy.brand}</th>
+                <th>{copy.model}</th>
+                <th className="cell-num">{copy.inStock}</th>
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {empty ? <p className="muted empty">{search.query ? copy.noSpareMatches : copy.noSpareParts}</p> : null}
-        {list.loading ? <p className="muted empty">{copy.loading}</p> : null}
+            </thead>
+            <tbody>
+              {list.items.map((part) => (
+                <tr
+                  key={part.id}
+                  className="row-link"
+                  onClick={() => onNavigate(`/spare-parts/${part.id}`)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onNavigate(`/spare-parts/${part.id}`);
+                    }
+                  }}
+                  tabIndex={0}
+                >
+                  <td data-label={copy.brand} className="cell-main cell-strong">
+                    {part.brand}
+                  </td>
+                  <td data-label={copy.model}>{part.model}</td>
+                  <td data-label={copy.inStock} className="cell-num cell-side">
+                    <span className="stock" data-tone={part.onHand === 0 ? "red" : part.onHand < 5 ? "amber" : "green"}>
+                      {part.onHand}
+                    </span>
+                  </td>
+                  <td className="cell-end">
+                    <Icon name="chevronRight" size={16} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {empty ? (
+          <div className="empty">
+            <span className="empty-icon">
+              <Icon name="spare" size={18} />
+            </span>
+            <span>{search.query ? copy.noSpareMatches : copy.noSpareParts}</span>
+          </div>
+        ) : null}
+        {list.loading ? (
+          <div className="loading">
+            <span className="spinner" />
+            {copy.loading}
+          </div>
+        ) : null}
         <End enabled={list.hasMore && !list.loading} onEnd={list.more} />
       </div>
-    </>
+    </div>
   );
 }

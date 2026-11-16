@@ -9,7 +9,7 @@ import {
   type SpareReturnable,
 } from "./api";
 import { wholeQuantity } from "./fields";
-import { formatWhen, statusLabel } from "./format";
+import { formatWhen, statusLabel, statusTone } from "./format";
 import type { Copy, Lang } from "./i18n";
 import { End, useQuery, useWindow } from "./list";
 import { problemText } from "./problems";
@@ -73,31 +73,53 @@ export function SpareService({ copy, lang, states, serviceId, onNavigate, onUnau
   const none = !events.loading && events.items.length === 0;
 
   return (
-    <section className="panel stack">
-      <h2>{copy.spareParts}</h2>
-      {events.error ? <p className="alert">{problemText(copy, events.error)}</p> : null}
-      {events.items.map((move) => (
-        <div className="stack part" key={move.id}>
-          <p>
-            {formatWhen(move.at, lang)} · {move.actorUsername}
-          </p>
-          <p>
-            <button className="button linkish" type="button" onClick={() => onNavigate(`/spare-parts/${move.partId}`)}>
-              {move.brand} {move.model}
-            </button>
-            {" · "}
-            {move.quantity} · {moveKind(copy, move.kind)}
-            {move.status ? ` · ${statusLabel(move.status, states, lang)}` : ""}
-          </p>
-          {move.note ? <p>{move.note}</p> : null}
+    <section className="panel">
+      <div className="panel-head">
+        <div className="panel-title">
+          <h2>{copy.spareParts}</h2>
         </div>
-      ))}
+        <div className="panel-actions">
+          <button className="button secondary small" type="button" onClick={() => setPicker((value) => (value === 0 ? revision + 1 : 0))}>
+            {copy.useSparePart}
+          </button>
+        </div>
+      </div>
+      {events.error ? <p className="alert">{problemText(copy, events.error)}</p> : null}
+      {events.items.length > 0 ? (
+        <ul className="moves">
+          {events.items.map((move) => (
+            <li className="move" key={move.id}>
+              <div className="move-line">
+                <button className="link" type="button" onClick={() => onNavigate(`/spare-parts/${move.partId}`)}>
+                  {move.brand} {move.model}
+                </button>
+                <span className="qty">{move.quantity}</span>
+                <span className="badge" data-tone="gray">
+                  <span>{moveKind(copy, move.kind)}</span>
+                </span>
+                {move.status ? (
+                  <span className="badge" data-tone={statusTone(move.status)}>
+                    <span>{statusLabel(move.status, states, lang)}</span>
+                  </span>
+                ) : null}
+              </div>
+              <p className="meta">
+                <span className="meta-item">{formatWhen(move.at, lang)}</span>
+                <span className="meta-item">{move.actorUsername}</span>
+              </p>
+              {move.note ? <p className="notes">{move.note}</p> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {none ? <p className="muted">{copy.noServiceSpares}</p> : null}
-      {events.loading ? <p className="muted">{copy.loading}</p> : null}
+      {events.loading ? (
+        <div className="loading">
+          <span className="spinner" />
+          {copy.loading}
+        </div>
+      ) : null}
       <End enabled={events.hasMore && !events.loading} onEnd={events.more} />
-      <button className="button secondary" type="button" onClick={() => setPicker((value) => (value === 0 ? revision + 1 : 0))}>
-        {copy.useSparePart}
-      </button>
       {picker ? (
         <SparePicker
           key={picker}

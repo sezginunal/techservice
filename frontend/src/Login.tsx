@@ -33,37 +33,75 @@ export function Login({ copy, lang, brand, onLang, onSuccess }: LoginProps) {
 
   return (
     <main className="auth">
-      <div className="auth-wrap">
+      <section className="auth-art" aria-hidden="true">
+        <div className="brand">
+          <BrandMark copy={copy} brand={brand} />
+        </div>
+        <div className="art">
+          <div className="art-card">
+            <div className="art-row">
+              <span className="dot" data-tone="teal" />
+              <span className="art-line" />
+              <span className="art-pill" data-tone="teal" />
+            </div>
+            <div className="art-row">
+              <span className="dot" data-tone="amber" />
+              <span className="art-line" />
+              <span className="art-pill" data-tone="amber" />
+            </div>
+            <div className="art-row">
+              <span className="dot" data-tone="green" />
+              <span className="art-line" />
+              <span className="art-pill" data-tone="green" />
+            </div>
+          </div>
+          <div className="art-card art-chart">
+            <span style={{ height: "35%" }} />
+            <span style={{ height: "55%" }} />
+            <span style={{ height: "42%" }} />
+            <span style={{ height: "70%" }} />
+            <span style={{ height: "88%" }} />
+            <span style={{ height: "62%" }} />
+            <span style={{ height: "95%" }} />
+          </div>
+        </div>
+        <p>{copy.tagline}</p>
+      </section>
+      <div className="auth-main">
         <div className="auth-tools">
           <LanguageSwitch copy={copy} lang={lang} onLang={onLang} />
         </div>
-        <div className="auth-brand">
-          <BrandMark copy={copy} brand={brand} />
-        </div>
-        <form className="panel stack" onSubmit={submit}>
-          <div className="page-head">
+        <div className="auth-card">
+          <div className="brand">
+            <BrandMark copy={copy} brand={brand} />
+          </div>
+          <div className="auth-head">
             <h1>{copy.signIn}</h1>
             <p className="muted">{copy.signInLead}</p>
           </div>
-          <label className="field">
-            {copy.username}
-            <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" />
-          </label>
-          <label className="field">
-            {copy.password}
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="current-password"
-            />
-          </label>
-          {error ? <p className="alert">{error}</p> : null}
-          <button className="button wide" type="submit">
-            {copy.signIn}
-          </button>
-        </form>
-        <AppVersion copy={copy} />
+          <form className="auth-form" onSubmit={submit}>
+            <label className="field">
+              {copy.username}
+              <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" />
+            </label>
+            <label className="field">
+              {copy.password}
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                autoComplete="current-password"
+              />
+            </label>
+            {error ? <p className="alert">{error}</p> : null}
+            <button className="button wide" type="submit">
+              {copy.signIn}
+            </button>
+          </form>
+        </div>
+        <div className="auth-foot">
+          <AppVersion copy={copy} />
+        </div>
       </div>
     </main>
   );

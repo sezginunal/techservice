@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import { ApiError, request, type DeviceItem, type Page, type ServiceState } from "./api";
 import { ModelIcon } from "./ModelIcon";
-import { formatWhen, listedStates, statusLabel } from "./format";
+import { formatWhen, listedStates, statusLabel, statusTone } from "./format";
 import type { Copy, Lang } from "./i18n";
+import { Icon } from "./icons";
 import { End, useQuery, useWindow } from "./list";
 import { problemText } from "./problems";
 
@@ -43,27 +44,34 @@ export function Devices({ copy, lang, states, status, onNavigate, onUnauthorized
   const empty = !list.loading && list.items.length === 0;
 
   return (
-    <>
-      <header className="page-head row">
-        <div>
-          <h1>{copy.devices}</h1>
-          <p className="muted">{copy.devicesLead}</p>
+    <div className="page">
+      <header className="page-head">
+        <div className="page-title">
+          <div className="page-title-text">
+            <h1>{copy.devices}</h1>
+            <p className="lead">{copy.devicesLead}</p>
+          </div>
+          <div className="page-actions">
+            <button className="button" type="button" onClick={() => onNavigate("/services/new")}>
+              <Icon name="plus" size={16} />
+              {copy.newDevice}
+            </button>
+          </div>
         </div>
-        <button className="button" type="button" onClick={() => onNavigate("/services/new")}>
-          {copy.newDevice}
-        </button>
       </header>
-      <form className="device-filters" onSubmit={search.commit}>
-        <label className="field">
-          {copy.search}
+      <form className="toolbar panel" onSubmit={search.commit}>
+        <label className="field search">
+          <span className="sr-only">{copy.search}</span>
+          <Icon name="search" size={16} />
           <input
+            type="search"
             value={search.value}
             placeholder={copy.searchDevices}
             onChange={(event) => search.setValue(event.target.value)}
           />
         </label>
         <label className="field">
-          {copy.status}
+          <span className="sr-only">{copy.status}</span>
           <select
             value={selected}
             onChange={(event) => {
@@ -79,59 +87,84 @@ export function Devices({ copy, lang, states, status, onNavigate, onUnauthorized
             ))}
           </select>
         </label>
-        <button className="button" type="submit">
+        <button className="button secondary" type="submit">
           {copy.search}
         </button>
       </form>
       {list.error ? <p className="alert">{problemText(copy, list.error)}</p> : null}
-      <div className="panel table-wrap">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{copy.recordId}</th>
-              <th>{copy.brand}</th>
-              <th>{copy.model}</th>
-              <th>{copy.serial}</th>
-              <th>{copy.customer}</th>
-              <th>{copy.status}</th>
-              <th>{copy.registeredOn}</th>
-              <th>{copy.open}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.items.map((item) => (
-              <tr key={item.id}>
-                <td data-label={copy.recordId} className="uuid">
-                  {item.id}
-                </td>
-                <td data-label={copy.brand}>{item.brand}</td>
-                <td data-label={copy.model}>
-                  <span className="with-icon">
-                    {item.image ? <ModelIcon brand={item.brand} model={item.model} /> : null}
-                    {item.model}
-                  </span>
-                </td>
-                <td data-label={copy.serial}>{item.serial}</td>
-                <td data-label={copy.customer}>{item.customerName}</td>
-                <td data-label={copy.status}>
-                  <span className="badge">{statusLabel(item.status, states, lang)}</span>
-                </td>
-                <td data-label={copy.registeredOn}>{formatWhen(item.createdAt, lang)}</td>
-                <td className="row-action">
-                  <button className="button secondary" type="button" onClick={() => onNavigate(`/services/${item.id}`)}>
-                    {copy.open}
-                  </button>
-                </td>
+      <div className="panel flush">
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{copy.recordId}</th>
+                <th>{copy.brand}</th>
+                <th>{copy.model}</th>
+                <th>{copy.serial}</th>
+                <th>{copy.customer}</th>
+                <th>{copy.status}</th>
+                <th>{copy.registeredOn}</th>
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {list.items.map((item) => (
+                <tr
+                  key={item.id}
+                  className="row-link"
+                  onClick={() => onNavigate(`/services/${item.id}`)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onNavigate(`/services/${item.id}`);
+                    }
+                  }}
+                  tabIndex={0}
+                >
+                  <td data-label={copy.recordId} className="uuid cell-main" title={item.id}>
+                    <span>{item.id}</span>
+                  </td>
+                  <td data-label={copy.brand}>{item.brand}</td>
+                  <td data-label={copy.model}>
+                    <span className="thing">
+                      {item.image ? <ModelIcon brand={item.brand} model={item.model} /> : null}
+                      <span className="thing-title">{item.model}</span>
+                    </span>
+                  </td>
+                  <td data-label={copy.serial} className="mono">
+                    {item.serial}
+                  </td>
+                  <td data-label={copy.customer}>{item.customerName}</td>
+                  <td data-label={copy.status} className="cell-side">
+                    <span className="badge" data-tone={statusTone(item.status)}>
+                      <span>{statusLabel(item.status, states, lang)}</span>
+                    </span>
+                  </td>
+                  <td data-label={copy.registeredOn}>{formatWhen(item.createdAt, lang)}</td>
+                  <td className="cell-end">
+                    <Icon name="chevronRight" size={16} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {empty ? (
-          <p className="muted empty">{search.query || selected ? copy.noDeviceMatches : copy.noDevices}</p>
+          <div className="empty">
+            <span className="empty-icon">
+              <Icon name="device" size={18} />
+            </span>
+            <span>{search.query || selected ? copy.noDeviceMatches : copy.noDevices}</span>
+          </div>
         ) : null}
-        {list.loading ? <p className="muted empty">{copy.loading}</p> : null}
+        {list.loading ? (
+          <div className="loading">
+            <span className="spinner" />
+            {copy.loading}
+          </div>
+        ) : null}
         <End enabled={list.hasMore && !list.loading} onEnd={list.more} />
       </div>
-    </>
+    </div>
   );
 }
