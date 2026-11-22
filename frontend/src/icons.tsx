@@ -234,6 +234,13 @@ const shapes = {
       <path d="m8.25 12.25 2.5 2.5 5-5" />
     </>
   ),
+  printer: (
+    <>
+      <path d="M7 8.5V4.75h10V8.5" />
+      <path d="M7 15.5H5.75A1.75 1.75 0 0 1 4 13.75v-3.5A1.75 1.75 0 0 1 5.75 8.5h12.5A1.75 1.75 0 0 1 20 10.25v3.5a1.75 1.75 0 0 1-1.75 1.75H17" />
+      <rect x="7" y="13.5" width="10" height="6.75" rx="1.25" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof shapes;

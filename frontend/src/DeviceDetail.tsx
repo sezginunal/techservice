@@ -1,12 +1,15 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import {
   ApiError,
   photoSrc,
   request,
   statusPhotoSrc,
+  type Brand,
   type Device,
   type ServiceComment,
   type ServiceState,
+  type SpareReturnable,
   type User,
 } from "./api";
 import { ModelIcon } from "./ModelIcon";
@@ -15,6 +18,8 @@ import type { Copy, Lang } from "./i18n";
 import { Icon } from "./icons";
 import { PhotoButton } from "./PhotoView";
 import { fileProblem, problemText } from "./problems";
+import { loadReportSpares, type ReportLayout } from "./report";
+import { ServiceReport } from "./ServiceReport";
 import { SpareService } from "./SpareService";
 import { initials } from "./Shell";
 
@@ -23,6 +28,7 @@ const maxCommentLen = 4000;
 type Props = {
   copy: Copy;
   lang: Lang;
+  brand: Brand;
   states: ServiceState[];
   user: User;
   id: string;
@@ -30,7 +36,7 @@ type Props = {
   onUnauthorized: () => void;
 };
 
-export function DeviceDetail({ copy, lang, states, user, id, onNavigate, onUnauthorized }: Props) {
+export function DeviceDetail({ copy, lang, brand, states, user, id, onNavigate, onUnauthorized }: Props) {
   const [device, setDevice] = useState<Device | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [next, setNext] = useState("");
@@ -46,6 +52,10 @@ export function DeviceDetail({ copy, lang, states, user, id, onNavigate, onUnaut
   const [editText, setEditText] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+  const [reportLayout, setReportLayout] = useState<ReportLayout | null>(null);
+  const [reportSpares, setReportSpares] = useState<SpareReturnable[] | null>(null);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [reportBusy, setReportBusy] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -63,6 +73,43 @@ export function DeviceDetail({ copy, lang, states, user, id, onNavigate, onUnaut
       });
     return () => controller.abort();
   }, [copy, id, onUnauthorized]);
+
+  useEffect(() => {
+    if (!reportLayout || !reportSpares) {
+      return;
+    }
+    const timer = window.setTimeout(() => window.print(), 50);
+    function clearReport() {
+      setReportLayout(null);
+      setReportSpares(null);
+    }
+    window.addEventListener("afterprint", clearReport);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("afterprint", clearReport);
+    };
+  }, [reportLayout, reportSpares]);
+
+  async function printReport(layout: ReportLayout) {
+    if (!device || reportBusy) {
+      return;
+    }
+    setReportBusy(true);
+    setReportError(null);
+    try {
+      const spares = await loadReportSpares(device.id);
+      setReportSpares(spares);
+      setReportLayout(layout);
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.code === "unauthorized") {
+        onUnauthorized();
+        return;
+      }
+      setReportError(problemText(copy, err));
+    } finally {
+      setReportBusy(false);
+    }
+  }
 
   async function saveStatus(event: FormEvent) {
     event.preventDefault();
@@ -237,12 +284,21 @@ export function DeviceDetail({ copy, lang, states, user, id, onNavigate, onUnaut
             </div>
           </div>
           <div className="page-actions">
+            <button className="button secondary" type="button" disabled={reportBusy} onClick={() => void printReport("summary")}>
+              <Icon name="printer" size={16} />
+              {copy.printSummary}
+            </button>
+            <button className="button secondary" type="button" disabled={reportBusy} onClick={() => void printReport("detailed")}>
+              <Icon name="printer" size={16} />
+              {copy.printDetailed}
+            </button>
             <button className="button secondary" type="button" onClick={() => onNavigate(`/services/${device.id}/edit`)}>
               <Icon name="pencil" size={16} />
               {copy.correct}
             </button>
           </div>
         </div>
+        {reportError ? <p className="alert">{reportError}</p> : null}
       </header>
 
       <div className="detail">
@@ -519,6 +575,20 @@ export function DeviceDetail({ copy, lang, states, user, id, onNavigate, onUnaut
           </section>
         </aside>
       </div>
+      {reportLayout && reportSpares
+        ? createPortal(
+            <ServiceReport
+              copy={copy}
+              lang={lang}
+              brand={brand}
+              states={states}
+              device={device}
+              spares={reportSpares}
+              layout={reportLayout}
+            />,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

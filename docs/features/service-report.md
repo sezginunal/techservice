@@ -1,6 +1,6 @@
 # Service report
 
-Status: proposed.
+Status: approved.
 
 A signed-in technician, owner, or admin opens a printable final service report from a service. The three roles see and do the same work. A signed-out request is unauthorized. A person who cannot open the service cannot open or print its report.
 
