@@ -1,18 +1,24 @@
-import { useEffect } from "react";
-import { ApiError, request, type Customer, type Page } from "./api";
-import type { Copy } from "./i18n";
+import { useEffect, useState } from "react";
+import { ApiError, request, type Customer, type Page, type Role } from "./api";
+import { canExport, downloadExcel } from "./export";
+import type { Copy, Lang } from "./i18n";
 import { Icon } from "./icons";
 import { End, useQuery, useWindow } from "./list";
+import { messageFor } from "./Login";
 import { problemText } from "./problems";
 
 type Props = {
   copy: Copy;
+  lang: Lang;
+  role: Role;
   onNavigate: (path: string) => void;
   onUnauthorized: () => void;
 };
 
-export function Customers({ copy, onNavigate, onUnauthorized }: Props) {
+export function Customers({ copy, lang, role, onNavigate, onUnauthorized }: Props) {
   const search = useQuery();
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const list = useWindow(search.query, (after: Customer | null, signal) => {
     const params = new URLSearchParams();
     if (search.query) {
@@ -31,7 +37,29 @@ export function Customers({ copy, onNavigate, onUnauthorized }: Props) {
     }
   }, [list.error, onUnauthorized]);
 
+  async function exportList() {
+    const params = new URLSearchParams();
+    if (search.query) {
+      params.set("q", search.query);
+    }
+    const query = params.toString();
+    setExporting(true);
+    setExportError(null);
+    try {
+      await downloadExcel(`/api/customers/export${query ? `?${query}` : ""}`, lang);
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.code === "unauthorized") {
+        onUnauthorized();
+        return;
+      }
+      setExportError(messageFor(copy, err));
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const empty = !list.loading && list.items.length === 0;
+  const showExport = canExport(role);
 
   return (
     <div className="page">
@@ -41,8 +69,17 @@ export function Customers({ copy, onNavigate, onUnauthorized }: Props) {
             <h1>{copy.customers}</h1>
             <p className="lead">{copy.customersLead}</p>
           </div>
+          {showExport ? (
+            <div className="page-actions">
+              <button className="button secondary" type="button" disabled={exporting} onClick={() => void exportList()}>
+                <Icon name="download" size={16} />
+                {copy.exportExcel}
+              </button>
+            </div>
+          ) : null}
         </div>
       </header>
+      {exportError ? <p className="alert">{exportError}</p> : null}
       <form className="toolbar panel" onSubmit={search.commit}>
         <label className="field search">
           <span className="sr-only">{copy.search}</span>

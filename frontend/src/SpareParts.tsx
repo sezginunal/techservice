@@ -1,20 +1,24 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ApiError, request, type Page, type SparePart } from "./api";
+import { ApiError, request, type Page, type Role, type SparePart } from "./api";
+import { canExport, downloadExcel } from "./export";
 import { wholeQuantity } from "./fields";
-import type { Copy } from "./i18n";
+import type { Copy, Lang } from "./i18n";
 import { Icon } from "./icons";
 import { End, useQuery, useWindow } from "./list";
+import { messageFor } from "./Login";
 import { problemText } from "./problems";
 import { SpareField } from "./SpareField";
 import { maxStock, nameFields, rangeText, spareProblem } from "./spare";
 
 type Props = {
   copy: Copy;
+  lang: Lang;
+  role: Role;
   onNavigate: (path: string) => void;
   onUnauthorized: () => void;
 };
 
-export function SpareParts({ copy, onNavigate, onUnauthorized }: Props) {
+export function SpareParts({ copy, lang, role, onNavigate, onUnauthorized }: Props) {
   const search = useQuery();
   const list = useWindow(search.query, (after: SparePart | null, signal) => {
     const params = new URLSearchParams();
@@ -34,6 +38,8 @@ export function SpareParts({ copy, onNavigate, onUnauthorized }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [existing, setExisting] = useState<SparePart | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   useEffect(() => {
     if (list.error instanceof ApiError && list.error.code === "unauthorized") {
@@ -82,7 +88,29 @@ export function SpareParts({ copy, onNavigate, onUnauthorized }: Props) {
     }
   }
 
+  async function exportList() {
+    const params = new URLSearchParams();
+    if (search.query) {
+      params.set("q", search.query);
+    }
+    const query = params.toString();
+    setExporting(true);
+    setExportError(null);
+    try {
+      await downloadExcel(`/api/spare-parts/export${query ? `?${query}` : ""}`, lang);
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.code === "unauthorized") {
+        onUnauthorized();
+        return;
+      }
+      setExportError(messageFor(copy, err));
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const empty = !list.loading && list.items.length === 0;
+  const showExport = canExport(role);
 
   return (
     <div className="page">
@@ -92,8 +120,17 @@ export function SpareParts({ copy, onNavigate, onUnauthorized }: Props) {
             <h1>{copy.spareParts}</h1>
             <p className="lead">{copy.sparePartsLead}</p>
           </div>
+          {showExport ? (
+            <div className="page-actions">
+              <button className="button secondary" type="button" disabled={exporting} onClick={() => void exportList()}>
+                <Icon name="download" size={16} />
+                {copy.exportExcel}
+              </button>
+            </div>
+          ) : null}
         </div>
       </header>
+      {exportError ? <p className="alert">{exportError}</p> : null}
       <form className="panel" onSubmit={(event) => void create(event)}>
         <div className="panel-head">
           <div className="panel-title">

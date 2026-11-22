@@ -235,6 +235,7 @@ const en = {
   nextMonth: "Next month",
   clearDate: "Clear date",
   chooseDate: "Choose a date",
+  exportExcel: "Export Excel",
 };
 
 const tr: typeof en = {
@@ -472,6 +473,7 @@ const tr: typeof en = {
   nextMonth: "Sonraki ay",
   clearDate: "Tarihi temizle",
   chooseDate: "Tarih seç",
+  exportExcel: "Excel'e aktar",
 };
 
 const dictionaries = { en, tr };
