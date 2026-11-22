@@ -99,75 +99,64 @@ function Shop({
       </header>
 
       <div className="dash">
-        <div className="kpi-grid">
-          <section className="panel">
-            <div className="kpi" data-tone="teal">
-              <span className="kpi-icon">
-                <Icon name="chart" size={18} />
-              </span>
-              <div className="kpi-text">
+        <section className="panel flush kpi-strip" aria-label={copy.home}>
+          <div className="kpi-grid">
+            <div className="kpi" data-tone="blue">
+              <div className="kpi-top">
                 <span className="kpi-label">{copy.last7Days}</span>
+                <span className="kpi-icon">
+                  <Icon name="chart" size={14} />
+                </span>
+              </div>
+              <div className="kpi-text">
                 <strong className="kpi-value">{summary.registered7}</strong>
               </div>
             </div>
-          </section>
-          <section className="panel">
             <div className="kpi" data-tone="cyan">
-              <span className="kpi-icon">
-                <Icon name="calendar" size={18} />
-              </span>
-              <div className="kpi-text">
+              <div className="kpi-top">
                 <span className="kpi-label">{copy.last30Days}</span>
+                <span className="kpi-icon">
+                  <Icon name="calendar" size={14} />
+                </span>
+              </div>
+              <div className="kpi-text">
                 <strong className="kpi-value">{summary.registered30}</strong>
               </div>
             </div>
-          </section>
-          <section className="panel">
-            <div className="kpi" data-tone="blue">
-              <span className="kpi-icon">
-                <Icon name="inbox" size={18} />
-              </span>
-              <div className="kpi-text">
+            <div className="kpi" data-tone="teal">
+              <div className="kpi-top">
                 <span className="kpi-label">{copy.inShop}</span>
+                <span className="kpi-icon">
+                  <Icon name="inbox" size={14} />
+                </span>
+              </div>
+              <div className="kpi-text">
                 <strong className="kpi-value">{summary.inShop}</strong>
                 <span className="kpi-sub">{copy.deliveredCount.replace("{n}", String(summary.delivered))}</span>
               </div>
             </div>
-          </section>
-          <section className="panel">
             <div className="kpi" data-tone="amber">
-              <span className="kpi-icon">
-                <Icon name="hourglass" size={18} />
-              </span>
-              <div className="kpi-text">
+              <div className="kpi-top">
                 <span className="kpi-label">{copy.idle7}</span>
+                <span className="kpi-icon">
+                  <Icon name="hourglass" size={14} />
+                </span>
+              </div>
+              <div className="kpi-text">
                 <strong className="kpi-value">{summary.idle7}</strong>
               </div>
             </div>
-          </section>
-        </div>
+          </div>
+        </section>
 
         <section className="panel chart-card">
           <div className="panel-head">
             <div className="panel-title">
-              <h2>
-                <Icon name="chart" size={16} />
-                {copy.registrations}
-              </h2>
+              <h2>{copy.registrations}</h2>
               <p>{copy.registrationsCaption}</p>
             </div>
           </div>
           <div className="chart-body">
-            <div className="stats">
-              <div className="stat">
-                <span className="stat-label">{copy.last7Days}</span>
-                <strong className="stat-value">{summary.registered7}</strong>
-              </div>
-              <div className="stat">
-                <span className="stat-label">{copy.last30Days}</span>
-                <strong className="stat-value">{summary.registered30}</strong>
-              </div>
-            </div>
             <div className="chart">
               <div className="bars">
                 {summary.days.map((day, index) => {

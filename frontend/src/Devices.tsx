@@ -96,7 +96,7 @@ export function Devices({ copy, lang, role, states, status, onNavigate, onUnauth
         </div>
       </header>
       {exportError ? <p className="alert">{exportError}</p> : null}
-      <form className="toolbar panel" onSubmit={search.commit}>
+      <form className="toolbar" onSubmit={search.commit}>
         <label className="field search">
           <span className="sr-only">{copy.search}</span>
           <Icon name="search" size={16} />

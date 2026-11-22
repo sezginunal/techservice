@@ -101,7 +101,7 @@ export function Audit({ copy, lang, states, onUnauthorized }: Props) {
           </div>
         </div>
       </header>
-      <form className="panel filters" onSubmit={submit}>
+      <form className="filters toolbar-filters" onSubmit={submit}>
         <DateField copy={copy} lang={lang} label={copy.fromDate} value={from} onChange={setFrom} />
         <DateField copy={copy} lang={lang} label={copy.toDate} value={to} onChange={setTo} />
         <label className="field">

@@ -74,7 +74,7 @@ export function Shell({ copy, lang, user, brand, path, items, onLang, onNavigate
         </nav>
         <div className="sidebar-foot">
           <div className="account">
-            <span className="avatar" data-tone="teal" aria-hidden="true">
+            <span className="avatar" data-tone="blue" aria-hidden="true">
               {initials(user.username)}
             </span>
             <span className="account-text">

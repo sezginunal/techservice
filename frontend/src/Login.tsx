@@ -37,35 +37,15 @@ export function Login({ copy, lang, brand, onLang, onSuccess }: LoginProps) {
         <div className="brand">
           <BrandMark copy={copy} brand={brand} />
         </div>
-        <div className="art">
-          <div className="art-card">
-            <div className="art-row">
-              <span className="dot" data-tone="teal" />
-              <span className="art-line" />
-              <span className="art-pill" data-tone="teal" />
-            </div>
-            <div className="art-row">
-              <span className="dot" data-tone="amber" />
-              <span className="art-line" />
-              <span className="art-pill" data-tone="amber" />
-            </div>
-            <div className="art-row">
-              <span className="dot" data-tone="green" />
-              <span className="art-line" />
-              <span className="art-pill" data-tone="green" />
-            </div>
-          </div>
-          <div className="art-card art-chart">
-            <span style={{ height: "35%" }} />
-            <span style={{ height: "55%" }} />
-            <span style={{ height: "42%" }} />
-            <span style={{ height: "70%" }} />
-            <span style={{ height: "88%" }} />
-            <span style={{ height: "62%" }} />
-            <span style={{ height: "95%" }} />
-          </div>
+        <div className="auth-art-copy">
+          <p className="auth-art-kicker">{copy.authArtKicker}</p>
+          <p className="auth-art-title">{copy.authArtTitle}</p>
+          <ul className="auth-art-points">
+            <li>{copy.authArtPoint1}</li>
+            <li>{copy.authArtPoint2}</li>
+            <li>{copy.authArtPoint3}</li>
+          </ul>
         </div>
-        <p>{copy.tagline}</p>
       </section>
       <div className="auth-main">
         <div className="auth-tools">
