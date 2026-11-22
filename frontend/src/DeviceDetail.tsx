@@ -60,7 +60,11 @@ export function DeviceDetail({ copy, lang, brand, states, user, id, onNavigate, 
   useEffect(() => {
     const controller = new AbortController();
     request<Device>(`/api/services/${id}`, { signal: controller.signal })
-      .then(setDevice)
+      .then((loaded) => {
+        if (!controller.signal.aborted) {
+          setDevice(loaded);
+        }
+      })
       .catch((err: unknown) => {
         if (controller.signal.aborted) {
           return;
@@ -460,8 +464,6 @@ export function DeviceDetail({ copy, lang, brand, states, user, id, onNavigate, 
 
           <SpareService
             copy={copy}
-            lang={lang}
-            states={states}
             serviceId={device.id}
             onNavigate={onNavigate}
             onUnauthorized={onUnauthorized}

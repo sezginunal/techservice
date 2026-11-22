@@ -254,6 +254,57 @@ func stockIs(err error, kind string) bool {
 	return errors.As(err, &stock) && stock.Kind == kind
 }
 
+func TestUseSparePartsRollsBack(t *testing.T) {
+	ctx := context.Background()
+	database := openTestDB(t)
+	root := t.TempDir()
+	if err := EnsureAdmin(ctx, database, "admin", "admin1234"); err != nil {
+		t.Fatal(err)
+	}
+	admin, err := Login(ctx, database, "admin", "admin1234")
+	if err != nil {
+		t.Fatal(err)
+	}
+	one := float64(1)
+	two := float64(2)
+	first, err := CreateSparePart(ctx, database, admin.User, "Ada", "Bolt", &one)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := CreateSparePart(ctx, database, admin.User, "Ada", "Nut", &one)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := registerSpareService(t, ctx, database, root, admin.User, "HP", "Laser", "SN-9")
+	err = UseSpareParts(ctx, database, admin.User, service.ID, []SpareUseLine{
+		{PartID: first.ID, Quantity: &one},
+		{PartID: second.ID, Quantity: &two},
+	})
+	var stock *StockError
+	if !errors.As(err, &stock) || stock.Kind != StockShort || stock.PartID != second.ID || stock.OnHand != 1 {
+		t.Fatalf("batch short %+v", err)
+	}
+	if onHand(t, database, first.ID) != 1 || onHand(t, database, second.ID) != 1 {
+		t.Fatal("refused batch wrote stock")
+	}
+	var moves int
+	if err := database.QueryRowContext(ctx, `SELECT COUNT(*) FROM spare_part_moves WHERE service_id = ?`, service.ID).Scan(&moves); err != nil {
+		t.Fatal(err)
+	}
+	if moves != 0 {
+		t.Fatalf("refused batch wrote %d moves", moves)
+	}
+	if err := UseSpareParts(ctx, database, admin.User, service.ID, []SpareUseLine{
+		{PartID: first.ID, Quantity: &one},
+		{PartID: second.ID, Quantity: &one},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if onHand(t, database, first.ID) != 0 || onHand(t, database, second.ID) != 0 {
+		t.Fatal("batch left stock")
+	}
+}
+
 func TestSpareQuantityEdges(t *testing.T) {
 	ctx := context.Background()
 	database := openTestDB(t)

@@ -2625,6 +2625,7 @@ button.person:hover .person-name {
   border-color: var(--color-accent);
   background: var(--color-accent-soft);
   box-shadow: inset 0 0 0 1px var(--color-accent);
+  cursor: default;
 }
 
 .choice.current {
@@ -2632,6 +2633,18 @@ button.person:hover .person-name {
   background: var(--color-surface-2);
   color: var(--color-muted);
   cursor: default;
+}
+
+button.choice {
+  width: 100%;
+  font: inherit;
+  text-align: start;
+}
+
+.choice:disabled,
+.choice[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .choice-name {
@@ -2892,6 +2905,10 @@ button.person:hover .person-name {
   min-width: 0;
 }
 
+.move-aside {
+  margin-left: auto;
+}
+
 .qty {
   color: var(--color-text);
   font-weight: 650;
@@ -3019,6 +3036,39 @@ button.person:hover .person-name {
   height: 1px;
   opacity: 0;
   pointer-events: none;
+}
+
+.dialog-scrim {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: max(var(--space-4), env(safe-area-inset-top)) var(--space-4) max(var(--space-4), env(safe-area-inset-bottom));
+  background: var(--color-scrim-strong);
+}
+
+.dialog {
+  width: min(32rem, 100%);
+  max-height: 100%;
+  overflow: auto;
+}
+
+.dialog-choices {
+  max-height: 16rem;
+  overflow: auto;
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.qty-field {
+  width: 5.5rem;
+  flex: none;
 }
 
 .lightbox {

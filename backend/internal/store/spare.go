@@ -36,6 +36,14 @@ type StockError struct {
 	Kind       string
 	OnHand     int
 	Returnable int
+	PartID     string
+	Brand      string
+	Model      string
+}
+
+type SpareUseLine struct {
+	PartID   string
+	Quantity *float64
 }
 
 func (e *StockError) Error() string {
@@ -226,6 +234,47 @@ func UseSparePart(ctx context.Context, database *sql.DB, actor User, serviceID s
 		return 0, err
 	}
 	return moveSpareOnService(ctx, database, actor, serviceID, partID, qty, "", moveUse)
+}
+
+func UseSpareParts(ctx context.Context, database *sql.DB, actor User, serviceID string, lines []SpareUseLine) error {
+	fields := &FieldError{}
+	if len(lines) == 0 {
+		fields.addMissing("lines")
+	}
+	if len(lines) > maxPage {
+		fields.addInvalid("lines")
+	}
+	ready := make([]struct {
+		id  string
+		qty int
+	}, 0, len(lines))
+	for _, line := range lines {
+		if strings.TrimSpace(line.PartID) == "" {
+			fields.addMissing("partId")
+			continue
+		}
+		ready = append(ready, struct {
+			id  string
+			qty int
+		}{id: line.PartID, qty: quantityIn(line.Quantity, 1, maxStock, fields)})
+	}
+	if err := fields.asError(); err != nil {
+		return err
+	}
+	tx, err := database.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin spare use: %w", err)
+	}
+	defer tx.Rollback()
+	for _, line := range ready {
+		if _, err := applySpareMove(ctx, tx, actor, serviceID, line.id, line.qty, "", moveUse); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit spare use: %w", err)
+	}
+	return nil
 }
 
 func ReturnSparePart(ctx context.Context, database *sql.DB, actor User, serviceID string, partID string, quantity *float64, note string) (int, error) {
@@ -525,7 +574,17 @@ func moveSpareOnService(ctx context.Context, database *sql.DB, actor User, servi
 		return 0, fmt.Errorf("begin spare use: %w", err)
 	}
 	defer tx.Rollback()
+	onHand, err := applySpareMove(ctx, tx, actor, serviceID, partID, qty, note, kind)
+	if err != nil {
+		return 0, err
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("commit spare use: %w", err)
+	}
+	return onHand, nil
+}
 
+func applySpareMove(ctx context.Context, tx *sql.Tx, actor User, serviceID string, partID string, qty int, note string, kind string) (int, error) {
 	part, err := loadSpare(ctx, tx, partID)
 	if err != nil {
 		return 0, err
@@ -540,13 +599,13 @@ func moveSpareOnService(ctx context.Context, database *sql.DB, actor User, servi
 			return 0, err
 		}
 		if qty > returnable {
-			return 0, &StockError{Kind: ReturnShort, Returnable: returnable}
+			return 0, &StockError{Kind: ReturnShort, Returnable: returnable, PartID: part.ID, Brand: part.Brand, Model: part.Model}
 		}
 		if err := raiseStock(ctx, tx, partID, qty); err != nil {
-			return 0, err
+			return 0, nameStock(err, part)
 		}
 	} else if err := lowerStock(ctx, tx, partID, qty); err != nil {
-		return 0, err
+		return 0, nameStock(err, part)
 	}
 	if err := insertMove(ctx, tx, partID, kind, qty, note, serviceID, service.Status, actor.Username); err != nil {
 		return 0, err
@@ -574,10 +633,17 @@ func moveSpareOnService(ctx context.Context, database *sql.DB, actor User, servi
 	}); err != nil {
 		return 0, err
 	}
-	if err := tx.Commit(); err != nil {
-		return 0, fmt.Errorf("commit spare use: %w", err)
-	}
 	return part.OnHand, nil
+}
+
+func nameStock(err error, part SparePart) error {
+	var stock *StockError
+	if errors.As(err, &stock) {
+		stock.PartID = part.ID
+		stock.Brand = part.Brand
+		stock.Model = part.Model
+	}
+	return err
 }
 
 func raiseStock(ctx context.Context, tx *sql.Tx, id string, quantity int) error {

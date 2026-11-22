@@ -354,6 +354,11 @@ func writeStoreError(w http.ResponseWriter, err error) {
 		if stock.Kind == store.ReturnShort {
 			body["returnable"] = stock.Returnable
 		}
+		if stock.PartID != "" {
+			body["partId"] = stock.PartID
+			body["brand"] = stock.Brand
+			body["model"] = stock.Model
+		}
 		writeJSON(w, http.StatusConflict, body)
 		return
 	}

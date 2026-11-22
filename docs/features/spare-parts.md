@@ -123,33 +123,33 @@ The spare part page does not use a part on a service and does not return one.
 
 The service detail shows a spare-part section after the parts section from intake. The heading is "Spare parts" in English and "Yedek parçalar" in Turkish.
 
-The section lists the uses and the returns on this service. The list follows the lists rule. The newest row is first. A row shows the time, the actor's username, the spare part's current brand and model, the quantity, the kind, and the state. The kind and the state use the same words as on the spare part page. A return shows its note when one was entered. Opening a row opens that spare part.
+The section lists the spare parts still on this service. A part is still on the service when its uses on this service minus its returns on this service are at least 1. The list follows the lists rule. The order is the brand, then the model, then the id. A row shows the current brand, the current model, and that net quantity. Opening the brand and model opens the spare part.
 
-The section is visible when it has no rows. It says "No spare part has been used on this service." in English and "Bu serviste yedek parça kullanılmadı." in Turkish.
+The section is visible when it has no rows. It says "No spare part is on this service." in English and "Bu serviste yedek parça yok." in Turkish.
 
 The operator uses a spare part from this section on any service, including a delivered or a cancelled service. The control is "Use a spare part" in English and "Yedek parça kullan" in Turkish. The registration screen, the correction screen, the device page, the customer page, and the spare part page have no such control.
 
-The control opens a picker on the service detail. The picker lists every spare part, including a part with nothing on hand. The list follows the lists rule. The order is the brand, then the model, then the id. One search box matches the brand or the model, as on the spare part list. Each opening of the picker loads the current quantity on hand.
+The control opens a dialog. Opening it closes a return. The dialog lists every spare part, including a part with nothing on hand. The list follows the lists rule. The order is the brand, then the model, then the id. One search box matches the brand or the model, as on the spare part list. Opening the dialog loads the current quantity on hand.
 
-A row shows the brand, the model, and the quantity on hand. A row with nothing on hand is shown and cannot be selected. A row with stock can be selected.
+A row shows the brand, the model, and the quantity on hand. A row with nothing on hand is shown and cannot be chosen. A row with stock can be chosen.
 
-The operator selects one part and enters a quantity from 1 through the quantity on hand. One save uses that one part. The save stores the time, the actor's username, the quantity, the service, and the service's state code at that moment. It lowers the quantity on hand by that quantity. It does not change the service state. A later use of the same part on the same service is a new row.
+Choosing a part adds it in the dialog at quantity 1. The operator can change that quantity, from 1 through the quantity on hand, or remove the part. The remove control is "Remove" in English and "Çıkar" in Turkish. Choosing a part that is already in the dialog does not add a second line.
 
-The save checks the quantity on hand again. A save that no longer fits is refused and writes nothing.
+The save control is "Save" in English and "Kaydet" in Turkish. It is disabled until the dialog has a part. One save uses every line still in the dialog. Each line stores the time, the actor's username, the quantity, the service, and the service's state code at that moment. It lowers the quantity on hand by that quantity. It does not change the service state. A later use of the same part on the same service adds to that part's net quantity. A successful save closes the dialog. The part appears on the service, or its quantity there rises.
+
+The save checks every quantity on hand again before it writes. A line that no longer fits refuses the save, names that part, and writes nothing from the dialog. The screen says "Only {n} are in stock." in English and "Stokta {n} adet var." in Turkish.
+
+The control "Cancel" in English and "Vazgeç" in Turkish closes the dialog and writes nothing.
 
 ## Returning a spare part
 
-A return puts stock back from a service. It is how a mistaken use is corrected. The use row stays.
+A return puts stock back from a service. It is how a mistaken use is corrected. The use stays on the spare part page, in the used-on-services list.
 
-The control is on the service detail. It is "Return to stock" in English and "Stoğa iade" in Turkish. It is shown when this service has a spare part whose uses minus its returns are at least 1. Otherwise the control is absent. The event list stays.
+Each row has the control "Return to stock" in English and "Stoğa iade" in Turkish. It opens a dialog for that part only. Opening it closes the use dialog. The quantity starts at 1. It is a whole number from 1 through that row's net quantity. The dialog asks "Return {n} to stock?" in English and "{n} adet stoğa iade edilsin mi?" in Turkish, with the quantity currently in the field. The save control is "Return to stock" in English and "Stoğa iade" in Turkish. The control "Cancel" in English and "Vazgeç" in Turkish closes the dialog and writes nothing.
 
-The operator picks one of those spare parts and enters a quantity. Each choice shows the brand, the model, and the returnable quantity. The returnable quantity is the uses of that part on this service minus the returns of that part on this service. The quantity is a whole number from 1 through that returnable quantity. The part choices follow the lists rule, in brand, then model, then id order.
+One save returns that one part. The save stores the time, the actor's username, the quantity, an empty note, the service, and the service's state code at that moment. It raises the quantity on hand by that quantity. It does not change the service state. A return that would put more than 99999 on hand is refused and writes nothing. A successful save closes the dialog. A part whose net quantity falls to 0 leaves the list.
 
-The operator may enter a note, or leave it empty. The note uses the same label as a receipt.
-
-One save returns that one part. The save stores the time, the actor's username, the quantity, the note, the service, and the service's state code at that moment. It raises the quantity on hand by that quantity. It does not change the service state. A return that would put more than 99999 on hand is refused and writes nothing.
-
-A return is not tied to one use row. Several uses of one part on one service add up to one returnable quantity.
+A return is not tied to one use row. Several uses of one part on one service add up to one net quantity.
 
 ## History
 

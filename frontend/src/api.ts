@@ -295,6 +295,9 @@ export class ApiError extends Error {
   serviceId: string;
   onHand: number;
   returnable: number;
+  partId: string;
+  brand: string;
+  model: string;
 
   constructor(
     code: string,
@@ -307,6 +310,9 @@ export class ApiError extends Error {
       serviceId?: string;
       onHand?: number;
       returnable?: number;
+      partId?: string;
+      brand?: string;
+      model?: string;
     },
   ) {
     super(code);
@@ -319,6 +325,9 @@ export class ApiError extends Error {
     this.serviceId = extra?.serviceId ?? "";
     this.onHand = extra?.onHand ?? 0;
     this.returnable = extra?.returnable ?? 0;
+    this.partId = extra?.partId ?? "";
+    this.brand = extra?.brand ?? "";
+    this.model = extra?.model ?? "";
   }
 }
 
@@ -343,6 +352,9 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     serviceId?: string;
     onHand?: number;
     returnable?: number;
+    partId?: string;
+    brand?: string;
+    model?: string;
   };
   if (!response.ok) {
     throw new ApiError(body.error ?? "unexpected", body);

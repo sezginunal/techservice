@@ -196,19 +196,24 @@ func listServiceSpares(database *sql.DB) http.HandlerFunc {
 func useSparePart(database *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			PartID   string   `json:"partId"`
-			Quantity *float64 `json:"quantity"`
+			Lines []struct {
+				PartID   string   `json:"partId"`
+				Quantity *float64 `json:"quantity"`
+			} `json:"lines"`
 		}
 		if err := readJSON(w, r, &body); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_json")
 			return
 		}
-		onHand, err := store.UseSparePart(r.Context(), database, userFrom(r.Context()), r.PathValue("id"), body.PartID, body.Quantity)
-		if err != nil {
+		lines := make([]store.SpareUseLine, 0, len(body.Lines))
+		for _, line := range body.Lines {
+			lines = append(lines, store.SpareUseLine{PartID: line.PartID, Quantity: line.Quantity})
+		}
+		if err := store.UseSpareParts(r.Context(), database, userFrom(r.Context()), r.PathValue("id"), lines); err != nil {
 			writeStoreError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"onHand": onHand})
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 

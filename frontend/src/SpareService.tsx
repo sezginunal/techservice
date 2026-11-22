@@ -1,76 +1,56 @@
-import { useEffect, useState, type FormEvent } from "react";
-import {
-  ApiError,
-  request,
-  type Page,
-  type ServiceState,
-  type SpareMove,
-  type SparePart,
-  type SpareReturnable,
-} from "./api";
+import { useEffect, useId, useRef, useState, type FormEvent, type RefObject } from "react";
+import { createPortal } from "react-dom";
+import { ApiError, request, type Page, type SparePart, type SpareReturnable } from "./api";
 import { wholeQuantity } from "./fields";
-import { formatWhen, statusLabel, statusTone } from "./format";
-import type { Copy, Lang } from "./i18n";
+import type { Copy } from "./i18n";
 import { End, useQuery, useWindow } from "./list";
 import { problemText } from "./problems";
-import { moveKind, noteTooLong, rangeText, spareProblem } from "./spare";
+import { rangeText, spareProblem } from "./spare";
 
 type Props = {
   copy: Copy;
-  lang: Lang;
-  states: ServiceState[];
   serviceId: string;
   onNavigate: (path: string) => void;
   onUnauthorized: () => void;
 };
 
-export function SpareService({ copy, lang, states, serviceId, onNavigate, onUnauthorized }: Props) {
+type Draft = {
+  part: SparePart;
+  quantity: string;
+};
+
+export function SpareService({ copy, serviceId, onNavigate, onUnauthorized }: Props) {
   const [revision, setRevision] = useState(0);
-  const [picker, setPicker] = useState(0);
-  const [returnOpen, setReturnOpen] = useState(false);
-  const [canReturn, setCanReturn] = useState(false);
-  const events = useWindow(`${serviceId}:${revision}`, (after: SpareMove | null, signal) => {
+  const [useOpen, setUseOpen] = useState(false);
+  const [returning, setReturning] = useState<SpareReturnable | null>(null);
+  const onHand = useWindow(`${serviceId}:${revision}`, (after: SpareReturnable | null, signal) => {
     const params = new URLSearchParams();
     if (after) {
-      params.set("after", after.at);
-      params.set("afterId", String(after.id));
+      params.set("after", after.brand);
+      params.set("afterModel", after.model);
+      params.set("afterId", after.id);
     }
-    return request<Page<SpareMove>>(`/api/services/${serviceId}/spare-parts?${params}`, { signal });
+    return request<Page<SpareReturnable>>(`/api/services/${serviceId}/spare-returns?${params}`, { signal });
   });
 
   useEffect(() => {
-    if (events.error instanceof ApiError && events.error.code === "unauthorized") {
-      onUnauthorized();
-    }
-  }, [events.error, onUnauthorized]);
+    setUseOpen(false);
+    setReturning(null);
+  }, [serviceId]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    request<Page<SpareReturnable>>(`/api/services/${serviceId}/spare-returns?limit=1`, { signal: controller.signal })
-      .then((page) => {
-        if (!controller.signal.aborted) {
-          setCanReturn(page.items.length > 0);
-        }
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        setCanReturn(false);
-        if (err instanceof ApiError && err.code === "unauthorized") {
-          onUnauthorized();
-        }
-      });
-    return () => controller.abort();
-  }, [onUnauthorized, revision, serviceId]);
+    if (onHand.error instanceof ApiError && onHand.error.code === "unauthorized") {
+      onUnauthorized();
+    }
+  }, [onHand.error, onUnauthorized]);
 
-  function changed() {
+  function saved() {
+    setUseOpen(false);
+    setReturning(null);
     setRevision((value) => value + 1);
-    setPicker(0);
-    setReturnOpen(false);
   }
 
-  const none = !events.loading && events.items.length === 0;
+  const none = !onHand.loading && onHand.items.length === 0;
 
   return (
     <section className="panel">
@@ -79,93 +59,87 @@ export function SpareService({ copy, lang, states, serviceId, onNavigate, onUnau
           <h2>{copy.spareParts}</h2>
         </div>
         <div className="panel-actions">
-          <button className="button secondary small" type="button" onClick={() => setPicker((value) => (value === 0 ? revision + 1 : 0))}>
+          <button
+            className="button secondary small"
+            type="button"
+            aria-expanded={useOpen}
+            onClick={() => {
+              setReturning(null);
+              setUseOpen(true);
+            }}
+          >
             {copy.useSparePart}
           </button>
         </div>
       </div>
-      {events.error ? <p className="alert">{problemText(copy, events.error)}</p> : null}
-      {events.items.length > 0 ? (
+      {onHand.error ? <p className="alert">{problemText(copy, onHand.error)}</p> : null}
+      {onHand.items.length > 0 ? (
         <ul className="moves">
-          {events.items.map((move) => (
-            <li className="move" key={move.id}>
+          {onHand.items.map((part) => (
+            <li className="move" key={part.id}>
               <div className="move-line">
-                <button className="link" type="button" onClick={() => onNavigate(`/spare-parts/${move.partId}`)}>
-                  {move.brand} {move.model}
+                <button className="link" type="button" onClick={() => onNavigate(`/spare-parts/${part.id}`)}>
+                  {part.brand} {part.model}
                 </button>
-                <span className="qty">{move.quantity}</span>
-                <span className="badge" data-tone="gray">
-                  <span>{moveKind(copy, move.kind)}</span>
-                </span>
-                {move.status ? (
-                  <span className="badge" data-tone={statusTone(move.status)}>
-                    <span>{statusLabel(move.status, states, lang)}</span>
-                  </span>
-                ) : null}
+                <span className="choice-tag">{copy.quantity}</span>
+                <span className="qty">{part.returnable}</span>
+                <button
+                  className="button secondary small move-aside"
+                  type="button"
+                  onClick={() => {
+                    setUseOpen(false);
+                    setReturning(part);
+                  }}
+                >
+                  {copy.returnToStock}
+                </button>
               </div>
-              <p className="meta">
-                <span className="meta-item">{formatWhen(move.at, lang)}</span>
-                <span className="meta-item">{move.actorUsername}</span>
-              </p>
-              {move.note ? <p className="notes">{move.note}</p> : null}
             </li>
           ))}
         </ul>
       ) : null}
       {none ? <p className="muted">{copy.noServiceSpares}</p> : null}
-      {events.loading ? (
+      {onHand.loading ? (
         <div className="loading">
           <span className="spinner" />
           {copy.loading}
         </div>
       ) : null}
-      <End enabled={events.hasMore && !events.loading} onEnd={events.more} />
-      {picker ? (
-        <SparePicker
-          key={picker}
-          copy={copy}
-          onUnauthorized={onUnauthorized}
-          onUsed={changed}
-          save={(partId, quantity) =>
-            request(`/api/services/${serviceId}/spare-parts`, {
-              method: "POST",
-              body: JSON.stringify({ partId, quantity }),
-            })
-          }
-        />
+      <End enabled={onHand.hasMore && !onHand.loading} onEnd={onHand.more} />
+      {useOpen ? (
+        <UseDialog copy={copy} serviceId={serviceId} onUnauthorized={onUnauthorized} onClose={() => setUseOpen(false)} onSaved={saved} />
       ) : null}
-      {canReturn ? (
-        <button className="button secondary" type="button" onClick={() => setReturnOpen((value) => !value)}>
-          {copy.returnToStock}
-        </button>
-      ) : null}
-      {returnOpen && canReturn ? (
-        <ReturnForm
-          key={`${serviceId}:${revision}`}
+      {returning ? (
+        <ReturnDialog
           copy={copy}
           serviceId={serviceId}
+          part={returning}
           onUnauthorized={onUnauthorized}
-          onSaved={changed}
+          onClose={() => setReturning(null)}
+          onSaved={saved}
         />
       ) : null}
     </section>
   );
 }
 
-function SparePicker({
+function UseDialog({
   copy,
+  serviceId,
   onUnauthorized,
-  onUsed,
-  save,
+  onClose,
+  onSaved,
 }: {
   copy: Copy;
+  serviceId: string;
   onUnauthorized: () => void;
-  onUsed: () => void;
-  save: (partId: string, quantity: number) => Promise<unknown>;
+  onClose: () => void;
+  onSaved: () => void;
 }) {
+  const titleId = useId();
   const search = useQuery();
-  const [reload, setReload] = useState(0);
-  const list = useWindow(`${search.query}:${reload}`, (after: SparePart | null, signal) => {
+  const choices = useRef<HTMLDivElement>(null);
+  const list = useWindow(search.query, (after: SparePart | null, signal) => {
     const params = new URLSearchParams();
     if (search.query) {
       params.set("q", search.query);
@@ -177,10 +151,20 @@ function SparePicker({
     }
     return request<Page<SparePart>>(`/api/spare-parts?${params}`, { signal });
   });
-  const [selected, setSelected] = useState<SparePart | null>(null);
-  const [quantity, setQuantity] = useState("");
+  const [lines, setLines] = useState<Draft[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const chosen = new Set(lines.map((line) => line.part.id));
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   useEffect(() => {
     if (list.error instanceof ApiError && list.error.code === "unauthorized") {
@@ -188,139 +172,29 @@ function SparePicker({
     }
   }, [list.error, onUnauthorized]);
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    if (!selected || selected.onHand < 1) {
-      return;
-    }
-    const amount = wholeQuantity(quantity, 1, selected.onHand);
-    if (typeof amount !== "number") {
-      setError(amount === "empty" ? copy.quantityRequired : rangeText(copy, 1, selected.onHand));
-      return;
-    }
-    setSaving(true);
+  function add(part: SparePart) {
+    setLines((current) => (current.some((line) => line.part.id === part.id) ? current : [...current, { part, quantity: "1" }]));
     setError(null);
-    try {
-      await save(selected.id, amount);
-      onUsed();
-    } catch (err: unknown) {
-      if (err instanceof ApiError && err.code === "unauthorized") {
-        onUnauthorized();
-        return;
-      }
-      setError(spareProblem(copy, err, 1, selected.onHand) ?? problemText(copy, err));
-      setSelected(null);
-      setReload((value) => value + 1);
-    } finally {
-      setSaving(false);
-    }
   }
 
-  const empty = !list.loading && list.items.length === 0;
-
-  return (
-    <form className="stack" onSubmit={(event) => void submit(event)}>
-      <label className="field">
-        {copy.search}
-        <input
-          value={search.value}
-          placeholder={copy.spareSearch}
-          onChange={(event) => search.setValue(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              search.commit();
-            }
-          }}
-        />
-      </label>
-      {list.error ? <p className="alert">{problemText(copy, list.error)}</p> : null}
-      {list.items.map((part) => (
-        <button
-          className="button secondary"
-          type="button"
-          key={part.id}
-          disabled={part.onHand === 0}
-          aria-pressed={selected?.id === part.id}
-          onClick={() => {
-            setSelected(part);
-            setQuantity("");
-            setError(null);
-          }}
-        >
-          {part.brand} {part.model} · {copy.inStock} {part.onHand}
-        </button>
-      ))}
-      {empty ? <p className="muted">{search.query ? copy.noSpareMatches : copy.noSpareParts}</p> : null}
-      {list.loading ? <p className="muted">{copy.loading}</p> : null}
-      <End enabled={list.hasMore && !list.loading} onEnd={list.more} />
-      {selected ? (
-        <label className="field">
-          {copy.quantity}
-          <input inputMode="numeric" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
-        </label>
-      ) : null}
-      {error ? <p className="alert">{error}</p> : null}
-      <button className="button" type="submit" disabled={!selected || saving}>
-        {copy.save}
-      </button>
-    </form>
-  );
-}
-
-function ReturnForm({
-  copy,
-  serviceId,
-  onUnauthorized,
-  onSaved,
-}: {
-  copy: Copy;
-  serviceId: string;
-  onUnauthorized: () => void;
-  onSaved: () => void;
-}) {
-  const [reload, setReload] = useState(0);
-  const list = useWindow(String(reload), (after: SpareReturnable | null, signal) => {
-    const params = new URLSearchParams();
-    if (after) {
-      params.set("after", after.brand);
-      params.set("afterModel", after.model);
-      params.set("afterId", after.id);
-    }
-    return request<Page<SpareReturnable>>(`/api/services/${serviceId}/spare-returns?${params}`, { signal });
-  });
-  const [selected, setSelected] = useState<SpareReturnable | null>(null);
-  const [quantity, setQuantity] = useState("");
-  const [note, setNote] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (list.error instanceof ApiError && list.error.code === "unauthorized") {
-      onUnauthorized();
-    }
-  }, [list.error, onUnauthorized]);
-
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!selected) {
-      return;
-    }
-    const amount = wholeQuantity(quantity, 1, selected.returnable);
-    if (typeof amount !== "number") {
-      setError(amount === "empty" ? copy.quantityRequired : rangeText(copy, 1, selected.returnable));
-      return;
-    }
-    if (noteTooLong(note)) {
-      setError(problemText(copy, new ApiError("validation", { tooLong: ["spareNote"] })));
-      return;
+    const ready: { partId: string; quantity: number }[] = [];
+    for (const line of lines) {
+      const amount = wholeQuantity(line.quantity, 1, line.part.onHand);
+      if (typeof amount !== "number") {
+        const text = amount === "empty" ? copy.quantityRequired : rangeText(copy, 1, line.part.onHand);
+        setError(`${line.part.brand} ${line.part.model}: ${text}`);
+        return;
+      }
+      ready.push({ partId: line.part.id, quantity: amount });
     }
     setSaving(true);
     setError(null);
     try {
-      await request(`/api/services/${serviceId}/spare-returns`, {
+      await request(`/api/services/${serviceId}/spare-parts`, {
         method: "POST",
-        body: JSON.stringify({ partId: selected.id, quantity: amount, note: note.trim() }),
+        body: JSON.stringify({ lines: ready }),
       });
       onSaved();
     } catch (err: unknown) {
@@ -328,50 +202,235 @@ function ReturnForm({
         onUnauthorized();
         return;
       }
-      setError(spareProblem(copy, err, 1, selected.returnable) ?? problemText(copy, err));
-      setSelected(null);
-      setReload((value) => value + 1);
+      if (err instanceof ApiError && err.partId) {
+        setLines((current) =>
+          current.map((line) =>
+            line.part.id === err.partId && err.code === "stock_short" ? { ...line, part: { ...line.part, onHand: err.onHand } } : line,
+          ),
+        );
+      }
+      const named = err instanceof ApiError && err.brand ? `${err.brand} ${err.model}: ` : "";
+      const line = lines.find((item) => err instanceof ApiError && item.part.id === err.partId);
+      const max = err instanceof ApiError && err.code === "stock_short" ? err.onHand : (line?.part.onHand ?? 1);
+      setError(named + (spareProblem(copy, err, 1, Math.max(1, max)) ?? problemText(copy, err)));
     } finally {
       setSaving(false);
     }
   }
 
-  return (
-    <form className="stack" onSubmit={(event) => void submit(event)}>
-      {list.error ? <p className="alert">{problemText(copy, list.error)}</p> : null}
-      {list.items.map((part) => (
-        <button
-          className="button secondary"
-          type="button"
-          key={part.id}
-          aria-pressed={selected?.id === part.id}
-          onClick={() => {
-            setSelected(part);
-            setQuantity("");
-            setError(null);
-          }}
-        >
-          {part.brand} {part.model} · {copy.returnable} {part.returnable}
-        </button>
-      ))}
-      {list.loading ? <p className="muted">{copy.loading}</p> : null}
-      <End enabled={list.hasMore && !list.loading} onEnd={list.more} />
-      {selected ? (
-        <>
-          <label className="field">
-            {copy.quantity}
-            <input inputMode="numeric" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
-          </label>
-          <label className="field">
-            {copy.optionalNote}
-            <textarea value={note} onChange={(event) => setNote(event.target.value)} />
-          </label>
-        </>
-      ) : null}
-      {error ? <p className="alert">{error}</p> : null}
-      <button className="button" type="submit" disabled={!selected || saving}>
-        {copy.returnToStock}
-      </button>
-    </form>
+  const visible = list.items.filter((part) => !chosen.has(part.id));
+  const empty = !list.loading && list.items.length === 0;
+
+  return createPortal(
+    <div
+      className="dialog-scrim"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <form className="panel dialog stack" onSubmit={(event) => void submit(event)}>
+        <div className="panel-head">
+          <div className="panel-title">
+            <h2 id={titleId}>{copy.useSparePart}</h2>
+          </div>
+        </div>
+        {lines.map((line) => (
+          <div className="move-line" key={line.part.id}>
+            <span className="choice-name">
+              {line.part.brand} {line.part.model}
+            </span>
+            <span className="choice-tag">
+              {copy.inStock} {line.part.onHand}
+            </span>
+            <label className="field qty-field">
+              {copy.quantity}
+              <input
+                inputMode="numeric"
+                value={line.quantity}
+                onChange={(event) => {
+                  const quantity = event.target.value;
+                  setLines((current) => current.map((item) => (item.part.id === line.part.id ? { ...item, quantity } : item)));
+                }}
+              />
+            </label>
+            <button
+              className="button ghost small"
+              type="button"
+              onClick={() => setLines((current) => current.filter((item) => item.part.id !== line.part.id))}
+            >
+              {copy.removeLine}
+            </button>
+          </div>
+        ))}
+        <label className="field">
+          <span className="sr-only">{copy.search}</span>
+          <input
+            value={search.value}
+            placeholder={copy.spareSearch}
+            onChange={(event) => search.setValue(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                search.commit();
+              }
+            }}
+          />
+        </label>
+        {list.error ? <p className="alert">{problemText(copy, list.error)}</p> : null}
+        <div className="choice-list dialog-choices" ref={choices}>
+          {visible.map((part) => (
+            <button className="choice" type="button" key={part.id} disabled={part.onHand === 0} onClick={() => add(part)}>
+              <span className="choice-name">
+                {part.brand} {part.model}
+              </span>
+              <span className="choice-tag">
+                {copy.inStock} {part.onHand}
+              </span>
+            </button>
+          ))}
+          <DialogMore root={choices} enabled={list.hasMore && !list.loading} onEnd={list.more} />
+        </div>
+        {empty ? <p className="muted">{search.query ? copy.noSpareMatches : copy.noSpareParts}</p> : null}
+        {list.loading ? <p className="muted">{copy.loading}</p> : null}
+        {error ? <p className="alert">{error}</p> : null}
+        <div className="dialog-actions">
+          <button className="button secondary" type="button" onClick={onClose}>
+            {copy.cancel}
+          </button>
+          <button className="button" type="submit" disabled={lines.length === 0 || saving}>
+            {copy.save}
+          </button>
+        </div>
+      </form>
+    </div>,
+    document.body,
   );
+}
+
+function ReturnDialog({
+  copy,
+  serviceId,
+  part,
+  onUnauthorized,
+  onClose,
+  onSaved,
+}: {
+  copy: Copy;
+  serviceId: string;
+  part: SpareReturnable;
+  onUnauthorized: () => void;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const titleId = useId();
+  const [quantity, setQuantity] = useState("1");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const amount = wholeQuantity(quantity, 1, part.returnable);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (typeof amount !== "number") {
+      setError(amount === "empty" ? copy.quantityRequired : rangeText(copy, 1, part.returnable));
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await request(`/api/services/${serviceId}/spare-returns`, {
+        method: "POST",
+        body: JSON.stringify({ partId: part.id, quantity: amount, note: "" }),
+      });
+      onSaved();
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.code === "unauthorized") {
+        onUnauthorized();
+        return;
+      }
+      setError(spareProblem(copy, err, 1, part.returnable) ?? problemText(copy, err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return createPortal(
+    <div
+      className="dialog-scrim"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <form className="panel dialog stack" onSubmit={(event) => void submit(event)}>
+        <div className="panel-head">
+          <div className="panel-title">
+            <h2 id={titleId}>{copy.returnToStock}</h2>
+          </div>
+        </div>
+        <p>
+          {part.brand} {part.model}
+        </p>
+        <label className="field">
+          {copy.quantity}
+          <input inputMode="numeric" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
+        </label>
+        <p>{typeof amount === "number" ? copy.returnSure.replace("{n}", String(amount)) : copy.returnPrompt}</p>
+        {error ? <p className="alert">{error}</p> : null}
+        <div className="dialog-actions">
+          <button className="button secondary" type="button" onClick={onClose}>
+            {copy.cancel}
+          </button>
+          <button className="button" type="submit" disabled={saving}>
+            {copy.returnToStock}
+          </button>
+        </div>
+      </form>
+    </div>,
+    document.body,
+  );
+}
+
+function DialogMore({ root, enabled, onEnd }: { root: RefObject<HTMLDivElement | null>; enabled: boolean; onEnd: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const onEndRef = useRef(onEnd);
+  onEndRef.current = onEnd;
+
+  useEffect(() => {
+    const node = ref.current;
+    const box = root.current;
+    if (!enabled || !node || !box) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          onEndRef.current();
+        }
+      },
+      { root: box, rootMargin: "80px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [enabled, root]);
+
+  return <div ref={ref} />;
 }
