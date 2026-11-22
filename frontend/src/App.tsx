@@ -222,6 +222,7 @@ export function App() {
       <DeviceDetail
         copy={copy}
         lang={lang}
+        brand={brand}
         states={states}
         user={user}
         id={service[1]}

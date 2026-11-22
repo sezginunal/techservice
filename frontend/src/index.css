@@ -4218,3 +4218,179 @@ button.person:hover .person-name {
     transform: none;
   }
 }
+
+/* Service report: screen-hidden; only visible when printing. */
+.service-report {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  body > *:not(.service-report) {
+    display: none !important;
+  }
+
+  .service-report {
+    display: block !important;
+    color: #000;
+    font-family: var(--font);
+    font-size: 11pt;
+    line-height: 1.35;
+  }
+
+  .service-report-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    border-bottom: 1px solid #000;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .service-report-brand {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .service-report-brand strong {
+    display: block;
+    font-size: 14pt;
+  }
+
+  .service-report-brand p {
+    margin: 0.15rem 0 0;
+    color: #333;
+  }
+
+  .service-report-logo,
+  .service-report-mark {
+    width: 2.25rem;
+    height: 2.25rem;
+    object-fit: contain;
+    flex: none;
+  }
+
+  .service-report-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #000;
+  }
+
+  .service-report-qr {
+    text-align: right;
+  }
+
+  .service-report-qr-svg {
+    width: 1.6in;
+    height: 1.6in;
+    margin-left: auto;
+  }
+
+  .service-report-qr-svg svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .service-report-qr .mono {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 8pt;
+    word-break: break-all;
+  }
+
+  .service-report-block {
+    margin: 0 0 0.9rem;
+    break-inside: avoid;
+  }
+
+  .service-report-block h2 {
+    margin: 0 0 0.35rem;
+    font-size: 11pt;
+    border-bottom: 1px solid #999;
+    padding-bottom: 0.15rem;
+  }
+
+  .service-report-dl {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem 1rem;
+    margin: 0;
+  }
+
+  .service-report-dl dt {
+    font-size: 8.5pt;
+    color: #444;
+  }
+
+  .service-report-dl dd {
+    margin: 0;
+  }
+
+  .service-report-empty {
+    margin: 0;
+    color: #444;
+  }
+
+  .service-report-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .service-report-table th,
+  .service-report-table td {
+    border: 1px solid #666;
+    padding: 0.3rem 0.4rem;
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  .service-report-table th {
+    font-size: 9pt;
+    background: #f0f0f0;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .service-report-fees th {
+    width: 70%;
+    background: transparent;
+  }
+
+  .service-report-blank {
+    display: inline-block;
+    min-width: 5rem;
+    min-height: 1.1rem;
+    border-bottom: 1px solid #000;
+  }
+
+  .service-report-blank.wide {
+    display: block;
+    width: 100%;
+    min-height: 2rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .service-report-sign {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 1.5rem;
+  }
+
+  .service-report-sign p {
+    margin: 0;
+    font-size: 9pt;
+  }
+}
