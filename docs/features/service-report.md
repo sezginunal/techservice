@@ -43,7 +43,7 @@ When no spare part has a net quantity above 0, the section stays and says there 
 
 ### Fee blanks
 
-Below the spare-part list:
+Directly below the spare-part list, with nothing between them:
 
 - One row labeled "Technical service fee" in English and "Teknik servis ücreti" in Turkish, with an empty amount line.
 - One row labeled "Total" in English and "Toplam" in Turkish, with an empty amount line.
@@ -52,7 +52,7 @@ The report never fills those amounts.
 
 ### Signatures
 
-Two signature lines:
+Two signature lines at the end of the report:
 
 - "Customer" in English and "Müşteri" in Turkish.
 - "Authorized" in English and "Yetkili" in Turkish.
@@ -61,11 +61,11 @@ Each line has space to sign by hand.
 
 ### Summary
 
-The summary layout stops after the fee blanks and the signatures. It does not print the state history.
+The summary layout is spare parts, then fee blanks, then signatures. It does not print the state history.
 
 ### Detailed
 
-The detailed layout adds the state history after the spare-part list and before the fee blanks.
+The detailed layout keeps spare parts and fee blanks consecutive. It adds the state history after the fee blanks and before the signatures.
 
 Each history row shows the state name for the active language, the time the service entered that state, and the time it left that state. Leaving time is the time of the next change. For the current state, the leaving time is empty. Change notes and status-change photos are not printed. Actor usernames are not printed.
 

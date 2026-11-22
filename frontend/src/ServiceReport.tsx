@@ -136,6 +136,25 @@ export function ServiceReport({ copy, lang, brand, states, device, spares, layou
         )}
       </section>
 
+      <section className="service-report-block">
+        <table className="service-report-table service-report-fees">
+          <tbody>
+            <tr>
+              <th scope="row">{copy.reportServiceFee}</th>
+              <td>
+                <span className="service-report-blank" />
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">{copy.reportTotal}</th>
+              <td>
+                <span className="service-report-blank" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
       {layout === "detailed" ? (
         <section className="service-report-block">
           <h2>{copy.statusHistory}</h2>
@@ -159,25 +178,6 @@ export function ServiceReport({ copy, lang, brand, states, device, spares, layou
           </table>
         </section>
       ) : null}
-
-      <section className="service-report-block">
-        <table className="service-report-table service-report-fees">
-          <tbody>
-            <tr>
-              <th scope="row">{copy.reportServiceFee}</th>
-              <td>
-                <span className="service-report-blank" />
-              </td>
-            </tr>
-            <tr>
-              <th scope="row">{copy.reportTotal}</th>
-              <td>
-                <span className="service-report-blank" />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
 
       <section className="service-report-sign">
         <div>
