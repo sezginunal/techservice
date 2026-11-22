@@ -186,6 +186,7 @@ export function App() {
       <Devices
         copy={copy}
         lang={lang}
+        role={user.role}
         states={states}
         status={url.searchParams.get("status") ?? ""}
         onNavigate={go}
@@ -245,9 +246,9 @@ export function App() {
       />
     );
   } else if (path === "/spare-parts") {
-    screen = <SpareParts copy={copy} onNavigate={go} onUnauthorized={unauthorized} />;
+    screen = <SpareParts copy={copy} lang={lang} role={user.role} onNavigate={go} onUnauthorized={unauthorized} />;
   } else if (path === "/customers") {
-    screen = <Customers copy={copy} onNavigate={go} onUnauthorized={unauthorized} />;
+    screen = <Customers copy={copy} lang={lang} role={user.role} onNavigate={go} onUnauthorized={unauthorized} />;
   } else if (customer) {
     screen = (
       <CustomerDetail

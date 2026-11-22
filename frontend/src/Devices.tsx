@@ -1,23 +1,28 @@
-import { useEffect } from "react";
-import { ApiError, request, type DeviceItem, type Page, type ServiceState } from "./api";
+import { useEffect, useState } from "react";
+import { ApiError, request, type DeviceItem, type Page, type Role, type ServiceState } from "./api";
+import { canExport, downloadExcel } from "./export";
 import { ModelIcon } from "./ModelIcon";
 import { formatWhen, listedStates, statusLabel, statusTone } from "./format";
 import type { Copy, Lang } from "./i18n";
 import { Icon } from "./icons";
 import { End, useQuery, useWindow } from "./list";
+import { messageFor } from "./Login";
 import { problemText } from "./problems";
 
 type Props = {
   copy: Copy;
   lang: Lang;
+  role: Role;
   states: ServiceState[];
   status: string;
   onNavigate: (path: string) => void;
   onUnauthorized: () => void;
 };
 
-export function Devices({ copy, lang, states, status, onNavigate, onUnauthorized }: Props) {
+export function Devices({ copy, lang, role, states, status, onNavigate, onUnauthorized }: Props) {
   const search = useQuery();
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const choices = listedStates(states);
   const selected = choices.some((item) => item.code === status) ? status : "";
   const list = useWindow(`${search.query}|${selected}`, (after: DeviceItem | null, signal) => {
@@ -41,7 +46,32 @@ export function Devices({ copy, lang, states, status, onNavigate, onUnauthorized
     }
   }, [list.error, onUnauthorized]);
 
+  async function exportList() {
+    const params = new URLSearchParams();
+    if (search.query) {
+      params.set("q", search.query);
+    }
+    if (selected) {
+      params.set("status", selected);
+    }
+    const query = params.toString();
+    setExporting(true);
+    setExportError(null);
+    try {
+      await downloadExcel(`/api/services/export${query ? `?${query}` : ""}`, lang);
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.code === "unauthorized") {
+        onUnauthorized();
+        return;
+      }
+      setExportError(messageFor(copy, err));
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const empty = !list.loading && list.items.length === 0;
+  const showExport = canExport(role);
 
   return (
     <div className="page">
@@ -52,6 +82,12 @@ export function Devices({ copy, lang, states, status, onNavigate, onUnauthorized
             <p className="lead">{copy.devicesLead}</p>
           </div>
           <div className="page-actions">
+            {showExport ? (
+              <button className="button secondary" type="button" disabled={exporting} onClick={() => void exportList()}>
+                <Icon name="download" size={16} />
+                {copy.exportExcel}
+              </button>
+            ) : null}
             <button className="button" type="button" onClick={() => onNavigate("/services/new")}>
               <Icon name="plus" size={16} />
               {copy.newDevice}
@@ -59,6 +95,7 @@ export function Devices({ copy, lang, states, status, onNavigate, onUnauthorized
           </div>
         </div>
       </header>
+      {exportError ? <p className="alert">{exportError}</p> : null}
       <form className="toolbar panel" onSubmit={search.commit}>
         <label className="field search">
           <span className="sr-only">{copy.search}</span>
