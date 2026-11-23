@@ -12,4 +12,12 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(version),
   },
+  server: {
+    host: "127.0.0.1",
+    port: 5173,
+    proxy: {
+      "/api": "http://127.0.0.1:8090",
+      "/brand": "http://127.0.0.1:8090",
+    },
+  },
 });

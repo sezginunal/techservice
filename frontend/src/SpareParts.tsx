@@ -169,7 +169,7 @@ export function SpareParts({ copy, lang, role, onNavigate, onUnauthorized }: Pro
           </button>
         </div>
       </form>
-      <form className="toolbar panel" onSubmit={search.commit}>
+      <form className="toolbar" onSubmit={search.commit}>
         <label className="field search">
           <span className="sr-only">{copy.search}</span>
           <Icon name="search" size={16} />
