@@ -8,7 +8,7 @@ A comment is conversation on that service. It does not change the state, the dev
 
 ## Where
 
-The service detail shows the comments. Every state is allowed, including `delivered` and `cancelled`. The list and the writer stay on that page. There is no separate comments page and no navigation entry.
+The service detail shows the comments after the state history. Every state is allowed, including `delivered` and `cancelled`. The list and the writer stay on that page. There is no separate comments page and no navigation entry.
 
 ## Who
 

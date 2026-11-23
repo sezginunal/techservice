@@ -56,7 +56,7 @@ The correction screen still edits the device notes, the parts, and the service p
 
 ## History
 
-The service detail shows the state history, newest first.
+The service detail shows the state history immediately under the change-status form and before the comments. The newest change is first.
 
 A row shows the time, the actor's username, the previous state, the new state, the change note when one was entered, and the photo when one was added.
 

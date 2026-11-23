@@ -354,6 +354,61 @@ export function DeviceDetail({ copy, lang, brand, states, user, id, onNavigate, 
             <div className="panel-head">
               <div className="panel-title">
                 <h2>
+                  <Icon name="history" size={16} />
+                  {copy.statusHistory}
+                </h2>
+              </div>
+            </div>
+            {device.history.length === 0 ? (
+              <div className="empty compact">
+                <span className="empty-icon">
+                  <Icon name="history" size={16} />
+                </span>
+                <span>{copy.noStatusHistory}</span>
+              </div>
+            ) : (
+              <ol className="timeline">
+                {device.history.map((change) => (
+                  <li className="timeline-item" key={change.id}>
+                    <span className="timeline-dot" data-tone={statusTone(change.to)} />
+                    <div className="timeline-body">
+                      <div className="timeline-change">
+                        <span className="badge" data-tone={statusTone(change.from)}>
+                          <span>{statusLabel(change.from, states, lang)}</span>
+                        </span>
+                        <Icon name="arrowRight" size={14} />
+                        <span className="badge" data-tone={statusTone(change.to)}>
+                          <span>{statusLabel(change.to, states, lang)}</span>
+                        </span>
+                      </div>
+                      <p className="meta">
+                        <span className="meta-item">{formatWhen(change.createdAt, lang)}</span>
+                        <span className="meta-item">{change.actorUsername}</span>
+                      </p>
+                      {change.note ? <p className="notes">{change.note}</p> : null}
+                      {change.hasPhoto ? (
+                        <div className="photo-grid">
+                          <div className="photo-tile sm">
+                            <PhotoButton
+                              copy={copy}
+                              src={statusPhotoSrc(device.id, change.id)}
+                              name={String(change.id)}
+                              onUnauthorized={onUnauthorized}
+                            />
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+
+          <section className="panel">
+            <div className="panel-head">
+              <div className="panel-title">
+                <h2>
                   <Icon name="message" size={16} />
                   {copy.comments}
                 </h2>
@@ -468,61 +523,6 @@ export function DeviceDetail({ copy, lang, brand, states, user, id, onNavigate, 
             onNavigate={onNavigate}
             onUnauthorized={onUnauthorized}
           />
-
-          <section className="panel">
-            <div className="panel-head">
-              <div className="panel-title">
-                <h2>
-                  <Icon name="history" size={16} />
-                  {copy.statusHistory}
-                </h2>
-              </div>
-            </div>
-            {device.history.length === 0 ? (
-              <div className="empty compact">
-                <span className="empty-icon">
-                  <Icon name="history" size={16} />
-                </span>
-                <span>{copy.noStatusHistory}</span>
-              </div>
-            ) : (
-              <ol className="timeline">
-                {device.history.map((change) => (
-                  <li className="timeline-item" key={change.id}>
-                    <span className="timeline-dot" data-tone={statusTone(change.to)} />
-                    <div className="timeline-body">
-                      <div className="timeline-change">
-                        <span className="badge" data-tone={statusTone(change.from)}>
-                          <span>{statusLabel(change.from, states, lang)}</span>
-                        </span>
-                        <Icon name="arrowRight" size={14} />
-                        <span className="badge" data-tone={statusTone(change.to)}>
-                          <span>{statusLabel(change.to, states, lang)}</span>
-                        </span>
-                      </div>
-                      <p className="meta">
-                        <span className="meta-item">{formatWhen(change.createdAt, lang)}</span>
-                        <span className="meta-item">{change.actorUsername}</span>
-                      </p>
-                      {change.note ? <p className="notes">{change.note}</p> : null}
-                      {change.hasPhoto ? (
-                        <div className="photo-grid">
-                          <div className="photo-tile sm">
-                            <PhotoButton
-                              copy={copy}
-                              src={statusPhotoSrc(device.id, change.id)}
-                              name={String(change.id)}
-                              onUnauthorized={onUnauthorized}
-                            />
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>
         </div>
 
         <aside className="detail-side">
