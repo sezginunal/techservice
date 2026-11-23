@@ -2028,12 +2028,11 @@ a.thing-title:hover {
   letter-spacing: -0.01em;
 }
 
-.table .uuid {
-  display: inline-block;
+.table td.uuid > span {
+  display: block;
   max-width: 7.5rem;
   overflow: hidden;
   text-overflow: ellipsis;
-  vertical-align: middle;
   white-space: nowrap;
 }
 
@@ -4218,8 +4217,9 @@ button.choice {
     width: 100%;
   }
 
-  .table .uuid {
+  .table td.uuid > span {
     max-width: none;
+    overflow: visible;
     white-space: normal;
     word-break: break-all;
   }
