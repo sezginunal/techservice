@@ -60,11 +60,11 @@ The create form is on the list screen, above the search. The fields are the bran
 
 The brand field suggests the brands already stored on spare parts. When the brand matches a stored brand, the model field suggests that brand's stored models. The match ignores surrounding space and letter case. Selecting a suggestion fills the field with the stored text. The operator can type a brand or a model that is not suggested. These suggestions are spare parts already stored. They are not the device catalog.
 
-A new brand and model create the spare part. A quantity above 0 also writes the opening receipt. A quantity of 0 writes the spare part and no receipt. The save opens the spare part.
+A new brand and model create the spare part. A quantity above 0 also writes the opening receipt. A quantity of 0 writes the spare part and no receipt. The save stays on the list. The form clears, and the list loads again so the spare part is on it.
 
 When the brand and model match a spare part that is already stored:
 
-- A quantity above 0 adds that quantity to the existing part as a receipt, then opens that part. The screen says "This spare part is already registered. The quantity was added." in English and "Bu yedek parça zaten kayıtlı. Adet stoğa eklendi." in Turkish. That receipt has no note.
+- A quantity above 0 adds that quantity to the existing part as a receipt. The save stays on the list. The form clears, and the list loads again. The screen says "This spare part is already registered. The quantity was added." in English and "Bu yedek parça zaten kayıtlı. Adet stoğa eklendi." in Turkish. That receipt has no note.
 - A quantity of 0 writes nothing. The screen says "This spare part is already registered." in English and "Bu yedek parça zaten kayıtlı." in Turkish, and offers "Open the spare part" in English and "Yedek parçayı aç" in Turkish.
 
 ## Spare part page

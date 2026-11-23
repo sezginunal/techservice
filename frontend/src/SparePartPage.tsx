@@ -14,12 +14,11 @@ type Props = {
   lang: Lang;
   states: ServiceState[];
   id: string;
-  notice: string;
   onNavigate: (path: string) => void;
   onUnauthorized: () => void;
 };
 
-export function SparePartPage({ copy, lang, states, id, notice, onNavigate, onUnauthorized }: Props) {
+export function SparePartPage({ copy, lang, states, id, onNavigate, onUnauthorized }: Props) {
   const [part, setPart] = useState<SparePart | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
@@ -127,7 +126,6 @@ export function SparePartPage({ copy, lang, states, id, notice, onNavigate, onUn
           </div>
         </div>
       </header>
-      {notice === "added" ? <p className="alert" data-tone="success">{copy.spareAddedExisting}</p> : null}
       <form className="panel" onSubmit={(event) => void saveIdentity(event)}>
         <div className="panel-head">
           <div className="panel-title">

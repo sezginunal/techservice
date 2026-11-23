@@ -241,7 +241,6 @@ export function App() {
         lang={lang}
         states={states}
         id={sparePart[1]}
-        notice={url.searchParams.get("notice") ?? ""}
         onNavigate={go}
         onUnauthorized={unauthorized}
       />

@@ -20,7 +20,8 @@ type Props = {
 
 export function SpareParts({ copy, lang, role, onNavigate, onUnauthorized }: Props) {
   const search = useQuery();
-  const list = useWindow(search.query, (after: SparePart | null, signal) => {
+  const [listKey, setListKey] = useState(0);
+  const list = useWindow(`${search.query}\n${listKey}`, (after: SparePart | null, signal) => {
     const params = new URLSearchParams();
     if (search.query) {
       params.set("q", search.query);
@@ -38,6 +39,7 @@ export function SpareParts({ copy, lang, role, onNavigate, onUnauthorized }: Pro
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [existing, setExisting] = useState<SparePart | null>(null);
+  const [addedExisting, setAddedExisting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -61,11 +63,13 @@ export function SpareParts({ copy, lang, role, onNavigate, onUnauthorized }: Pro
       }
       setError(lines.filter(Boolean).join(" "));
       setExisting(null);
+      setAddedExisting(false);
       return;
     }
     setSaving(true);
     setError(null);
     setExisting(null);
+    setAddedExisting(false);
     try {
       const created = await request<SparePart>("/api/spare-parts", {
         method: "POST",
@@ -75,8 +79,11 @@ export function SpareParts({ copy, lang, role, onNavigate, onUnauthorized }: Pro
         setExisting(created);
         return;
       }
-      const notice = created.existed && created.added ? "?notice=added" : "";
-      onNavigate(`/spare-parts/${created.id}${notice}`);
+      setBrand("");
+      setModel("");
+      setQuantity("");
+      setAddedExisting(Boolean(created.existed && created.added));
+      setListKey((current) => current + 1);
     } catch (err: unknown) {
       if (err instanceof ApiError && err.code === "unauthorized") {
         onUnauthorized();
@@ -153,6 +160,7 @@ export function SpareParts({ copy, lang, role, onNavigate, onUnauthorized }: Pro
           </label>
         </div>
         {error ? <p className="alert">{error}</p> : null}
+        {addedExisting ? <p className="alert" data-tone="success">{copy.spareAddedExisting}</p> : null}
         {existing ? (
           <p className="alert" data-tone="info">
             <span className="alert-body">
