@@ -95,7 +95,7 @@ func updateCustomer(database *sql.DB) http.HandlerFunc {
 	}
 }
 
-func listDevices(database *sql.DB, images catalog.Index) http.HandlerFunc {
+func listDevices(database *sql.DB, files catalog.Files) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limit, err := queryLimit(r)
 		if err != nil {
@@ -128,6 +128,15 @@ func listDevices(database *sql.DB, images catalog.Index) http.HandlerFunc {
 			writeStoreError(w, err)
 			return
 		}
+		pairs := make([]store.CatalogPair, 0, len(page.Items))
+		for _, item := range page.Items {
+			pairs = append(pairs, store.CatalogPair{Brand: item.Brand, Model: item.Model})
+		}
+		images, err := catalogImages(r.Context(), database, files, pairs)
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
 		items := make([]map[string]any, 0, len(page.Items))
 		for _, item := range page.Items {
 			items = append(items, map[string]any{
@@ -138,25 +147,25 @@ func listDevices(database *sql.DB, images catalog.Index) http.HandlerFunc {
 				"customerName": item.CustomerName,
 				"status":       item.Status,
 				"createdAt":    store.FormatTime(item.CreatedAt),
-				"image":        images.Has(item.Brand, item.Model),
+				"image":        images[store.CatalogKey(item.Brand, item.Model)],
 			})
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"items": items, "hasMore": page.HasMore})
 	}
 }
 
-func getDevice(database *sql.DB, images catalog.Index) http.HandlerFunc {
+func getDevice(database *sql.DB, files catalog.Files) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		device, err := store.GetDevice(r.Context(), database, r.PathValue("id"))
 		if err != nil {
 			writeStoreError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, deviceJSON(device, images))
+		writeDevice(w, r, database, files, http.StatusOK, device)
 	}
 }
 
-func registerDevice(database *sql.DB, root string, images catalog.Index) http.HandlerFunc {
+func registerDevice(database *sql.DB, root string, images catalog.Files) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			CustomerID      *int64 `json:"customerId"`
@@ -203,11 +212,11 @@ func registerDevice(database *sql.DB, root string, images catalog.Index) http.Ha
 			writeStoreError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusCreated, deviceJSON(device, images))
+		writeDevice(w, r, database, images, http.StatusCreated, device)
 	}
 }
 
-func updateDevice(database *sql.DB, root string, images catalog.Index) http.HandlerFunc {
+func updateDevice(database *sql.DB, root string, images catalog.Files) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			Brand           string `json:"brand"`
@@ -260,11 +269,11 @@ func updateDevice(database *sql.DB, root string, images catalog.Index) http.Hand
 			writeStoreError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, deviceJSON(device, images))
+		writeDevice(w, r, database, images, http.StatusOK, device)
 	}
 }
 
-func changeDeviceStatus(database *sql.DB, root string, images catalog.Index) http.HandlerFunc {
+func changeDeviceStatus(database *sql.DB, root string, files catalog.Files) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			Status string `json:"status"`
@@ -281,7 +290,7 @@ func changeDeviceStatus(database *sql.DB, root string, images catalog.Index) htt
 			writeStoreError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, deviceJSON(device, images))
+		writeDevice(w, r, database, files, http.StatusOK, device)
 	}
 }
 
@@ -374,9 +383,14 @@ func matchDevice(database *sql.DB) http.HandlerFunc {
 	}
 }
 
-func getIdentity(database *sql.DB, images catalog.Index) http.HandlerFunc {
+func getIdentity(database *sql.DB, files catalog.Files) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		identity, err := store.GetIdentity(r.Context(), database, r.PathValue("id"))
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		image, err := catalogImage(r.Context(), database, files, identity.Brand, identity.Model)
 		if err != nil {
 			writeStoreError(w, err)
 			return
@@ -386,7 +400,7 @@ func getIdentity(database *sql.DB, images catalog.Index) http.HandlerFunc {
 			"brand":  identity.Brand,
 			"model":  identity.Model,
 			"serial": identity.Serial,
-			"image":  images.Has(identity.Brand, identity.Model),
+			"image":  image,
 		})
 	}
 }
@@ -438,7 +452,16 @@ func customerJSON(customer store.Customer) map[string]any {
 	}
 }
 
-func deviceJSON(device store.Device, images catalog.Index) map[string]any {
+func writeDevice(w http.ResponseWriter, r *http.Request, database *sql.DB, files catalog.Files, status int, device store.Device) {
+	image, err := catalogImage(r.Context(), database, files, device.Brand, device.Model)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, status, deviceJSON(device, image))
+}
+
+func deviceJSON(device store.Device, image bool) map[string]any {
 	parts := make([]map[string]any, 0, len(device.Parts))
 	for _, part := range device.Parts {
 		parts = append(parts, map[string]any{
@@ -453,7 +476,7 @@ func deviceJSON(device store.Device, images catalog.Index) map[string]any {
 		"deviceId":  device.DeviceID,
 		"brand":     device.Brand,
 		"model":     device.Model,
-		"image":     images.Has(device.Brand, device.Model),
+		"image":     image,
 		"serial":    device.Serial,
 		"note":      device.Note,
 		"status":    device.Status,

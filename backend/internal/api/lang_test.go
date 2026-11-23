@@ -30,7 +30,7 @@ func TestNormalizeLang(t *testing.T) {
 }
 
 func TestBrandIncludesLanguage(t *testing.T) {
-	handler := New(nil, t.TempDir(), brand.Brand{Name: "North"}, catalog.Index{}, "tr")
+	handler := New(nil, t.TempDir(), brand.Brand{Name: "North"}, catalog.Files{}, "tr")
 	request := httptest.NewRequest(http.MethodGet, "/api/brand", nil)
 	recorder := httptest.NewRecorder()
 	handler.ServeHTTP(recorder, request)

@@ -12,6 +12,7 @@ import { shopName, storedLang, text, writeLang, type Lang } from "./i18n";
 import { Login } from "./Login";
 import { Settings } from "./Settings";
 import { Shell, type NavItem } from "./Shell";
+import { Models } from "./Models";
 import { SparePartPage } from "./SparePartPage";
 import { SpareParts } from "./SpareParts";
 import { Users } from "./Users";
@@ -158,6 +159,7 @@ export function App() {
     { path: "/", label: copy.home, icon: "home" },
     { path: "/services", label: copy.devices, icon: "services" },
     { path: "/customers", label: copy.customers, icon: "customers" },
+    { path: "/models", label: copy.models, icon: "device" },
     { path: "/spare-parts", label: copy.spareParts, icon: "spare" },
   ];
   if (user.role === "admin" || user.role === "owner") {
@@ -245,6 +247,8 @@ export function App() {
         onUnauthorized={unauthorized}
       />
     );
+  } else if (path === "/models") {
+    screen = <Models copy={copy} onUnauthorized={unauthorized} />;
   } else if (path === "/spare-parts") {
     screen = <SpareParts copy={copy} lang={lang} role={user.role} onNavigate={go} onUnauthorized={unauthorized} />;
   } else if (path === "/customers") {
@@ -279,6 +283,7 @@ export function App() {
         path.startsWith("/services") ||
         path.startsWith("/devices") ||
         path.startsWith("/customers") ||
+        path.startsWith("/models") ||
         path.startsWith("/spare-parts")
           ? path
           : "/"

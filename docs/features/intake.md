@@ -57,7 +57,7 @@ A service is one visit of a device. The device, the serial number, and which cus
 - The customer section comes first. The operator searches existing customers or enters a new one.
 - Search matches the name, the phone, the email, or the address. A phone search uses the same digit form, so the spaced, trunk-zero, and `+90` forms find that customer. Each result shows the name, the phone, the email, and the address, so two people with the same name can be told apart.
 - The operator either selects an existing customer or enters a new one. Selecting an existing customer shows that person's name, phone, email, and address and does not change them on this screen.
-- The device section takes the brand, model, serial number, and device notes. The brand and model suggestions are the device catalog. The match to an existing device is the device feature.
+- The device section takes the brand, model, serial number, and device notes. The brand and model suggestions are the active models in the device catalog. A successful save stores a brand and model the catalog does not list, as in the device catalog. The match to an existing device is the device feature.
 - The parts section adds part rows. Each row takes the part name, the part note, and that part's photos.
 - The service photos sit on the service.
 - One save writes the new customer, when the operator entered one, and the service with its parts and photos. When the device is new, that save also writes the device, as in the device feature.

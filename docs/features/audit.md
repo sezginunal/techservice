@@ -35,6 +35,8 @@ These events write a row:
 - A service is registered. The subject is the brand, the model, the serial number, the service UUID, and the customer name. The screen calls this event "Service registered" in English and "Servis açıldı" in Turkish. The first service on a new device does not write a separate device row.
 - A service is corrected. The subject is the brand, the model, the serial number, the service UUID, and the customer name. A change of customer shows the previous customer name and the new customer name. The screen calls this event "Service updated" in English and "Servis düzeltildi" in Turkish.
 - A device is corrected. The subject is the brand, the model, the serial number, and the device UUID. The row shows the previous brand, model, and serial number, and the new brand, model, and serial number. The screen calls this event "Device updated" in English and "Cihaz düzeltildi" in Turkish.
+- A model is added. The subject is the brand and the model. The screen calls this event "Model added" in English and "Model eklendi" in Turkish. The device catalog writes this row when the operator adds a model, and when a service registration or a device correction stores a new pair. The catalog file read at startup does not write this row.
+- A model is set active or inactive. The subject is the brand and the model. The row shows "Active" or "Inactive" in English and "Açık" or "Kapalı" in Turkish. The screen calls this event "Model updated" in English and "Model güncellendi" in Turkish.
 - A service status changes. The row shows the previous status and the new status. The screen calls this event "Status changed" in English and "Durum değiştirildi" in Turkish. Intake does not change status. The device status feature writes this row.
 - A user is created. The subject is the new username and the new role.
 - A user's role changes. The row shows the previous role and the new role.
@@ -58,6 +60,7 @@ These do not write a row:
 - A session expiring.
 - Opening a list or a record.
 - A refused validation.
+- Reading the catalog file at startup, including a Catalog model set inactive because the file no longer lists it.
 
 ## The screen
 

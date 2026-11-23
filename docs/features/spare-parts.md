@@ -4,7 +4,7 @@ Status: approved.
 
 A signed-in technician, owner, or admin keeps spare-part stock and records each use on a service. The three roles see and do the same work. A signed-out request is unauthorized.
 
-The signed-in navigation adds Spare parts after Customers. The label is "Spare parts" in English and "Yedek parçalar" in Turkish. The list address is `/spare-parts`.
+The signed-in navigation adds Spare parts after Models. The label is "Spare parts" in English and "Yedek parçalar" in Turkish. The list address is `/spare-parts`.
 
 The parts on a service stay as they are in the intake feature. Those rows have a name, a note, and photos. A spare part is a stock line. It has a brand, a model, and a quantity on hand.
 

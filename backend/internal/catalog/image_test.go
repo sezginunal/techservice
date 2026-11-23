@@ -8,14 +8,14 @@ import (
 
 func TestSlug(t *testing.T) {
 	cases := map[string]string{
-		"Acme":    "acme",
-		"S1":         "s1",
-		"North Wind":   "north-wind",
-		"Mini 2":     "mini-2",
+		"Acme":        "acme",
+		"S1":          "s1",
+		"North Wind":  "north-wind",
+		"Mini 2":      "mini-2",
 		"XL+":         "xl-plus",
 		"2.4":         "2-4",
-		"2.0 Model T":   "2-0-model-t",
-		"ACME-PRO":   "acme-pro",
+		"2.0 Model T": "2-0-model-t",
+		"ACME-PRO":    "acme-pro",
 		"  Model 3  ": "model-3",
 	}
 	for name, want := range cases {
@@ -29,8 +29,7 @@ func TestImage(t *testing.T) {
 	dir := t.TempDir()
 	png := []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00}
 	webp := append([]byte("RIFF"), append(make([]byte, 4), []byte("WEBP")...)...)
-	brands := []Brand{{Brand: "Acme", Models: []string{"S1", "Model 3"}}, {Brand: "Helios", Models: []string{"XL+"}}}
-	index := Index{Dir: dir, Brands: brands}
+	index := Files{Dir: dir}
 
 	if index.Has("Acme", "S1") {
 		t.Fatal("missing file was reported")

@@ -41,6 +41,7 @@ func Migrate(ctx context.Context, database *sql.DB) error {
 		{2, true, migration2},
 		{3, false, migration3},
 		{4, false, migration4},
+		{5, false, migration5},
 	}
 	for _, step := range steps {
 		if version >= step.version {
@@ -304,6 +305,28 @@ func migration4(ctx context.Context, tx *sql.Tx) error {
 	`)
 	if err != nil {
 		return fmt.Errorf("migrate 4: %w", err)
+	}
+	return nil
+}
+
+func migration5(ctx context.Context, tx *sql.Tx) error {
+	_, err := tx.ExecContext(ctx, `
+		CREATE TABLE catalog_models (
+			id TEXT PRIMARY KEY,
+			brand TEXT NOT NULL,
+			model TEXT NOT NULL,
+			brand_fold TEXT NOT NULL,
+			model_fold TEXT NOT NULL,
+			source TEXT NOT NULL CHECK (source IN ('catalog', 'added')),
+			active INTEGER NOT NULL CHECK (active IN (0, 1)),
+			created_at TEXT NOT NULL
+		);
+		CREATE UNIQUE INDEX catalog_models_identity ON catalog_models (brand_fold, model_fold);
+		CREATE INDEX catalog_models_order ON catalog_models (brand COLLATE NOCASE, model COLLATE NOCASE, id);
+		CREATE INDEX catalog_models_source ON catalog_models (source, brand_fold, model_fold);
+	`)
+	if err != nil {
+		return fmt.Errorf("migrate 5: %w", err)
 	}
 	return nil
 }

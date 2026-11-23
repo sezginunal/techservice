@@ -20,7 +20,7 @@ import (
 
 func TestExportCustomersRequiresManager(t *testing.T) {
 	database := openAPITestDB(t)
-	handler := New(database, t.TempDir(), brand.Brand{Name: "Shop"}, catalog.Index{}, "en")
+	handler := New(database, t.TempDir(), brand.Brand{Name: "Shop"}, catalog.Files{}, "en")
 
 	techCookie := loginCookie(t, handler, "tech", "tech12345")
 	rec := httptest.NewRecorder()
@@ -50,7 +50,7 @@ func TestExportCustomersRequiresManager(t *testing.T) {
 
 func TestExportServicesUsesFilterAndLanguage(t *testing.T) {
 	database := openAPITestDB(t)
-	handler := New(database, t.TempDir(), brand.Brand{Name: "Shop"}, catalog.Index{}, "en")
+	handler := New(database, t.TempDir(), brand.Brand{Name: "Shop"}, catalog.Files{}, "en")
 	cookie := loginCookie(t, handler, "admin", "admin1234")
 
 	rec := httptest.NewRecorder()

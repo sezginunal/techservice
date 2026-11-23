@@ -16,6 +16,8 @@ const (
 	EventServiceUpdated       = "service.updated"
 	EventDeviceUpdated        = "device.updated"
 	EventServiceStatusChanged = "service.status_changed"
+	EventModelAdded           = "model.added"
+	EventModelUpdated         = "model.updated"
 	EventUserCreated          = "user.created"
 	EventUserRoleChanged      = "user.role_changed"
 	EventUserPasswordChanged  = "user.password_changed"
@@ -28,7 +30,8 @@ func knownEvent(event string) bool {
 	case EventCustomerCreated, EventCustomerUpdated, EventServiceRegistered, EventServiceUpdated, EventDeviceUpdated, EventServiceStatusChanged,
 		EventUserCreated, EventUserRoleChanged, EventUserPasswordChanged, EventUserActivated, EventUserDeactivated,
 		EventStateAdded, EventStateUpdated, EventStatesReordered,
-		EventSparePartAdded, EventSparePartUpdated, EventStockAdded, EventStockWrittenOff, EventSparePartUsed, EventSparePartReturned:
+		EventSparePartAdded, EventSparePartUpdated, EventStockAdded, EventStockWrittenOff, EventSparePartUsed, EventSparePartReturned,
+		EventModelAdded, EventModelUpdated:
 		return true
 	default:
 		return false

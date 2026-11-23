@@ -5,7 +5,7 @@ import { Icon, type IconName } from "./icons";
 import { LanguageSwitch } from "./LanguageSwitch";
 import { appVersion } from "./version";
 
-export type NavIcon = Extract<IconName, "home" | "users" | "services" | "customers" | "spare" | "audit" | "settings">;
+export type NavIcon = Extract<IconName, "home" | "users" | "services" | "customers" | "device" | "spare" | "audit" | "settings">;
 
 export type NavItem = {
   path: string;

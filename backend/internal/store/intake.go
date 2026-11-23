@@ -437,6 +437,9 @@ func RegisterDevice(ctx context.Context, database *sql.DB, root string, actor Us
 			return Device{}, err
 		}
 	}
+	if err := ensureCatalogModel(ctx, tx, actor, brand, model); err != nil {
+		return Device{}, err
+	}
 	if err := insertAudit(ctx, tx, actor, EventServiceRegistered, brand+" "+model+" "+serial+" "+deviceID+" "+customer.Name, map[string]string{
 		"brand":    brand,
 		"model":    model,
@@ -649,6 +652,9 @@ func applyDevice(ctx context.Context, tx *sql.Tx, actor User, root string, curre
 	}
 	if finalCount > maxPhotos {
 		return nil, &FieldError{Photo: "limit"}
+	}
+	if err := ensureCatalogModel(ctx, tx, actor, input.Brand, input.Model); err != nil {
+		return nil, err
 	}
 
 	var removed []string

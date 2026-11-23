@@ -27,7 +27,7 @@ Intake owns the customer, the parts, the photos, and the registration screen. Th
 - When the three match a device, the screen shows that device's services before the save. The newest service is first. The list follows the lists rule. A row shows the registration date, the customer name, the phone, and the state. The heading is "Earlier services" in English and "Önceki servisler" in Turkish.
 - When the three match no device, that list is absent.
 - The operator selects the customer for this service, or enters a new one, as in intake. The save does not change the customer on another service.
-- One save writes the new customer, when the operator entered one. When no device matches, the save writes the device and the first service. When a device matches, the save writes a service on that device.
+- One save writes the new customer, when the operator entered one. When no device matches, the save writes the device and the first service. When a device matches, the save writes a service on that device. When the brand and model match no catalog row, that save also stores the pair, as in the device catalog.
 - A failed save writes nothing. The server is the check that the three match an existing device.
 - A device that has a service other than `delivered` or `cancelled` cannot take another service. The save is refused and writes nothing. The screen says "This device is already in the shop." in English and "Bu cihaz zaten dükkanda." in Turkish, and offers "Open the service" in English and "Servisi aç" in Turkish. That control opens the service that is still in the shop.
 - The save writes the audit rows named in the audit feature.
@@ -44,6 +44,7 @@ Intake owns the customer, the parts, the photos, and the registration screen. Th
 
 - From the service detail the operator corrects the brand, the model, and the serial number. The correction is that device's identity. Every service of the device shows the new values.
 - A correction that matches another device is refused and writes nothing. The screen says "A device with this brand, model, and serial number is already registered." in English and "Bu marka, model ve seri numarasıyla kayıtlı bir cihaz var." in Turkish. The service stays on its device.
+- When the corrected brand and model match no catalog row, the save also stores that pair, as in the device catalog. A refused correction does not.
 - From the service detail the operator changes the customer for this service. The customer section works as it does on the registration screen. The other services of the device keep their customers.
 - Correcting the selected customer's name, phone, email, or address updates that customer, as in intake.
 - The save writes the audit rows named in the audit feature.

@@ -32,11 +32,11 @@ Settings come from `.env`. Omit a line to keep the default in [`.env.example`](.
 | `COMPANY_NAME` | Shop name on the sign-in screen, the sidebar, and the browser tab. Empty keeps Techservice / Teknik servis. |
 | `DEFAULT_LANG` | `en` or `tr`. Used when this browser has not chosen a language. Default `en`. |
 | `LOGO_PATH` | Logo file the backend reads, for example `/brand/logo.webp`. JPEG, PNG, WebP, or SVG. |
-| `DEVICE_CATALOG_PATH` | Brand and model suggestions, for example `/brand/devices.json`. |
+| `DEVICE_CATALOG_PATH` | Brands and models added to the catalog on startup, for example `/brand/devices.json`. |
 
-`compose.yaml` mounts `./brand` at `/brand`. The logo, the catalog, and the model images stay on the machine. A missing logo or an unreadable catalog leaves the built-in mark and plain fields. The app still starts.
+`compose.yaml` mounts `./brand` at `/brand`. The logo, the catalog file, and the model images stay on the machine. A missing logo leaves the built-in mark. A missing or unreadable catalog file leaves the stored models as they are. The app still starts.
 
-A catalog file is a list of brands:
+A catalog file is a list of brands. Every start adds a pair the shop does not already store, and sets a catalog pair the file no longer lists to inactive. A pair an operator added is left as it is. The Models screen reads that stored list and shows whether the pair came from the file or from an operator. A model typed on a service is stored too. The file format:
 
 ```json
 [
@@ -95,7 +95,7 @@ npm run build
 - [Photos](docs/features/photos.md) — open and download a photo
 - [Audit](docs/features/audit.md) — who changed a record
 - [Brand](docs/features/brand.md) — shop name and logo
-- [Device catalog](docs/features/device-catalog.md) — brand and model suggestions
+- [Device catalog](docs/features/device-catalog.md) — models the shop can register
 
 ## License
 

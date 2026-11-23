@@ -208,6 +208,8 @@ function eventLabel(copy: Copy, event: string) {
     "stock.written_off": copy.eventStockWrittenOff,
     "spare_part.used": copy.eventSpareUsed,
     "spare_part.returned": copy.eventSpareReturned,
+    "model.added": copy.eventModelAdded,
+    "model.updated": copy.eventModelUpdated,
   };
   return labels[event] ?? event;
 }
@@ -260,6 +262,13 @@ function subjectOf(copy: Copy, lang: Lang, states: ServiceState[], item: AuditIt
       parts.push(device, detail.serial, detail.uuid, detail.status ? statusLabel(detail.status, states, lang) : "");
     }
     return parts.filter((value) => value !== undefined && value !== "").join(" · ");
+  }
+  if (item.event === "model.added" || item.event === "model.updated") {
+    const name = [detail.brand, detail.model].filter(Boolean).join(" ");
+    if (detail.previousActive && detail.active) {
+      return `${name} · ${activeWord(copy, detail.previousActive)} → ${activeWord(copy, detail.active)}`;
+    }
+    return name;
   }
   if (item.event === "state.added" || item.event === "state.updated" || item.event === "states.reordered") {
     return stateSubject(copy, lang, detail, item.event);

@@ -25,17 +25,21 @@ type userResponse struct {
 	Active   bool   `json:"active"`
 }
 
-func New(database *sql.DB, uploadPath string, shop brand.Brand, devices catalog.Index, defaultLang string) http.Handler {
+func New(database *sql.DB, uploadPath string, shop brand.Brand, files catalog.Files, defaultLang string) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", health(database))
 	mux.HandleFunc("GET /api/brand", showBrand(shop, defaultLang))
 	mux.HandleFunc("GET /api/brand/logo", showLogo(shop))
-	mux.HandleFunc("GET /api/catalog", authenticated(database, showCatalog(devices)))
-	mux.HandleFunc("GET /api/catalog/image", authenticated(database, showModelImage(devices)))
+	mux.HandleFunc("GET /api/catalog/image", authenticated(database, showModelImage(database, files)))
+	mux.HandleFunc("GET /api/models/suggestions/brands", authenticated(database, suggestModelBrands(database)))
+	mux.HandleFunc("GET /api/models/suggestions/models", authenticated(database, suggestModelNames(database, files)))
+	mux.HandleFunc("GET /api/models", authenticated(database, listModels(database, files)))
+	mux.HandleFunc("POST /api/models", authenticated(database, createModel(database)))
+	mux.HandleFunc("PATCH /api/models/{id}", authenticated(database, updateModel(database, files)))
 	mux.HandleFunc("POST /api/login", login(database))
 	mux.HandleFunc("POST /api/logout", authenticated(database, logout(database)))
 	mux.HandleFunc("GET /api/session", authenticated(database, currentSession()))
-	mux.HandleFunc("GET /api/home", authenticated(database, homeSummary(database, devices)))
+	mux.HandleFunc("GET /api/home", authenticated(database, homeSummary(database, files)))
 	mux.HandleFunc("GET /api/states", authenticated(database, listStates(database)))
 	mux.HandleFunc("POST /api/states", manager(database, createState(database)))
 	mux.HandleFunc("PATCH /api/states/{code}", manager(database, updateState(database)))
@@ -47,19 +51,19 @@ func New(database *sql.DB, uploadPath string, shop brand.Brand, devices catalog.
 	mux.HandleFunc("GET /api/customers/export", manager(database, exportCustomers(database)))
 	mux.HandleFunc("GET /api/customers/{id}", authenticated(database, getCustomer(database)))
 	mux.HandleFunc("PATCH /api/customers/{id}", authenticated(database, updateCustomer(database)))
-	mux.HandleFunc("GET /api/services", authenticated(database, listDevices(database, devices)))
+	mux.HandleFunc("GET /api/services", authenticated(database, listDevices(database, files)))
 	mux.HandleFunc("GET /api/services/export", manager(database, exportServices(database)))
-	mux.HandleFunc("POST /api/services", authenticated(database, registerDevice(database, uploadPath, devices)))
+	mux.HandleFunc("POST /api/services", authenticated(database, registerDevice(database, uploadPath, files)))
 	mux.HandleFunc("GET /api/services/{id}/photos/{photoId}", authenticated(database, getPhoto(database, uploadPath)))
 	mux.HandleFunc("GET /api/services/{id}/status/{changeId}/photo", authenticated(database, getStatusPhoto(database, uploadPath)))
-	mux.HandleFunc("POST /api/services/{id}/status", authenticated(database, changeDeviceStatus(database, uploadPath, devices)))
+	mux.HandleFunc("POST /api/services/{id}/status", authenticated(database, changeDeviceStatus(database, uploadPath, files)))
 	mux.HandleFunc("POST /api/services/{id}/comments", authenticated(database, addServiceComment(database)))
 	mux.HandleFunc("PATCH /api/services/{id}/comments/{commentId}", authenticated(database, updateServiceComment(database)))
-	mux.HandleFunc("GET /api/services/{id}", authenticated(database, getDevice(database, devices)))
-	mux.HandleFunc("PUT /api/services/{id}", authenticated(database, updateDevice(database, uploadPath, devices)))
+	mux.HandleFunc("GET /api/services/{id}", authenticated(database, getDevice(database, files)))
+	mux.HandleFunc("PUT /api/services/{id}", authenticated(database, updateDevice(database, uploadPath, files)))
 	mux.HandleFunc("GET /api/devices/match", authenticated(database, matchDevice(database)))
 	mux.HandleFunc("GET /api/devices/{id}/services", authenticated(database, listDeviceServices(database)))
-	mux.HandleFunc("GET /api/devices/{id}", authenticated(database, getIdentity(database, devices)))
+	mux.HandleFunc("GET /api/devices/{id}", authenticated(database, getIdentity(database, files)))
 	mux.HandleFunc("GET /api/audit", authenticated(database, listAudit(database)))
 	mux.HandleFunc("GET /api/spare-parts/suggestions/brands", authenticated(database, suggestSpareBrands(database)))
 	mux.HandleFunc("GET /api/spare-parts/suggestions/models", authenticated(database, suggestSpareModels(database)))
@@ -87,26 +91,21 @@ func showBrand(shop brand.Brand, lang string) http.HandlerFunc {
 	}
 }
 
-func showCatalog(devices catalog.Index) http.HandlerFunc {
+func showModelImage(database *sql.DB, files catalog.Files) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := make([]map[string]any, 0, len(devices.Brands))
-		for _, item := range devices.Brands {
-			models := make([]map[string]any, 0, len(item.Models))
-			for _, model := range item.Models {
-				models = append(models, map[string]any{
-					"name":  model,
-					"image": devices.Has(item.Brand, model),
-				})
-			}
-			body = append(body, map[string]any{"brand": item.Brand, "models": models})
+		brand := r.URL.Query().Get("brand")
+		model := r.URL.Query().Get("model")
+		canon, err := store.CatalogCanon(r.Context(), database, []store.CatalogPair{{Brand: brand, Model: model}})
+		if err != nil {
+			writeStoreError(w, err)
+			return
 		}
-		writeJSON(w, http.StatusOK, body)
-	}
-}
-
-func showModelImage(devices catalog.Index) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body, media, ok := devices.Open(r.URL.Query().Get("brand"), r.URL.Query().Get("model"))
+		name, ok := canon[store.CatalogKey(brand, model)]
+		if !ok {
+			writeError(w, http.StatusNotFound, "not_found")
+			return
+		}
+		body, media, ok := files.Open(name.Brand, name.Model)
 		if !ok {
 			writeError(w, http.StatusNotFound, "not_found")
 			return

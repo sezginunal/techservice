@@ -53,13 +53,19 @@ func main() {
 	log.Printf("uploads %s", uploadPath)
 
 	shop := brand.Load(brand.Dir, os.Getenv("COMPANY_NAME"), os.Getenv("LOGO_PATH"))
-	devices := catalog.Index{Dir: brand.Dir, Brands: catalog.Load(brand.Dir, os.Getenv("DEVICE_CATALOG_PATH"))}
+	files := catalog.Files{Dir: brand.Dir}
+	brands, err := catalog.Load(brand.Dir, os.Getenv("DEVICE_CATALOG_PATH"))
+	if err != nil {
+		log.Printf("device catalog: %v", err)
+	} else if err := store.MergeCatalog(ctx, database, brands); err != nil {
+		log.Printf("device catalog: %v", err)
+	}
 	defaultLang := api.NormalizeLang(os.Getenv("DEFAULT_LANG"))
 	log.Printf("default language %s", defaultLang)
 
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           api.New(database, uploadPath, shop, devices, defaultLang),
+		Handler:           api.New(database, uploadPath, shop, files, defaultLang),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       120 * time.Second,
 		WriteTimeout:      120 * time.Second,

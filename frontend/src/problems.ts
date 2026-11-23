@@ -93,6 +93,9 @@ function takenLine(copy: Copy, field: string) {
   if (field === "spare") {
     return copy.spareTaken;
   }
+  if (field === "catalog") {
+    return copy.modelTaken;
+  }
   return copy.unexpected;
 }
 

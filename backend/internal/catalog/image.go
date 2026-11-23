@@ -13,18 +13,17 @@ import (
 
 const maxImage = 2 << 20
 
-type Index struct {
-	Dir    string
-	Brands []Brand
+type Files struct {
+	Dir string
 }
 
-func (index Index) Has(brand, model string) bool {
-	_, _, ok := index.locate(brand, model)
+func (files Files) Has(brand, model string) bool {
+	_, _, ok := files.locate(brand, model)
 	return ok
 }
 
-func (index Index) Open(brand, model string) ([]byte, string, bool) {
-	path, media, ok := index.locate(brand, model)
+func (files Files) Open(brand, model string) ([]byte, string, bool) {
+	path, media, ok := files.locate(brand, model)
 	if !ok {
 		return nil, "", false
 	}
@@ -46,17 +45,16 @@ func (index Index) Open(brand, model string) ([]byte, string, bool) {
 	return body, media, true
 }
 
-func (index Index) locate(brand, model string) (string, string, bool) {
-	canonBrand, canonModel, ok := match(index.Brands, brand, model)
-	if !ok || strings.TrimSpace(index.Dir) == "" {
+func (files Files) locate(brand, model string) (string, string, bool) {
+	if strings.TrimSpace(files.Dir) == "" {
 		return "", "", false
 	}
-	brandSlug := Slug(canonBrand)
-	modelSlug := Slug(canonModel)
+	brandSlug := Slug(brand)
+	modelSlug := Slug(model)
 	if brandSlug == "" || modelSlug == "" {
 		return "", "", false
 	}
-	root := filepath.Join(index.Dir, "devices")
+	root := filepath.Join(files.Dir, "devices")
 	for _, ext := range []string{".webp", ".png", ".jpg", ".jpeg"} {
 		full, err := inside(root, filepath.Join(root, brandSlug, modelSlug+ext))
 		if err != nil {
@@ -71,22 +69,6 @@ func (index Index) locate(brand, model string) (string, string, bool) {
 			continue
 		}
 		return full, media, true
-	}
-	return "", "", false
-}
-
-func match(brands []Brand, brand, model string) (string, string, bool) {
-	brand = strings.TrimSpace(brand)
-	model = strings.TrimSpace(model)
-	for _, item := range brands {
-		if !strings.EqualFold(item.Brand, brand) {
-			continue
-		}
-		for _, name := range item.Models {
-			if strings.EqualFold(name, model) {
-				return item.Brand, name, true
-			}
-		}
 	}
 	return "", "", false
 }

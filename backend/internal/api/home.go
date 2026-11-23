@@ -10,9 +10,22 @@ import (
 	"techservice/internal/store"
 )
 
-func homeSummary(database *sql.DB, images catalog.Index) http.HandlerFunc {
+func homeSummary(database *sql.DB, files catalog.Files) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		summary, err := store.LoadSummary(r.Context(), database, time.Now())
+		if err != nil {
+			log.Printf("home: %v", err)
+			writeError(w, http.StatusInternalServerError, "internal")
+			return
+		}
+		pairs := make([]store.CatalogPair, 0, len(summary.Models)+len(summary.Latest))
+		for _, item := range summary.Models {
+			pairs = append(pairs, store.CatalogPair{Brand: item.Brand, Model: item.Model})
+		}
+		for _, item := range summary.Latest {
+			pairs = append(pairs, store.CatalogPair{Brand: item.Brand, Model: item.Model})
+		}
+		images, err := catalogImages(r.Context(), database, files, pairs)
 		if err != nil {
 			log.Printf("home: %v", err)
 			writeError(w, http.StatusInternalServerError, "internal")
@@ -47,7 +60,7 @@ func queueJSON(queues []store.StateQueue) []map[string]any {
 	return body
 }
 
-func summaryJSON(summary store.Summary, images catalog.Index) map[string]any {
+func summaryJSON(summary store.Summary, images map[string]bool) map[string]any {
 	days := make([]map[string]any, 0, len(summary.Days))
 	for _, day := range summary.Days {
 		days = append(days, map[string]any{"date": day.Date, "count": day.Count})
@@ -62,7 +75,7 @@ func summaryJSON(summary store.Summary, images catalog.Index) map[string]any {
 			"brand": item.Brand,
 			"model": item.Model,
 			"count": item.Count,
-			"image": images.Has(item.Brand, item.Model),
+			"image": images[store.CatalogKey(item.Brand, item.Model)],
 		})
 	}
 	unchanged := make([]map[string]any, 0, len(summary.Unchanged))
@@ -85,7 +98,7 @@ func summaryJSON(summary store.Summary, images catalog.Index) map[string]any {
 			"brand":     item.Brand,
 			"model":     item.Model,
 			"serial":    item.Serial,
-			"image":     images.Has(item.Brand, item.Model),
+			"image":     images[store.CatalogKey(item.Brand, item.Model)],
 			"status":    item.Status,
 			"createdAt": store.FormatTime(item.CreatedAt),
 		})

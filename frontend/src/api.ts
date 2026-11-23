@@ -16,9 +16,13 @@ export type CatalogModel = {
   image: boolean;
 };
 
-export type CatalogBrand = {
+export type CatalogEntry = {
+  id: string;
   brand: string;
-  models: CatalogModel[];
+  model: string;
+  source: "catalog" | "added";
+  active: boolean;
+  image: boolean;
 };
 
 export const logoSrc = "/api/brand/logo";

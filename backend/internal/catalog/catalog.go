@@ -18,16 +18,13 @@ type Brand struct {
 	Models []string `json:"models"`
 }
 
-func Load(dir, path string) []Brand {
+const maxCatalogName = 200
+
+func Load(dir, path string) ([]Brand, error) {
 	if strings.TrimSpace(path) == "" {
-		return []Brand{}
+		return nil, fmt.Errorf("path is empty")
 	}
-	loaded, err := read(dir, path)
-	if err != nil {
-		log.Printf("device catalog: %v", err)
-		return []Brand{}
-	}
-	return loaded
+	return read(dir, path)
 }
 
 func read(dir, path string) ([]Brand, error) {
@@ -80,6 +77,10 @@ func clean(raw []Brand) []Brand {
 		if name == "" {
 			continue
 		}
+		if len([]rune(name)) > maxCatalogName {
+			log.Printf("device catalog: brand %q is longer than %d characters", name, maxCatalogName)
+			continue
+		}
 		key := strings.ToLower(name)
 		if seen[key] {
 			log.Printf("device catalog: duplicate brand %q", name)
@@ -93,8 +94,13 @@ func clean(raw []Brand) []Brand {
 			if model == "" {
 				continue
 			}
+			if len([]rune(model)) > maxCatalogName {
+				log.Printf("device catalog: model %q %q is longer than %d characters", name, model, maxCatalogName)
+				continue
+			}
 			modelKey := strings.ToLower(model)
 			if modelSeen[modelKey] {
+				log.Printf("device catalog: duplicate model %q %q", name, model)
 				continue
 			}
 			modelSeen[modelKey] = true
