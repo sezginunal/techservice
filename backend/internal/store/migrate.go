@@ -42,6 +42,7 @@ func Migrate(ctx context.Context, database *sql.DB) error {
 		{3, false, migration3},
 		{4, false, migration4},
 		{5, false, migration5},
+		{6, false, migration6},
 	}
 	for _, step := range steps {
 		if version >= step.version {
@@ -327,6 +328,55 @@ func migration5(ctx context.Context, tx *sql.Tx) error {
 	`)
 	if err != nil {
 		return fmt.Errorf("migrate 5: %w", err)
+	}
+	return nil
+}
+
+func migration6(ctx context.Context, tx *sql.Tx) error {
+	if _, err := tx.ExecContext(ctx, `ALTER TABLE users ADD COLUMN username_fold TEXT NOT NULL DEFAULT ''`); err != nil {
+		return fmt.Errorf("migrate 6: %w", err)
+	}
+	rows, err := tx.QueryContext(ctx, `SELECT id, username FROM users ORDER BY id`)
+	if err != nil {
+		return fmt.Errorf("migrate 6: %w", err)
+	}
+	defer rows.Close()
+	type row struct {
+		id       int64
+		username string
+	}
+	var users []row
+	for rows.Next() {
+		var item row
+		if err := rows.Scan(&item.id, &item.username); err != nil {
+			return fmt.Errorf("migrate 6: %w", err)
+		}
+		users = append(users, item)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("migrate 6: %w", err)
+	}
+	used := map[string]bool{}
+	for _, user := range users {
+		name := user.username
+		key := fold(name)
+		if used[key] {
+			name = fmt.Sprintf("%s-%d", user.username, user.id)
+			key = fold(name)
+			for used[key] {
+				name = fmt.Sprintf("%s-%d", name, user.id)
+				key = fold(name)
+			}
+			if _, err := tx.ExecContext(ctx, `UPDATE users SET username = ?, username_fold = ? WHERE id = ?`, name, key, user.id); err != nil {
+				return fmt.Errorf("migrate 6 rename: %w", err)
+			}
+		} else if _, err := tx.ExecContext(ctx, `UPDATE users SET username_fold = ? WHERE id = ?`, key, user.id); err != nil {
+			return fmt.Errorf("migrate 6 fold: %w", err)
+		}
+		used[key] = true
+	}
+	if _, err := tx.ExecContext(ctx, `CREATE UNIQUE INDEX users_username_fold ON users (username_fold)`); err != nil {
+		return fmt.Errorf("migrate 6: %w", err)
 	}
 	return nil
 }
