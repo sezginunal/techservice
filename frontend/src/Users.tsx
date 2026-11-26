@@ -172,6 +172,11 @@ function UserRow({
   const [active, setActive] = useState(user.active);
   const formId = `user-${user.id}`;
 
+  useEffect(() => {
+    setRole(user.role);
+    setActive(user.active);
+  }, [user.role, user.active, user.id]);
+
   return (
     <tr>
       <td data-label={copy.username}>
@@ -182,6 +187,9 @@ function UserRow({
             void onSave(user, role, password, active).then((saved) => {
               if (saved) {
                 setPassword("");
+              } else {
+                setRole(user.role);
+                setActive(user.active);
               }
             });
           }}

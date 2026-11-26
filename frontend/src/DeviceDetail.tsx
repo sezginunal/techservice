@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import {
   ApiError,
@@ -17,7 +17,7 @@ import { choosableStates, formatWhen, statusLabel, statusTone } from "./format";
 import type { Copy, Lang } from "./i18n";
 import { Icon } from "./icons";
 import { PhotoButton } from "./PhotoView";
-import { fileProblem, problemText } from "./problems";
+import { fileProblem, maxNoteLen, problemText } from "./problems";
 import { loadReportSpares, type ReportLayout } from "./report";
 import { ServiceReport } from "./ServiceReport";
 import { SpareService } from "./SpareService";
@@ -56,6 +56,10 @@ export function DeviceDetail({ copy, lang, brand, states, user, id, onNavigate, 
   const [reportSpares, setReportSpares] = useState<SpareReturnable[] | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);
   const [reportBusy, setReportBusy] = useState(false);
+  const copyRef = useRef(copy);
+  copyRef.current = copy;
+  const unauthorizedRef = useRef(onUnauthorized);
+  unauthorizedRef.current = onUnauthorized;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -70,13 +74,13 @@ export function DeviceDetail({ copy, lang, brand, states, user, id, onNavigate, 
           return;
         }
         if (err instanceof ApiError && err.code === "unauthorized") {
-          onUnauthorized();
+          unauthorizedRef.current();
           return;
         }
-        setError(problemText(copy, err));
+        setError(problemText(copyRef.current, err));
       });
     return () => controller.abort();
-  }, [copy, id, onUnauthorized]);
+  }, [id]);
 
   useEffect(() => {
     if (!reportLayout || !reportSpares) {
@@ -121,9 +125,10 @@ export function DeviceDetail({ copy, lang, brand, states, user, id, onNavigate, 
       return;
     }
     const missing = next ? [] : ["status"];
+    const tooLong = [...note.trim()].length > maxNoteLen ? ["statusNote"] : [];
     const photo = file ? fileProblem(file) : null;
-    if (missing.length || photo) {
-      setStatusError(problemText(copy, new ApiError("validation", { missing, photo: photo ?? "" })));
+    if (missing.length || tooLong.length || photo) {
+      setStatusError(problemText(copy, new ApiError("validation", { missing, tooLong, photo: photo ?? "" })));
       return;
     }
     const body = new FormData();
@@ -569,10 +574,10 @@ export function DeviceDetail({ copy, lang, brand, states, user, id, onNavigate, 
           <section className="panel">
             <div className="panel-head">
               <div className="panel-title">
-                <h2>{copy.device}</h2>
+                <h2>{copy.conditionNote}</h2>
               </div>
             </div>
-            {device.note ? <p className="notes">{device.note}</p> : <p className="muted">{copy.device}</p>}
+            {device.note ? <p className="notes">{device.note}</p> : <p className="muted">{copy.conditionNote}</p>}
             <PhotoRow copy={copy} deviceId={device.id} photos={device.photos} onUnauthorized={onUnauthorized} />
           </section>
         </aside>

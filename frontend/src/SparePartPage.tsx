@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError, request, type Page, type ServiceState, type SpareMove, type SparePart } from "./api";
 import { wholeQuantity } from "./fields";
 import { formatWhen, statusLabel, statusTone } from "./format";
@@ -26,6 +26,10 @@ export function SparePartPage({ copy, lang, states, id, onNavigate, onUnauthoriz
   const [model, setModel] = useState("");
   const [identityError, setIdentityError] = useState<string | null>(null);
   const [savingIdentity, setSavingIdentity] = useState(false);
+  const copyRef = useRef(copy);
+  copyRef.current = copy;
+  const unauthorizedRef = useRef(onUnauthorized);
+  unauthorizedRef.current = onUnauthorized;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -42,13 +46,13 @@ export function SparePartPage({ copy, lang, states, id, onNavigate, onUnauthoriz
           return;
         }
         if (err instanceof ApiError && err.code === "unauthorized") {
-          onUnauthorized();
+          unauthorizedRef.current();
           return;
         }
-        setError(problemText(copy, err));
+        setError(problemText(copyRef.current, err));
       });
     return () => controller.abort();
-  }, [copy, id, onUnauthorized]);
+  }, [id]);
 
   async function saveIdentity(event: FormEvent) {
     event.preventDefault();

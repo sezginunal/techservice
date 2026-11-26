@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type DragEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { ApiError, request, type ServiceState } from "./api";
 import { statusTone } from "./format";
 import type { Copy, Lang } from "./i18n";
@@ -282,6 +282,30 @@ function StateCard({
     onMoveTo(state.code);
   }
 
+  function pointerDown(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (event.pointerType === "mouse" || event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    onGrab();
+  }
+
+  function pointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+      return;
+    }
+    onSlide(event.clientY);
+  }
+
+  function pointerUp(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+      return;
+    }
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    onRelease();
+  }
+
   return (
     <article
       className={dragging ? "state-card dragging" : state.active ? "state-card" : "state-card off"}
@@ -290,7 +314,18 @@ function StateCard({
       onDragOver={dragOver}
       onDrop={drop}
     >
-      <button className="drag-handle" type="button" draggable aria-label={copy.dragState} onDragStart={dragStart} onDragEnd={onRelease}>
+      <button
+        className="drag-handle"
+        type="button"
+        draggable
+        aria-label={copy.dragState}
+        onDragStart={dragStart}
+        onDragEnd={onRelease}
+        onPointerDown={pointerDown}
+        onPointerMove={pointerMove}
+        onPointerUp={pointerUp}
+        onPointerCancel={pointerUp}
+      >
         <Grip />
       </button>
       <div className="state-body">

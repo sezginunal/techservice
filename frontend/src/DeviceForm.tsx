@@ -7,7 +7,7 @@ import { Icon } from "./icons";
 import { End, usePaused, useWindow } from "./list";
 import { PhotoButton } from "./PhotoView";
 import { emailOk, phoneOk } from "./fields";
-import { fileProblem, maxPhotos, problemText } from "./problems";
+import { fileProblem, maxNoteLen, maxPhotos, problemText } from "./problems";
 
 type LocalFile = { key: string; file: File; url: string };
 type ExistingPhoto = { id: string };
@@ -34,6 +34,10 @@ type Props = {
 export function DeviceForm({ copy, lang, states, mode, deviceId, customerId, onNavigate, onUnauthorized }: Props) {
   const editing = mode === "edit";
   const urls = useRef(new Set<string>());
+  const copyRef = useRef(copy);
+  copyRef.current = copy;
+  const unauthorizedRef = useRef(onUnauthorized);
+  unauthorizedRef.current = onUnauthorized;
   const [ready, setReady] = useState(!editing);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,13 +99,13 @@ export function DeviceForm({ copy, lang, states, mode, deviceId, customerId, onN
           return;
         }
         if (err instanceof ApiError && err.code === "unauthorized") {
-          onUnauthorized();
+          unauthorizedRef.current();
           return;
         }
-        setError(problemText(copy, err));
+        setError(problemText(copyRef.current, err));
       });
     return () => controller.abort();
-  }, [copy, deviceId, editing, onUnauthorized]);
+  }, [deviceId, editing]);
 
   useEffect(() => {
     if (editing || !customerId) {
@@ -115,16 +119,21 @@ export function DeviceForm({ copy, lang, states, mode, deviceId, customerId, onN
           return;
         }
         if (err instanceof ApiError && err.code === "unauthorized") {
-          onUnauthorized();
+          unauthorizedRef.current();
           return;
         }
-        setError(problemText(copy, err));
+        setError(problemText(copyRef.current, err));
       });
     return () => controller.abort();
-  }, [copy, customerId, editing, onUnauthorized]);
+  }, [customerId, editing]);
 
   useEffect(() => {
-    if (selected || !customerQuery) {
+    if (selected) {
+      return;
+    }
+    if (!customerQuery) {
+      setResults([]);
+      setResultsMore(false);
       return;
     }
     const controller = new AbortController();
@@ -139,11 +148,11 @@ export function DeviceForm({ copy, lang, states, mode, deviceId, customerId, onN
           return;
         }
         if (err instanceof ApiError && err.code === "unauthorized") {
-          onUnauthorized();
+          unauthorizedRef.current();
         }
       });
     return () => controller.abort();
-  }, [customerQuery, onUnauthorized, selected]);
+  }, [customerQuery, selected]);
 
   const [pausedIdentity] = usePaused(`${brand}\n${model}\n${serial}`);
   const lookupKey = pausedIdentity.split("\n").every((part) => part.trim()) ? pausedIdentity : "";
@@ -218,9 +227,16 @@ export function DeviceForm({ copy, lang, states, mode, deviceId, customerId, onN
         invalid.push("email");
       }
     }
+    const tooLong: string[] = [];
+    if ([...note.trim()].length > maxNoteLen) {
+      tooLong.push("note");
+    }
     parts.forEach((part, index) => {
       if (!part.name.trim()) {
         missing.push(`parts.${index}.name`);
+      }
+      if ([...part.note.trim()].length > maxNoteLen) {
+        tooLong.push(`parts.${index}.note`);
       }
     });
     const locals = [...deviceFiles, ...parts.flatMap((part) => part.files)];
@@ -235,8 +251,8 @@ export function DeviceForm({ copy, lang, states, mode, deviceId, customerId, onN
     if (photoCount() > maxPhotos) {
       photo = "limit";
     }
-    if (missing.length || invalid.length || photo) {
-      setError(problemText(copy, new ApiError("validation", { missing, invalid, photo })));
+    if (missing.length || invalid.length || tooLong.length || photo) {
+      setError(problemText(copy, new ApiError("validation", { missing, invalid, tooLong, photo })));
       return;
     }
 
@@ -683,7 +699,7 @@ function PhotoFields({
         ))}
         <label className="photo-add">
           <Icon name="imagePlus" size={18} />
-          <span>{copy.photos}</span>
+          <span>{copy.addPhotos}</span>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"

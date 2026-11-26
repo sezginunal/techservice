@@ -185,7 +185,7 @@ func ListUsers(ctx context.Context, database *sql.DB) ([]User, error) {
 
 func CreateUser(ctx context.Context, database *sql.DB, actor User, username string, password string, role string) (User, error) {
 	username = strings.TrimSpace(username)
-	if username == "" || len(username) > 64 {
+	if username == "" || len([]rune(username)) > 64 {
 		return User{}, ErrInvalidCredentials
 	}
 	if !validRole(role) {
@@ -348,9 +348,9 @@ func insertUser(ctx context.Context, database queryer, username string, password
 		return 0, fmt.Errorf("hash password: %w", err)
 	}
 	result, err := database.ExecContext(ctx, `
-		INSERT INTO users (username, password_hash, role, active, created_at)
-		VALUES (?, ?, ?, 1, ?)
-	`, username, string(hashed), role, time.Now().UTC().Format(time.RFC3339Nano))
+		INSERT INTO users (username, password_hash, role, active, created_at, username_fold)
+		VALUES (?, ?, ?, 1, ?, ?)
+	`, username, string(hashed), role, time.Now().UTC().Format(time.RFC3339Nano), fold(username))
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE") {
 			return 0, ErrUsernameTaken
@@ -391,17 +391,18 @@ func findUser(ctx context.Context, database *sql.DB, username string) (User, str
 	err := database.QueryRowContext(ctx, `
 		SELECT id, username, role, active, password_hash
 		FROM users
-		WHERE username = ?
-	`, username).Scan(&user.ID, &user.Username, &user.Role, &active, &hash)
+		WHERE username_fold = ?
+	`, fold(username)).Scan(&user.ID, &user.Username, &user.Role, &active, &hash)
 	user.Active = active == 1
 	return user, hash, err
 }
 
 func validatePassword(password string) error {
-	if len(password) < minPassword {
+	chars := len([]rune(password))
+	if chars < minPassword {
 		return ErrPasswordTooShort
 	}
-	if len(password) > maxPassword {
+	if chars > maxPassword || len(password) > maxPassword {
 		return ErrPasswordTooLong
 	}
 	return nil

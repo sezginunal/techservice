@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"log"
@@ -206,12 +207,18 @@ func exportSpareParts(database *sql.DB) http.HandlerFunc {
 }
 
 func writeExcel(w http.ResponseWriter, fileName, sheet string, rows [][]string) {
+	var body bytes.Buffer
+	if err := xlsx.Write(&body, sheet, rows); err != nil {
+		log.Printf("excel export: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal")
+		return
+	}
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.xlsx"`, fileName))
 	w.Header().Set("Cache-Control", "no-store")
-	w.WriteHeader(http.StatusOK)
-	if err := xlsx.Write(w, sheet, rows); err != nil {
-		log.Printf("excel export: %v", err)
+	w.Header().Set("Content-Length", strconv.Itoa(body.Len()))
+	if _, err := w.Write(body.Bytes()); err != nil {
+		log.Printf("excel export write: %v", err)
 	}
 }
 

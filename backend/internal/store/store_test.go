@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -67,6 +68,49 @@ func TestPasswordAndLastAdmin(t *testing.T) {
 	role := RoleTechnician
 	if _, err := UpdateUser(ctx, database, admin.User, admin.User.ID, UserPatch{Role: &role}); !errors.Is(err, ErrLastAdmin) {
 		t.Fatalf("last admin: %v", err)
+	}
+}
+
+func TestTurkishUsernameFold(t *testing.T) {
+	ctx := context.Background()
+	database := openTestDB(t)
+	if err := EnsureAdmin(ctx, database, "admin", "admin1234"); err != nil {
+		t.Fatal(err)
+	}
+	admin, err := Login(ctx, database, "ADMIN", "admin1234")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := CreateUser(ctx, database, admin.User, "Şahin", "technician1", RoleTechnician); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := CreateUser(ctx, database, admin.User, "sahin", "technician1", RoleTechnician); !errors.Is(err, ErrUsernameTaken) {
+		t.Fatalf("folded username: %v", err)
+	}
+	if _, err := CreateUser(ctx, database, admin.User, "İsa", "technician1", RoleTechnician); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := CreateUser(ctx, database, admin.User, "isa", "technician1", RoleTechnician); !errors.Is(err, ErrUsernameTaken) {
+		t.Fatalf("dotted i username: %v", err)
+	}
+	session, err := Login(ctx, database, "şahin", "technician1")
+	if err != nil {
+		t.Fatalf("login folded username: %v", err)
+	}
+	if session.User.Username != "Şahin" {
+		t.Fatalf("stored username %q", session.User.Username)
+	}
+	if _, err := CreateUser(ctx, database, admin.User, strings.Repeat("ş", 33), "technician1", RoleTechnician); err != nil {
+		t.Fatalf("33-letter username: %v", err)
+	}
+	if _, err := CreateUser(ctx, database, admin.User, strings.Repeat("ş", 65), "technician1", RoleTechnician); !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("65-letter username: %v", err)
+	}
+	if _, err := CreateUser(ctx, database, admin.User, "euro", strings.Repeat("€", 40), RoleTechnician); !errors.Is(err, ErrPasswordTooLong) {
+		t.Fatalf("long password bytes: %v", err)
+	}
+	if _, err := CreateUser(ctx, database, admin.User, "okpass", strings.Repeat("a", 72), RoleTechnician); err != nil {
+		t.Fatalf("72 ascii password: %v", err)
 	}
 }
 

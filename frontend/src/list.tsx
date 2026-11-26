@@ -78,7 +78,6 @@ export function useWindow<T>(
           return;
         }
         setError(err);
-        setHasMore(false);
       })
       .finally(() => {
         if (!controller.signal.aborted) {

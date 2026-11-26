@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError, request, type Customer, type DeviceItem, type Page, type ServiceState } from "./api";
 import { ModelIcon } from "./ModelIcon";
 import { formatWhen, statusLabel, statusTone } from "./format";
@@ -25,6 +25,10 @@ export function CustomerDetail({ copy, lang, states, id, onNavigate, onUnauthori
   const [address, setAddress] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const copyRef = useRef(copy);
+  copyRef.current = copy;
+  const unauthorizedRef = useRef(onUnauthorized);
+  unauthorizedRef.current = onUnauthorized;
   const devices = useWindow(id, (after: DeviceItem | null, signal) => {
     const params = new URLSearchParams({ customerId: id });
     if (after) {
@@ -49,13 +53,13 @@ export function CustomerDetail({ copy, lang, states, id, onNavigate, onUnauthori
           return;
         }
         if (err instanceof ApiError && err.code === "unauthorized") {
-          onUnauthorized();
+          unauthorizedRef.current();
           return;
         }
-        setError(problemText(copy, err));
+        setError(problemText(copyRef.current, err));
       });
     return () => controller.abort();
-  }, [copy, id, onUnauthorized]);
+  }, [id]);
 
   useEffect(() => {
     if (devices.error instanceof ApiError && devices.error.code === "unauthorized") {
