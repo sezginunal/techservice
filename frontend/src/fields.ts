@@ -43,7 +43,8 @@ export function emailOk(value: string) {
 
 export function usernameOk(value: string) {
   const name = value.trim();
-  return name.length > 0 && name.length <= 64;
+  const chars = [...name].length;
+  return chars > 0 && chars <= 64;
 }
 
 export function wholeQuantity(value: string, min: number, max: number) {
@@ -62,10 +63,11 @@ export function wholeQuantity(value: string, min: number, max: number) {
 }
 
 export function passwordProblem(value: string) {
-  if (value.length < 8) {
+  const chars = [...value].length;
+  if (chars < 8) {
     return "short" as const;
   }
-  if (value.length > 72) {
+  if (chars > 72 || new TextEncoder().encode(value).length > 72) {
     return "long" as const;
   }
   return null;

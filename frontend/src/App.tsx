@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { logoSrc, request, type Brand, type ServiceState, type Shop, type User } from "./api";
 import { Audit } from "./Audit";
 import { CustomerDetail } from "./CustomerDetail";
@@ -22,10 +22,12 @@ export function App() {
   const [lang, setLang] = useState<Lang>(stored ?? "en");
   const [user, setUser] = useState<User | null>(null);
   const [states, setStates] = useState<ServiceState[]>([]);
+  const [statesReady, setStatesReady] = useState(false);
   const [brand, setBrand] = useState<Brand>({ name: "", logo: false });
   const [ready, setReady] = useState(false);
   const [langReady, setLangReady] = useState(stored !== null);
   const [location, setLocation] = useState(() => window.location.pathname + window.location.search);
+  const unauthorized = useCallback(() => setUser(null), []);
 
   const copy = text(lang);
   const url = new URL(location, window.location.origin);
@@ -67,9 +69,11 @@ export function App() {
   useEffect(() => {
     if (!user) {
       setStates([]);
+      setStatesReady(false);
       return;
     }
     const controller = new AbortController();
+    setStatesReady(false);
     request<ServiceState[]>("/api/states", { signal: controller.signal })
       .then((items) => {
         if (!controller.signal.aborted) {
@@ -82,6 +86,11 @@ export function App() {
         }
         if (!controller.signal.aborted) {
           setStates([]);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setStatesReady(true);
         }
       });
     return () => controller.abort();
@@ -155,6 +164,15 @@ export function App() {
     return <Login copy={copy} lang={lang} brand={brand} onLang={changeLang} onSuccess={setUser} />;
   }
 
+  if (!statesReady) {
+    return (
+      <main className="auth-loading">
+        <span className="spinner" aria-hidden="true" />
+        <p>{copy.checking}</p>
+      </main>
+    );
+  }
+
   const items: NavItem[] = [
     { path: "/", label: copy.home, icon: "home" },
     { path: "/services", label: copy.devices, icon: "services" },
@@ -170,7 +188,6 @@ export function App() {
     items.push({ path: "/users", label: copy.users, icon: "users" });
   }
 
-  const unauthorized = () => setUser(null);
   const serviceEdit = path.match(/^\/services\/([0-9a-f-]{36})\/edit$/);
   const service = path.match(/^\/services\/([0-9a-f-]{36})$/);
   const device = path.match(/^\/devices\/([0-9a-f-]{36})$/);

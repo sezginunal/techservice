@@ -4,6 +4,7 @@ import { messageFor } from "./Login";
 
 const maxPhotoBytes = 8 * 1024 * 1024;
 export const maxPhotos = 30;
+export const maxNoteLen = 4000;
 
 export function fileProblem(file: File): "type" | "size" | null {
   const allowed =

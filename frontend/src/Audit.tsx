@@ -28,6 +28,8 @@ const eventIds = [
   "stock.written_off",
   "spare_part.used",
   "spare_part.returned",
+  "model.added",
+  "model.updated",
 ] as const;
 
 type Props = {
