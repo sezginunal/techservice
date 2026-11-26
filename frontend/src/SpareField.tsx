@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ApiError, request } from "./api";
+import { fold } from "./fold";
 import { usePaused } from "./list";
 
 type Props = {
@@ -28,8 +29,8 @@ export function SpareField({ id, label, value, onChange, brand, onUnauthorized }
   const [box, setBox] = useState<Box | null>(null);
   const [paused] = usePaused(value);
   const [pausedBrand] = usePaused(brand ?? "");
-  const query = value.trim().toLocaleLowerCase("tr");
-  const shown = options.filter((name) => name.toLocaleLowerCase("tr").includes(query));
+  const query = fold(value);
+  const shown = options.filter((name) => fold(name).includes(query));
   const index = shown.length === 0 ? 0 : Math.min(active, shown.length - 1);
   const listId = `${id}-list`;
 
